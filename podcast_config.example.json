@@ -1,0 +1,10 @@
+{
+  "api_key": "你的 DeepSeek API Key",
+  "feishu_app_id": "你的飞书应用 App ID",
+  "feishu_app_secret": "你的飞书应用 App Secret",
+  "language": "auto",
+  "feishu_chat_id": "你的飞书群聊 Chat ID",
+  "obsidian_dir": "你的 Obsidian 笔记目录路径",
+  "audio_dir": "",
+  "category_config_path": ""
+}
