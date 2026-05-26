@@ -7,6 +7,7 @@ export interface PodcastConfig {
   obsidian_dir: string
   audio_dir: string
   category_config_path: string
+  whisper_exe_path: string
 }
 
 export interface FeishuState {

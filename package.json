@@ -5,8 +5,10 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "vite-build": "node \"node_modules/vite/bin/vite.js\" build",
+    "dev": "node \"node_modules/vite/bin/vite.js\"",
     "build": "node \"node_modules/vite/bin/vite.js\" build && node \"node_modules/electron-builder/out/cli/cli.js\" --win",
     "build:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-test-package.ps1",
+    "build:setup": "node \"node_modules/vite/bin/vite.js\" build && node \"node_modules/electron-builder/out/cli/cli.js\" --win --config.directories.output=dist-exe",
     "deploy:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy-test-build.ps1",
     "refresh:test": "npm run build:test && npm run deploy:test",
     "start": "node \"node_modules/electron/dist/electron.js\" .",
