@@ -8,6 +8,7 @@ export interface PodcastConfig {
   audio_dir: string
   category_config_path: string
   whisper_exe_path: string
+  whisper_model: string
 }
 
 export interface FeishuState {
