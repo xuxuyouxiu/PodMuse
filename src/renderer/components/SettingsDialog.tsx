@@ -19,6 +19,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
   const [form, setForm] = useState<PodcastConfig>({ ...config })
   const [migrating, setMigrating] = useState(false)
   const [migrateResult, setMigrateResult] = useState<MigrateResult | null>(null)
+  const [models, setModels] = useState<Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }> | null>(null)
+  const [scanningModels, setScanningModels] = useState(false)
+  const [modelScanStatus, setModelScanStatus] = useState<string | null>(null)
+  const [hardwareWarn, setHardwareWarn] = useState<{ pass: boolean; warning: string | null } | null>(null)
 
   async function handleMigrate() {
     setMigrating(true)
@@ -33,11 +37,41 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     }
   }
 
+  async function handleScanModels() {
+    setScanningModels(true)
+    setModelScanStatus('扫描中…')
+    try {
+      const result = await window.electronAPI.scanWhisperModels()
+      setModels(result)
+      const downloadedCount = result.filter(m => m.downloaded).length
+      setModelScanStatus(`找到 ${result.length} 个标准模型，本地已下载 ${downloadedCount} 个`)
+    } catch (e: any) {
+      setModelScanStatus(`扫描失败: ${e.message}`)
+    } finally {
+      setScanningModels(false)
+    }
+  }
+
+  async function handleModelChange(modelId: string) {
+    update('whisper_model', modelId)
+    try {
+      const result = await window.electronAPI.checkWhisperHardware(modelId)
+      setHardwareWarn(result)
+    } catch {
+      setHardwareWarn(null)
+    }
+  }
+
   function update(key: keyof PodcastConfig, value: string) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  async function handleBrowse(key: 'obsidian_dir' | 'audio_dir') {
+  async function handleBrowse(key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') {
+    if (key === 'whisper_exe_path') {
+      const result = await window.electronAPI.selectFile?.()
+      if (result) update(key, result)
+      return
+    }
     const dir = await window.electronAPI.selectDir()
     if (dir) update(key, dir)
   }
@@ -168,6 +202,85 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               )}
             </div>
           </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <div className="settings-section-title">音频识别模型设置</div>
+            <div className="settings-section-copy">选择 Whisper 模型版本。首次使用需从下方链接下载模型文件到本地。</div>
+          </div>
+          <div className="settings-grid">
+            <div className="settings-field">
+              <div className="settings-field-label">模型选择</div>
+              <div className="settings-dir-row">
+                <select
+                  value={form.whisper_model}
+                  onChange={e => handleModelChange(e.target.value)}
+                  className="settings-input"
+                  style={{ flex: 1, outline: 'none', cursor: 'pointer' }}
+                >
+                  {(models || []).length > 0 ? models.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.label} ({m.size}){m.downloaded ? ' ✓ 已下载' : ''}
+                    </option>
+                  )) : (
+                    <>
+                      <option value="tiny">Tiny (~1 GB)</option>
+                      <option value="base">Base (~1 GB)</option>
+                      <option value="small">Small (~2 GB)</option>
+                      <option value="medium">Medium (~5 GB)</option>
+                      <option value="large-v3">Large v3 (~10 GB)</option>
+                      <option value="large-v3-turbo">Large v3 Turbo (~6 GB)</option>
+                    </>
+                  )}
+                </select>
+                <button
+                  onClick={handleScanModels}
+                  disabled={scanningModels}
+                  className="settings-browse-button"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {scanningModels ? '…' : '刷新'}
+                </button>
+              </div>
+              {modelScanStatus && (
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{modelScanStatus}</div>
+              )}
+            </div>
+
+            <DirField label="Whisper 可执行文件路径" value={form.whisper_exe_path} placeholder="选择 whisper 可执行文件" onBrowse={() => handleBrowse('whisper_exe_path')} />
+
+            <div className="settings-field">
+              <div className="settings-field-label">下载模型</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                模型文件需放置在上述 Whisper 可执行文件同目录下的 models 文件夹中。
+                <br />
+                <a
+                  href="https://github.com/Purfview/whisper-standalone-win/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                >
+                  🔗 GitHub 下载 faster-whisper-xxl 模型
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {hardwareWarn && hardwareWarn.warning && (
+            <div
+              style={{
+                marginTop: 8, padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                fontSize: 12, lineHeight: 1.5,
+                background: hardwareWarn.pass ? 'rgba(255,193,7,0.1)' : 'rgba(244,67,54,0.1)',
+                border: `1px solid ${hardwareWarn.pass ? 'rgba(255,193,7,0.3)' : 'rgba(244,67,54,0.3)'}`,
+                color: hardwareWarn.pass ? 'var(--text-secondary)' : 'var(--error)',
+              }}
+            >
+              {hardwareWarn.pass ? '⚠ ' : '✖ '}
+              {hardwareWarn.warning}
+            </div>
+          )}
         </section>
 
         <div className="settings-actions">

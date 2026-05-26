@@ -5,6 +5,7 @@ import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
 import { fetchPodcastTitle } from './podcast'
 import { migrateExistingNotes } from './obsidian-categories'
+import { scanLocalModels, checkHardware } from './whisper-model-manager'
 import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, getRecentTasks, removeRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
 
@@ -197,9 +198,26 @@ function setupIPC() {
     return result.canceled ? null : result.filePaths[0] || null
   })
 
+  ipcMain.handle('dialog:selectFile', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: '可执行文件', extensions: ['exe', 'bat', 'cmd'] }],
+    })
+    return result.canceled ? null : result.filePaths[0] || null
+  })
+
   ipcMain.handle('obsidian:migrateNotes', async () => {
     const config = loadConfig()
     return migrateExistingNotes(config.obsidian_dir, config.category_config_path)
+  })
+
+  ipcMain.handle('whisper:scanModels', () => {
+    return scanLocalModels()
+  })
+
+  ipcMain.handle('whisper:checkHardware', (_e, modelId: string) => {
+    return checkHardware(modelId)
   })
 
   ipcMain.handle('window:minimize', () => mainWindow?.minimize())

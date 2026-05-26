@@ -30,7 +30,10 @@ try {
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
+    selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
     migrateObsidianNotes: () => ipcRenderer.invoke('obsidian:migrateNotes'),
+    scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
+    checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
 
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),

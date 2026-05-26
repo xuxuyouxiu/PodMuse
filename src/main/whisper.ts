@@ -10,8 +10,6 @@ import {
   WhisperProgressPhase,
 } from './whisper-progress'
 
-const WHISPER_MODEL = 'large-v3-turbo'
-
 export function runWhisper(
   audioPath: string,
   language: string = 'zh',
@@ -22,6 +20,7 @@ export function runWhisper(
   const log = (m: string) => { logFunc?.(m); console.log(m) }
   const cfg = loadConfig()
   const WHISPER_EXE = cfg.whisper_exe_path
+  const WHISPER_MODEL = cfg.whisper_model
 
   return new Promise((resolve) => {
     let settled = false

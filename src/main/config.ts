@@ -1,62 +1,96 @@
 import * as path from 'path'
 import * as fs from 'fs'
+import { app } from 'electron'
 import { PodcastConfig, FeishuState } from '@shared/types'
 
-function findConfigPath(): string {
+function findShippedConfigPath(): string {
   const isProd = !!(process as any).resourcesPath
-
   if (isProd) {
     const resourcesPath = (process as any).resourcesPath as string
     const inResources = path.join(resourcesPath, 'podcast_config.json')
     if (fs.existsSync(inResources)) return inResources
   }
-
   const exeDir = path.dirname(process.execPath)
   const nextToExe = path.join(exeDir, 'podcast_config.json')
   if (fs.existsSync(nextToExe)) return nextToExe
-
   const cwdPath = path.join(process.cwd(), 'podcast_config.json')
   if (fs.existsSync(cwdPath)) return cwdPath
-
-  return nextToExe
+  return ''
 }
 
-function findStatePath(): string {
-  const configDir = path.dirname(findConfigPath())
-  return path.join(configDir, 'feishu_state.json')
+let _userDataDir: string | null = null
+
+function getUserDataDir(): string {
+  if (!_userDataDir) {
+    try {
+      _userDataDir = app.getPath('userData')
+    } catch {
+      _userDataDir = path.join(process.env.APPDATA || process.cwd(), '播客笔记助手')
+    }
+  }
+  return _userDataDir
 }
 
-let _configPath: string | null = null
-let _statePath: string | null = null
+function getUserConfigPath(): string {
+  return path.join(getUserDataDir(), 'podcast_config.json')
+}
 
-function getConfigPath() { if (!_configPath) _configPath = findConfigPath(); return _configPath }
-function getStatePath() { if (!_statePath) _statePath = findStatePath(); return _statePath }
+function getUserStatePath(): string {
+  return path.join(getUserDataDir(), 'feishu_state.json')
+}
 
 const DEFAULTS: PodcastConfig = {
   api_key: '', feishu_app_id: '', feishu_app_secret: '',
   language: 'auto', feishu_chat_id: '',
-  obsidian_dir: 'D:\\Obsidian\\播客笔记',
+  obsidian_dir: 'G:\\xuxuya_Notes\\小宇宙播客',
   audio_dir: '',
   category_config_path: '',
   whisper_exe_path: 'D:\\Tools\\Faster-Whisper-XXL\\faster-whisper-xxl.exe',
+  whisper_model: 'large-v3-turbo',
+}
+
+function loadShippedConfig(): PodcastConfig | null {
+  try {
+    const p = findShippedConfigPath()
+    if (p && fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf-8'))
+    }
+  } catch {}
+  return null
 }
 
 export function loadConfig(): PodcastConfig {
+  // 1. 优先加载用户配置文件（已持久化的用户设置）
   try {
-    const p = getConfigPath()
-    if (fs.existsSync(p)) {
-      const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
+    const userPath = getUserConfigPath()
+    if (fs.existsSync(userPath)) {
+      const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       return { ...DEFAULTS, ...data }
     }
-  } catch (e) {
-    console.error('Config load error:', e)
+  } catch {}
+
+  // 2. 用户配置不存在时，尝试加载打包自带的配置文件
+  const shipped = loadShippedConfig()
+  if (shipped) {
+    // 首次启动：将打包配置迁移到用户目录，后续修改不会影响打包文件
+    try {
+      const userPath = getUserConfigPath()
+      const dir = path.dirname(userPath)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(userPath, JSON.stringify(shipped, null, 2), 'utf-8')
+    } catch {}
+    return { ...DEFAULTS, ...shipped }
   }
+
   return { ...DEFAULTS }
 }
 
 export function saveConfig(config: PodcastConfig) {
   try {
-    fs.writeFileSync(getConfigPath(), JSON.stringify(config, null, 2), 'utf-8')
+    const p = getUserConfigPath()
+    const dir = path.dirname(p)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8')
   } catch (e) {
     console.error('Config save error:', e)
   }
@@ -64,7 +98,7 @@ export function saveConfig(config: PodcastConfig) {
 
 export function loadState(): FeishuState {
   try {
-    const p = getStatePath()
+    const p = getUserStatePath()
     if (fs.existsSync(p)) {
       const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
       return {
@@ -80,6 +114,9 @@ export function loadState(): FeishuState {
 
 export function saveState(state: FeishuState) {
   try {
-    fs.writeFileSync(getStatePath(), JSON.stringify(state, null, 2), 'utf-8')
+    const p = getUserStatePath()
+    const dir = path.dirname(p)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(state, null, 2), 'utf-8')
   } catch {}
 }
