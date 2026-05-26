@@ -63,7 +63,7 @@ Obsidian 目录（自动分类归档）
 ### 前置依赖
 
 - **Node.js** >= 18
-- **Faster-Whisper-XXL** — 本地安装，用于语音转文字
+- **Faster-Whisper-XXL** — 本地安装，用于语音转文字（[下载地址](https://github.com/Purfview/whisper-standalone-win/releases)），模型 `large-v3-turbo` 首次运行时会自动下载
 - **DeepSeek API Key** — 用于 AI 校对和笔记生成
 - **Obsidian** — 笔记归档目标
 - **飞书应用**（可选）— 用于群聊消息触发
@@ -217,7 +217,7 @@ Obsidian Directory (auto-categorized)
 ### Prerequisites
 
 - **Node.js** >= 18
-- **Faster-Whisper-XXL** — locally installed for speech-to-text
+- **Faster-Whisper-XXL** — locally installed for speech-to-text ([Download](https://github.com/Purfview/whisper-standalone-win/releases)), the `large-v3-turbo` model will be auto-downloaded on first run
 - **DeepSeek API Key** — for AI proofreading and note generation
 - **Obsidian** — target for note archiving
 - **Feishu App** (optional) — for group chat message triggering
