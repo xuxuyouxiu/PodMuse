@@ -1,0 +1,26 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-electron/
+dist-exe/
+dist-exe-temp/
+dist-exe-temp-extract/
+
+# 隐私配置（含 API Key、密钥、个人路径）
+podcast_config.json
+feishu_state.json
+
+# 内部开发笔记（不适宜公开）
+.trae/
+
+# 图片资源（如果有版权问题的素材）
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# 操作系统无关文件
+.DS_Store
+Thumbs.db

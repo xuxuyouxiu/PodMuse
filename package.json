@@ -1,0 +1,29 @@
+{
+  "name": "podcast-notes",
+  "version": "3.0.0",
+  "description": "播客笔记助手 - 小宇宙链接自动下载、AI提炼、写入Obsidian",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "vite-build": "node \"node_modules/vite/bin/vite.js\" build",
+    "build": "node \"node_modules/vite/bin/vite.js\" build && node \"node_modules/electron-builder/out/cli/cli.js\" --win",
+    "build:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-test-package.ps1",
+    "deploy:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy-test-build.ps1",
+    "refresh:test": "npm run build:test && npm run deploy:test",
+    "start": "node \"node_modules/electron/dist/electron.js\" .",
+    "preview": "node \"node_modules/vite/bin/vite.js\" preview"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "framer-motion": "^11.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vite-plugin-electron": "^0.28.0",
+    "vite-plugin-electron-renderer": "^0.14.0"
+  }
+}

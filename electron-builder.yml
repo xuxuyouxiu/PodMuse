@@ -1,0 +1,22 @@
+appId: com.podcastnotes.app
+productName: 播客笔记助手
+directories:
+  output: dist-exe
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - podcast_config.json
+  - feishu_state.json
+extraResources:
+  - from: podcast_config.json
+    to: podcast_config.json
+  - from: obsidian_templates
+    to: obsidian_templates
+win:
+  target: nsis
+  icon: null
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  artifactName: 播客笔记助手-Setup-${version}.${ext}
