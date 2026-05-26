@@ -38,6 +38,7 @@ const DEFAULTS: PodcastConfig = {
   obsidian_dir: 'D:\\Obsidian\\播客笔记',
   audio_dir: '',
   category_config_path: '',
+  whisper_exe_path: 'D:\\Tools\\Faster-Whisper-XXL\\faster-whisper-xxl.exe',
 }
 
 export function loadConfig(): PodcastConfig {

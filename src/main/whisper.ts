@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
+import { loadConfig } from './config'
 import {
   formatWhisperProgress,
   parseWhisperPercent,
@@ -9,7 +10,6 @@ import {
   WhisperProgressPhase,
 } from './whisper-progress'
 
-const WHISPER_EXE = 'D:\\Tools\\Faster-Whisper-XXL\\faster-whisper-xxl.exe'
 const WHISPER_MODEL = 'large-v3-turbo'
 
 export function runWhisper(
@@ -20,6 +20,8 @@ export function runWhisper(
   signal?: AbortSignal,
 ): Promise<string | null> {
   const log = (m: string) => { logFunc?.(m); console.log(m) }
+  const cfg = loadConfig()
+  const WHISPER_EXE = cfg.whisper_exe_path
 
   return new Promise((resolve) => {
     let settled = false

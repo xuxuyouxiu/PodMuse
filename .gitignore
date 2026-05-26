@@ -7,6 +7,10 @@ dist-electron/
 dist-exe/
 dist-exe-temp/
 dist-exe-temp-extract/
+dist-setup/
+
+# 构建临时文件
+.refresh-test-build-path
 
 # 隐私配置（含 API Key、密钥、个人路径）
 podcast_config.json

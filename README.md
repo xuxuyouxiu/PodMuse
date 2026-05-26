@@ -89,15 +89,18 @@ npm install
   "feishu_chat_id": "你的飞书群聊 Chat ID（可选）",
   "obsidian_dir": "你的 Obsidian 笔记目录路径",
   "audio_dir": "",
-  "category_config_path": ""
+  "category_config_path": "",
+  "whisper_exe_path": "你的 Faster-Whisper-XXL 可执行文件路径"
 }
 ```
 
 ### 开发模式
 
 ```bash
-npm start
+npm run dev
 ```
+
+Vite 会自动编译 TypeScript 并启动 Electron 窗口。
 
 ### 构建安装包
 
@@ -148,7 +151,7 @@ podcast-notes/
 ## ⚠️ 注意事项
 
 - **配置文件** `podcast_config.json` 包含 API 密钥等敏感信息，请勿提交到公开仓库（已在 `.gitignore` 中忽略）
-- Whisper 可执行文件路径需要在 `src/main/whisper.ts` 中根据你的实际安装位置修改
+- Whisper 可执行文件路径在 `podcast_config.json` 的 `whisper_exe_path` 字段中配置，无需修改源码
 - 飞书功能为可选项，不配置飞书凭证也能正常使用手动输入处理
 
 ## 📄 许可
@@ -240,15 +243,18 @@ Create `podcast_config.json` in the project root (see `podcast_config.example.js
   "feishu_chat_id": "your Feishu Chat ID (optional)",
   "obsidian_dir": "path to your Obsidian notes directory",
   "audio_dir": "",
-  "category_config_path": ""
+  "category_config_path": "",
+  "whisper_exe_path": "path to your Faster-Whisper-XXL executable"
 }
 ```
 
 ### Development
 
 ```bash
-npm start
+npm run dev
 ```
+
+Vite will automatically compile TypeScript and launch the Electron window.
 
 ### Build Installer
 
