@@ -55,13 +55,13 @@ npm start
 ```json
 {
   "api_key": "你的 DeepSeek API Key",
-  "feishu_app_id": "飞书应用 App ID",
-  "feishu_app_secret": "飞书应用 App Secret",
+  "feishu_app_id": "你的飞书应用 App ID",
+  "feishu_app_secret": "你的飞书应用 App Secret",
   "language": "auto",
-  "feishu_chat_id": "飞书群聊 Chat ID",
-  "obsidian_dir": "G:\\Notes\\Podcast",
+  "feishu_chat_id": "你的飞书群聊 Chat ID",
+  "obsidian_dir": "你的 Obsidian 笔记目录路径",
   "audio_dir": "",
-  "whisper_exe_path": "D:\\Tools\\faster-whisper-xxl.exe",
+  "whisper_exe_path": "你的 Faster-Whisper-XXL 可执行文件路径",
   "whisper_model": "large-v3-turbo"
 }
 ```
