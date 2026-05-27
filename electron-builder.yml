@@ -5,10 +5,8 @@ directories:
 files:
   - dist/**/*
   - dist-electron/**/*
-  - podcast_config.json
-  - feishu_state.json
 extraResources:
-  - from: podcast_config.json
+  - from: podcast_config.example.json
     to: podcast_config.json
   - from: obsidian_templates
     to: obsidian_templates
