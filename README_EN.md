@@ -59,9 +59,9 @@ npm start
   "feishu_app_secret": "Your Lark App Secret",
   "language": "auto",
   "feishu_chat_id": "Your Lark Chat ID",
-  "obsidian_dir": "G:\\Notes\\Podcast",
+  "obsidian_dir": "Your Obsidian vault path",
   "audio_dir": "",
-  "whisper_exe_path": "D:\\Tools\\faster-whisper-xxl.exe",
+  "whisper_exe_path": "Your Faster-Whisper-XXL executable path",
   "whisper_model": "large-v3-turbo"
 }
 ```
