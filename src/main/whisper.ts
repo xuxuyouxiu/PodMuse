@@ -5,10 +5,14 @@ import { loadConfig } from './config'
 import {
   formatWhisperProgress,
   parseWhisperPercent,
-  isWhisperTranscriptActivity,
-  WhisperProgressDisplay,
-  WhisperProgressPhase,
+  extractTimestampEndSec,
+  getAudioDurationSec,
+  type WhisperProgressDisplay,
+  type WhisperProgressPhase,
 } from './whisper-progress'
+
+const PROGRESS_THROTTLE_MS = 200
+const TICK_INTERVAL_MS = 600
 
 export function runWhisper(
   audioPath: string,
@@ -24,12 +28,16 @@ export function runWhisper(
 
   return new Promise((resolve) => {
     let settled = false
+    let _onAbort: (() => void) | null = null
+
     const finish = (value: string | null) => {
       if (settled) return
       settled = true
-      signal?.removeEventListener('abort', onAbort)
+      if (_onAbort) signal?.removeEventListener('abort', _onAbort)
+      clearTick()
       resolve(value)
     }
+
     if (signal?.aborted) {
       finish(null)
       return
@@ -55,93 +63,159 @@ export function runWhisper(
 
     log(`执行: ${path.basename(WHISPER_EXE)} ${args.join(' ')}`)
 
+    const durationResult = getAudioDurationSec(audioPath)
+    const totalDurationSec = durationResult.duration
+    log(`  ✓ 音频时长约 ${totalDurationSec.toFixed(0)} 秒 (${durationResult.method})`)
+
     const proc = spawn(WHISPER_EXE, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
-    const onAbort = () => {
+    _onAbort = () => {
       proc.kill()
       finish(null)
     }
-    signal?.addEventListener('abort', onAbort, { once: true })
+    signal?.addEventListener('abort', _onAbort, { once: true })
 
     let stderrText = ''
-    let lastPct = -1
-    let lastProgress: number | undefined
     let phase: WhisperProgressPhase = 'preparing'
-    let hasRealProgress = false
-    let hasTranscriptActivity = false
+    let lastProgress = 0
+    let lastEmitProgress = -1
+    let lastEmitTime = 0
+    let hasRealActivity = false
+    let tickHandle: ReturnType<typeof setInterval> | null = null
+    const spawnAt = Date.now()
 
-    const emitStatus = (mode: 'real' | 'estimated', progress?: number, nextPhase: WhisperProgressPhase = phase) => {
-      if (settled || signal?.aborted) return
-      phase = nextPhase
-      if (progress != null) {
-        lastProgress = Math.max(lastProgress ?? 0, progress)
+    const clearTick = () => {
+      if (tickHandle) {
+        clearInterval(tickHandle)
+        tickHandle = null
       }
-      // #region debug-point B:whisper-emit-status
-      ;(()=>{let u='http://127.0.0.1:7777/event',s='whisper-history-bugs';try{const e=fs.readFileSync('.dbg/whisper-history-bugs.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'B',location:'src/main/whisper.ts:emitStatus',msg:'[DEBUG] whisper emitStatus',data:{mode,phase,nextPhase,progress,lastProgress,hasRealProgress,settled},ts:Date.now()})}).catch(()=>{})})()
-      // #endregion
-      progressFunc?.(formatWhisperProgress({ mode, phase, progress: lastProgress }))
     }
 
-    function emitProgress(line: string) {
+    const emit = () => {
       if (settled || signal?.aborted) return
+
+      const now = Date.now()
+      if (now - lastEmitTime < PROGRESS_THROTTLE_MS && lastProgress === lastEmitProgress) return
+
+      lastEmitTime = now
+      lastEmitProgress = lastProgress
+      progressFunc?.(formatWhisperProgress(phase, lastProgress))
+    }
+
+    const advancePhase = (nextPhase: WhisperProgressPhase, progress?: number) => {
+      if (settled || signal?.aborted) return
+      if (nextPhase !== phase) {
+        phase = nextPhase
+        lastEmitProgress = -1
+      }
+      if (progress != null && progress > lastProgress) {
+        lastProgress = progress
+      }
+      emit()
+    }
+
+    const tryParseProgress = (line: string): number | null => {
+      const tsEnd = extractTimestampEndSec(line)
+      if (tsEnd != null && tsEnd > 0) {
+        hasRealActivity = true
+        const pct = (tsEnd / totalDurationSec) * 100
+        return Math.max(0, Math.min(99, Math.round(pct)))
+      }
+
+      const pct = parseWhisperPercent(line)
+      if (pct != null) {
+        hasRealActivity = true
+        return Math.max(0, Math.min(99, pct))
+      }
+
       const trimmed = line.trim()
-      if (!trimmed) return
-      const pct = parseWhisperPercent(trimmed)
-      // #region debug-point A:whisper-raw-line
-      ;(()=>{let u='http://127.0.0.1:7777/event',s='whisper-history-bugs';try{const e=fs.readFileSync('.dbg/whisper-history-bugs.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'A',location:'src/main/whisper.ts:emitProgress',msg:'[DEBUG] whisper raw output line',data:{trimmed:trimmed.slice(0,200),pct,lastPct,hasRealProgress},ts:Date.now()})}).catch(()=>{})})()
-      // #endregion
-      if (pct != null && pct > lastPct) {
-        lastPct = pct
-        hasRealProgress = true
-        emitStatus('real', pct, 'transcribing')
-        return
-      }
-      if (!hasTranscriptActivity && isWhisperTranscriptActivity(trimmed)) {
-        hasTranscriptActivity = true
-        emitStatus('real', undefined, 'transcribing')
-      }
-    }
+      if (!trimmed) return null
 
-    const cleanup = () => {
-      signal?.removeEventListener('abort', onAbort)
-    }
+      if (!hasRealActivity) {
+        const hasContent = trimmed.replace(/^\[\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\s*-->\s*\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\]\s*/, '')
+        if (hasContent && hasContent !== trimmed && hasContent.length > 2) {
+          hasRealActivity = true
+          const elapsed = (Date.now() - spawnAt) / 1000
+          const estPct = Math.min(30, Math.round((elapsed / Math.max(totalDurationSec, 60)) * 30))
+          return Math.max(lastProgress, estPct)
+        }
+      }
 
-    const finishWith = (value: string | null) => {
-      cleanup()
-      finish(value)
+      return null
     }
 
     proc.on('spawn', () => {
-      if (!settled && !signal?.aborted) {
-        emitStatus('estimated', undefined, 'preparing')
-      }
+      if (settled || signal?.aborted) return
+      advancePhase('preparing', 1)
     })
 
+    tickHandle = setInterval(() => {
+      if (settled || signal?.aborted) return
+
+      const elapsed = (Date.now() - spawnAt) / 1000
+
+      if (phase === 'preparing') {
+        if (elapsed > 15) {
+          advancePhase('transcribing', Math.min(5, Math.round(elapsed * 0.3)))
+          return
+        }
+        const estPct = Math.min(5, Math.round(1 + elapsed * 0.3))
+        if (estPct > lastProgress) {
+          lastProgress = estPct
+        }
+        emit()
+      } else if (phase === 'transcribing' && !hasRealActivity) {
+        const estPct = Math.min(15, Math.round(5 + (elapsed - 15) * 0.2))
+        if (estPct > lastProgress) {
+          lastProgress = estPct
+        }
+        emit()
+      } else if (phase === 'transcribing' && hasRealActivity) {
+        const timeSinceSpawn = elapsed
+        if (lastProgress < 5 && timeSinceSpawn > 60) {
+          lastProgress = Math.max(lastProgress, Math.min(10, Math.round(timeSinceSpawn * 0.15)))
+        }
+        emit()
+      }
+    }, TICK_INTERVAL_MS)
+
+    const handleData = (text: string) => {
+      if (settled || signal?.aborted) return
+      const lines = text.split(/[\r\n]+/)
+      for (const line of lines) {
+        if (settled || signal?.aborted) return
+        const progress = tryParseProgress(line)
+        if (progress != null && progress > lastProgress) {
+          lastProgress = progress
+          if (phase === 'preparing') {
+            advancePhase('transcribing', progress)
+          }
+        }
+      }
+      emit()
+    }
+
     proc.stdout.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      text.split(/[\r\n]+/).forEach(emitProgress)
+      handleData(chunk.toString())
     })
 
     proc.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString()
       stderrText += text
-      text.split(/[\r\n]+/).forEach(emitProgress)
+      handleData(text)
     })
 
     proc.on('close', (code) => {
+      clearTick()
       if (settled || signal?.aborted) {
-        finishWith(null)
+        finish(null)
         return
       }
-      if (hasRealProgress) {
-        emitStatus('real', Math.max(lastProgress ?? 0, 100), 'finalizing')
-      } else if (hasTranscriptActivity) {
-        emitStatus('real', undefined, 'finalizing')
-      } else {
-        emitStatus('estimated', undefined, 'finalizing')
-      }
+
+      advancePhase('finalizing', 100)
+
       let allFiles: string[] = []
       try { allFiles = fs.readdirSync(dir) } catch {}
 
@@ -156,8 +230,7 @@ export function runWhisper(
         try {
           const content = fs.readFileSync(f, 'utf-8')
           if (content.length > 100) {
-            emitStatus('real', 100, 'finalizing')
-            finishWith(content)
+            finish(content)
             return
           }
         } catch {}
@@ -169,13 +242,14 @@ export function runWhisper(
         log(`⚠ Whisper exit 0 but no valid txt found in ${dir}. Files: ${allFiles.filter(f => f.endsWith('.txt')).join(', ') || '(none)'}`)
         if (stderrText.trim()) log(`  stderr: ${stderrText.trim().substring(0, 300)}`)
       }
-      finishWith(null)
+      finish(null)
     })
 
     proc.on('error', (err) => {
+      clearTick()
       if (settled) return
       log(`❌ Whisper 启动失败: ${err.message}`)
-      finishWith(null)
+      finish(null)
     })
   })
 }

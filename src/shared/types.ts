@@ -51,3 +51,11 @@ export interface TaskListsPayload {
   activeTasks: RecentTaskState[]
   recentTasks: RecentTaskState[]
 }
+
+export interface RecoveryLogEntry {
+  timestamp: number
+  action: 'recover_orphan' | 'consistency_fix'
+  taskId: string
+  url: string
+  detail: string
+}

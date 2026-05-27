@@ -64,6 +64,22 @@ export function shouldAutoResumeRecentTask(state: FeishuState): boolean {
   return false
 }
 
+export function recoverOrphanedRunningTasks(state: FeishuState): { state: FeishuState; recovered: { id: string; url: string; title: string | null | undefined }[] } {
+  const orphaned = state.activeTasks.filter(t => t.status === 'running')
+  if (orphaned.length === 0) return { state, recovered: [] }
+
+  const recoveredItems = orphaned.map(t => ({ id: t.id, url: t.url, title: t.title }))
+  const updatedState: FeishuState = {
+    ...state,
+    activeTasks: state.activeTasks.filter(t => t.status !== 'running'),
+    recentTasks: normalizeRecentTasks([
+      ...orphaned.map(t => ({ ...t, status: 'stopped' as const, updatedAt: Date.now() })),
+      ...state.recentTasks,
+    ]),
+  }
+  return { state: updatedState, recovered: recoveredItems }
+}
+
 export function getRecentTasks(state: FeishuState): RecentTaskState[] {
   return normalizeRecentTasks([...state.activeTasks, ...state.recentTasks])
 }

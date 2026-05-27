@@ -1,0 +1,12 @@
+dist
+dist-electron
+dist-exe
+dist-exe-temp
+dist-exe-temp-extract
+dist-setup
+dist-personal
+dist-personal-v2
+dist-release
+node_modules
+*.md
+package-lock.json

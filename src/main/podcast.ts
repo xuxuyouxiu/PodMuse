@@ -3,8 +3,8 @@ import * as fs from 'fs'
 import { StepInfo } from '@shared/types'
 import { runWhisper } from './whisper'
 import { correctTranscript, generateNotes } from './deepseek'
-import { loadOrInitCategoryConfig, pickCategoryName, parseTagsFromMarkdown, sanitizePathSegment, resolveUniquePath } from './obsidian-categories'
-import { parseEntityBlocks, writeEntityNotes } from './entity-cards'
+import { pickCategoryName, parseTagsFromMarkdown, sanitizePathSegment, resolveUniquePath, parseCategoryFromMarkdown, resolveBestFolder } from './obsidian-categories'
+import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards } from './entity-cards'
 
 const HEADERS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
 
@@ -206,7 +206,7 @@ export async function processPodcast(
       step: 3,
       title: '语音转文字',
       subtitle: status.subtitle,
-      status: 'running',
+      status: status.phase === 'finalizing' ? 'done' : 'running',
       detail: status.detail,
       progress: status.progress,
     }),
@@ -267,23 +267,43 @@ export async function processPodcast(
   log(`  ✓ 提炼完成 (≈¥${notes.cost.toFixed(4)})`)
 
   const entities = parseEntityBlocks(notes.content)
-  if (entities.people.length || entities.projects.length || entities.concepts.length) {
-    writeEntityNotes({ entities, obsidianDir: obsidianDir, podcastFilename: `${sanitize(title || '未命名播客')}.md` })
-    log(`  🃏 生成实体卡片: ${entities.people.length} 人物, ${entities.projects.length} 项目, ${entities.concepts.length} 概念`)
+  const { entities: patchedEntities, filled: filledTerms } = fillMissingTermCards(notes.content, entities)
+  if (filledTerms > 0) {
+    log(`  ⚠ 检测到 ${filledTerms} 个术语在词典中存在但缺少卡片，已自动补全`)
+  }
+  if (patchedEntities.people.length || patchedEntities.projects.length || patchedEntities.concepts.length || patchedEntities.terms.length) {
+    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsidianDir, podcastFilename: `${sanitize(title || '未命名播客')}.md`, apiKey }, signal)
+    const parts: string[] = []
+    if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
+    if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
+    if (cardResult.conceptsWritten) parts.push(`${cardResult.conceptsWritten} 概念`)
+    if (cardResult.termsWritten) parts.push(`${cardResult.termsWritten} 术语`)
+    if (cardResult.termToConcept) {
+      const searchInfo = cardResult.conceptSearched > 0 ? `（${cardResult.conceptSearched} 个已联网获取定义）` : ''
+      parts.push(`${cardResult.termToConcept} 术语→概念${searchInfo}`)
+    }
+    log(`  🃏 生成实体卡片: ${parts.join(', ')}`)
   }
 
   const obsDir = obsidianDir
   if (!fs.existsSync(obsDir)) fs.mkdirSync(obsDir, { recursive: true })
   const filename = sanitize(title || '未命名播客')
-  const tags = parseTagsFromMarkdown(notes.content)
-  const cfg = loadOrInitCategoryConfig(obsDir)
-  const categoryName = pickCategoryName(tags, cfg)
-  const saveDir = path.join(obsDir, sanitizePathSegment(categoryName))
+
+  const aiCategory = parseCategoryFromMarkdown(notes.content)
+  let categoryFolder: string
+  if (aiCategory) {
+    categoryFolder = resolveBestFolder(obsDir, aiCategory, log)
+  } else {
+    const tags = parseTagsFromMarkdown(notes.content)
+    const cfg = { version: 1 as const, categories: [], rules: [] }
+    categoryFolder = pickCategoryName(tags, cfg, log)
+  }
+  const saveDir = path.join(obsDir, sanitizePathSegment(categoryFolder))
   if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true })
 
   const { destPath: filepath } = resolveUniquePath(saveDir, filename, '.md')
   fs.writeFileSync(filepath, notes.content, 'utf-8')
 
-  log(`  📝 笔记已保存: ${sanitizePathSegment(categoryName)}/${path.basename(filepath)}`)
+  log(`  📝 笔记已保存: ${sanitizePathSegment(categoryFolder)}/${path.basename(filepath)}`)
   return path.basename(filepath)
 }
