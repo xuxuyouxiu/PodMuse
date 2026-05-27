@@ -12,7 +12,7 @@
 
 ### 报告 Bug
 
-1. 在 [Issues](https://github.com/xuxuyouxiu/podcast-notes/issues) 中搜索，确认是否已有相同问题
+1. 在 [Issues](https://github.com/xuxuyouxiu/Podcast_notes/issues) 中搜索，确认是否已有相同问题
 2. 如果没有，创建一个新 Issue，包含：
    - 清晰的问题描述
    - 复现步骤
@@ -22,7 +22,7 @@
 
 ### 提交功能请求
 
-1. 在 [Issues](https://github.com/xuxuyouxiu/podcast-notes/issues) 中搜索类似建议
+1. 在 [Issues](https://github.com/xuxuyouxiu/Podcast_notes/issues) 中搜索类似建议
 2. 创建新 Issue，描述功能需求和使用场景
 
 ### 提交代码
@@ -41,7 +41,7 @@
 ### 开发环境设置
 
 ```bash
-git clone https://github.com/xuxuyouxiu/podcast-notes.git
+git clone https://github.com/xuxuyouxiu/Podcast_notes.git
 cd podcast-notes
 npm install
 cp podcast_config.example.json podcast_config.json
