@@ -2,6 +2,9 @@
 
 将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、DeepSeek AI 提炼，以及飞书消息轮询自动处理。
 
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](package.json)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 ## 功能特性
 
 - **一键处理** — 粘贴小宇宙播客链接，自动完成提取、下载、转写、校对和笔记整理
@@ -72,23 +75,38 @@ npm start
          → 写入 Obsidian（大分类文件夹） + 生成实体卡片（人物/项目/概念）
 ```
 
-## 目录结构
+## 项目结构
+
+详细目录结构请查看 [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)
 
 ```
-src/
-├── main/               # Electron 主进程
-│   ├── config.ts       # 配置读写
-│   ├── podcast.ts      # 播客处理主流程
-│   ├── whisper.ts      # Whisper 语音转文字
-│   ├── deepseek.ts     # DeepSeek API 集成
-│   ├── entity-cards.ts # 实体卡片生成引擎
-│   ├── obsidian-categories.ts  # 大分类映射引擎
-│   ├── feishu.ts       # 飞书消息轮询
-│   └── index.ts        # Electron IPC 主入口
-├── renderer/           # React 前端
-│   ├── components/     # UI 组件
-│   └── styles/         # 样式
-└── shared/             # 共享类型定义
+podcast-notes/
+├── src/
+│   ├── main/               # Electron 主进程
+│   ├── renderer/           # React 渲染进程
+│   └── shared/             # 共享类型定义
+├── tests/                  # 测试文件
+├── obsidian_templates/     # Obsidian 笔记模板
+├── docs/                   # 项目文档
+├── scripts/                # 构建部署脚本
+├── build/                  # 打包资源
+└── public/                 # 静态资源
+```
+
+## 开发
+
+```bash
+# 启动开发模式
+npm run dev
+
+# 代码检查
+npm run lint
+
+# 代码格式化
+npm run format:fix
+
+# 构建测试包
+npm run refresh:test
 ```
 
 ## 技术栈
@@ -102,6 +120,11 @@ src/
 | Whisper / faster-whisper-xxl | 语音转文字 |
 | DeepSeek API | AI 笔记生成 |
 | electron-builder | 打包分发 |
+| ESLint + Prettier | 代码规范 |
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request。详见 [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## 开源协议
 

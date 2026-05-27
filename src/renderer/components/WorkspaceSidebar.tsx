@@ -7,7 +7,7 @@ export default function WorkspaceSidebar({ onSettings, onAbout }: Props) {
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar__brand">
-        <div className="workspace-sidebar__logo">PA</div>
+        <img className="workspace-sidebar__logo" src="./icon.png" alt="播客笔记助手" />
         <div>
           <div className="workspace-sidebar__title">播客笔记助手</div>
           <div className="workspace-sidebar__subtitle">Workspace</div>
@@ -17,9 +17,6 @@ export default function WorkspaceSidebar({ onSettings, onAbout }: Props) {
       <nav className="workspace-sidebar__nav" aria-label="工作台导航">
         <button type="button" className="workspace-sidebar__nav-item is-active">
           工作台
-        </button>
-        <button type="button" className="workspace-sidebar__nav-item">
-          最近任务
         </button>
       </nav>
 

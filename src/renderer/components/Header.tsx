@@ -1,4 +1,4 @@
-import { FeishuStatus } from '../../../shared/types'
+import { FeishuStatus } from '@shared/types'
 import StatusBar from './StatusBar'
 
 interface HeaderProps {
@@ -19,12 +19,12 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
       flexWrap: 'wrap',
       minHeight: 42,
       padding: '8px 16px',
-      WebkitAppRegion: 'drag' as any,
+      WebkitAppRegion: 'drag',
       userSelect: 'none',
       borderBottom: '1px solid var(--border)',
       gap: 10,
       flexShrink: 0,
-    }}>
+    } as React.CSSProperties}>
       <div className="workspace-topbar__content" style={{
         display: 'flex',
         alignItems: 'center',
@@ -32,20 +32,16 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
         minWidth: 0,
         flex: 1,
       }}>
-        <div style={{
-          width: 22, height: 22,
-          borderRadius: 6,
-          background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          color: '#fff',
-          flexShrink: 0,
-          boxShadow: '0 0 12px var(--accent-glow)',
-        }}>
-          🎧
-        </div>
+        <img
+          src="./icon.png"
+          alt="播客笔记助手"
+          style={{
+            width: 22, height: 22,
+            borderRadius: 6,
+            flexShrink: 0,
+            boxShadow: '0 0 12px var(--accent-glow)',
+          }}
+        />
         <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>
           播客笔记助手
         </span>
@@ -59,8 +55,8 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            WebkitAppRegion: 'no-drag' as any,
-          }}
+            WebkitAppRegion: 'no-drag',
+          } as React.CSSProperties}
         >
           <div className="workspace-topbar__search" style={{
             width: 'min(460px, 100%)',
@@ -92,17 +88,17 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             </kbd>
           </div>
         </div>
-        <div className="workspace-topbar__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', WebkitAppRegion: 'no-drag' as any }}>
+        <div className="workspace-topbar__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <StatusBar status={status} />
           <button onClick={onToggleTheme} style={themeBtn}>
             {theme === 'dark' ? '浅色' : '深色'}
           </button>
         </div>
       </div>
-      <div className="workspace-topbar__window-controls" style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' as any }}>
+      <div className="workspace-topbar__window-controls" style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button onClick={handleMinimize} style={tbBtn}>─</button>
         <button onClick={handleMaximize} style={tbBtn}>□</button>
-        <button onClick={handleClose} style={{ ...tbBtn, close: true }}>✕</button>
+        <button onClick={handleClose} style={tbBtn}>✕</button>
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ export class PodcastDispatchService {
   private updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>) {
     const current = loadState()
     saveState(updater(current))
+    this.onStateChanged?.()
   }
 
   constructor(
@@ -26,6 +27,7 @@ export class PodcastDispatchService {
     private logFunc: (msg: string) => void,
     private stepFunc?: (step: any) => void,
     private processingFunc?: (p: boolean, url?: string) => void,
+    private onStateChanged?: () => void,
   ) {}
 
   async dispatch(url: string, episodeId: string | null): Promise<void> {

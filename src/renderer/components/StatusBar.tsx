@@ -1,4 +1,4 @@
-import { FeishuStatus } from '../../../shared/types'
+import { FeishuStatus } from '@shared/types'
 
 interface Props {
   status: FeishuStatus

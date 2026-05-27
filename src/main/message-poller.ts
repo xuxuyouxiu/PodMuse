@@ -100,15 +100,9 @@ export class MessagePoller {
             continue
           }
           this.logFunc(`🔗 发现播客链接: ${(task.url || '').substring(0, 80)}...`)
-          // #region debug-point H:dispatch-podcast
-          ;(()=>{let u='http://127.0.0.1:7777/event',s='feishu-poller-no-response';try{const e=require('fs').readFileSync('.dbg/feishu-poller-no-response.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'H',location:'src/main/message-poller.ts:tick',msg:'[DEBUG] feishu dispatch podcast task',data:{taskId:task.id,url:task.url||null,episodeId:task.episodeId||null},ts:Date.now()})}).catch(()=>{})})()
-          // #endregion
           this.store.mark(task.id)
           await this.dispatcher.dispatch(task.url!, task.episodeId ?? null)
         } else {
-          // #region debug-point H:ignore-task
-          ;(()=>{let u='http://127.0.0.1:7777/event',s='feishu-poller-no-response';try{const e=require('fs').readFileSync('.dbg/feishu-poller-no-response.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'H',location:'src/main/message-poller.ts:tick',msg:'[DEBUG] feishu mark ignore task',data:{taskId:task.id},ts:Date.now()})}).catch(()=>{})})()
-          // #endregion
           this.store.mark(task.id)
         }
       }

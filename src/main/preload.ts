@@ -14,6 +14,7 @@ try {
 
     processPodcast: (url: string, force = false, taskId?: string) => ipcRenderer.invoke('podcast:process', { url, force, taskId }),
     cancelProcessing: () => ipcRenderer.invoke('podcast:cancel'),
+    getRecoveryLogs: () => ipcRenderer.invoke('task:getRecoveryLogs'),
 
     onStepUpdate: (callback: (step: any) => void) => {
       ipcRenderer.on('podcast:step', (_e, step) => callback(step))
@@ -26,6 +27,9 @@ try {
     },
     onProcessingChange: (callback: (processing: boolean, url?: string) => void) => {
       ipcRenderer.on('podcast:processing', (_e, p, url) => callback(p, url))
+    },
+    onTasksChanged: (callback: () => void) => {
+      ipcRenderer.on('task:state-changed', () => callback())
     },
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),

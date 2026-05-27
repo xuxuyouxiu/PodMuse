@@ -19,6 +19,7 @@ export class FeishuMonitor {
     statusFunc: (status: FeishuStatus) => void,
     stepFunc?: (step: any) => void,
     processingFunc?: (processing: boolean, url?: string) => void,
+    stateChangedFunc?: () => void,
   ) {
     this.logFunc = logFunc
     this.statusFunc = statusFunc
@@ -33,7 +34,7 @@ export class FeishuMonitor {
       this.client, this.store, this.chatId,
       config.api_key, config.language,
       config.obsidian_dir || '', config.audio_dir || '',
-      logFunc, stepFunc, processingFunc,
+      logFunc, stepFunc, processingFunc, stateChangedFunc,
     );
     (this as any)._dispatcher = dispatcher
 

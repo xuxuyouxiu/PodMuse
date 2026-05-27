@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PodcastConfig } from '../../../shared/types'
+import { PodcastConfig } from '@shared/types'
 
 interface MigrateResult {
   scanned: number
@@ -63,7 +63,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
   }
 
   function update(key: keyof PodcastConfig, value: string) {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm((prev: PodcastConfig) => ({ ...prev, [key]: value }))
   }
 
   async function handleBrowse(key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') {
@@ -219,11 +219,12 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                   className="settings-input"
                   style={{ flex: 1, outline: 'none', cursor: 'pointer' }}
                 >
-                  {(models || []).length > 0 ? models.map(m => (
+                  {(models ?? []).map(m => (
                     <option key={m.id} value={m.id}>
                       {m.label} ({m.size}){m.downloaded ? ' ✓ 已下载' : ''}
                     </option>
-                  )) : (
+                  ))}
+                  {(!models || models.length === 0) && (
                     <>
                       <option value="tiny">Tiny (~1 GB)</option>
                       <option value="base">Base (~1 GB)</option>

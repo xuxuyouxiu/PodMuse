@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage } from 'electron'
 import { join } from 'path'
 import { loadConfig, loadState, saveConfig, saveState } from './config'
 import { FeishuMonitor } from './feishu'
@@ -8,6 +8,7 @@ import { migrateExistingNotes } from './obsidian-categories'
 import { scanLocalModels, checkHardware } from './whisper-model-manager'
 import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, getRecentTasks, removeRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
+import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, getRecoveryLogs, runConsistencyCheck } from './task-recovery'
 
 let mainWindow: BrowserWindow | null = null
 let monitor: FeishuMonitor | null = null
@@ -15,9 +16,21 @@ const processedEpisodeIds = new Set<string>(loadState().processedUrls || [])
 let pendingAbort: AbortController | null = null
 let pendingProcessDone: (() => void) | null = null
 
+function hasActiveProcess(): boolean {
+  if (pendingAbort && !pendingAbort.signal.aborted) return true
+  if (monitor) {
+    try {
+      const dispatcher = (monitor as any)._dispatcher
+      if (dispatcher?.abortRef && !dispatcher.abortRef.signal.aborted) return true
+    } catch {}
+  }
+  return false
+}
+
 function updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>) {
   const current = loadState()
   saveState(updater(current))
+  try { mainWindow?.webContents.send('task:state-changed') } catch {}
 }
 
 function getResourcePath(...segments: string[]) {
@@ -31,12 +44,38 @@ function getResourcePath(...segments: string[]) {
 function createWindow() {
   Menu.setApplicationMenu(null)
 
+  let icon: Electron.NativeImage | undefined
+  try {
+    const fs = require('fs')
+    const baseDirs = [
+      (process as any).resourcesPath,
+      join(__dirname, '..', '..'),
+      app.getAppPath(),
+    ].filter(Boolean)
+
+    const iconCandidates = [
+      'build/icon.png',
+      '播客笔记_256.png',
+      '播客笔记.png',
+    ]
+
+    for (const base of baseDirs) {
+      for (const candidate of iconCandidates) {
+        const p = join(base, candidate)
+        if (fs.existsSync(p)) { icon = nativeImage.createFromPath(p); console.log('图标已加载:', p); break }
+      }
+      if (icon) break
+    }
+    if (!icon) console.log('⚠ 未找到图标文件，尝试过的路径:', baseDirs.flatMap(d => iconCandidates.map(c => join(d, c))))
+  } catch (e) { console.log('图标加载异常:', e) }
+
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 780,
     minWidth: 960,
     minHeight: 680,
     title: '播客笔记助手',
+    icon,
     backgroundColor: '#0a0a0f',
     show: false,
     frame: false,
@@ -107,6 +146,7 @@ function setupIPC() {
         try { mainWindow?.webContents.send('podcast:processing', p, url) } catch {}
         if (!p && pendingProcessDone) { pendingProcessDone(); pendingProcessDone = null }
       },
+      () => { try { mainWindow?.webContents.send('task:state-changed') } catch {} },
     )
     await monitor.start()
     return monitor.getStatus()
@@ -168,17 +208,39 @@ function setupIPC() {
 
   ipcMain.handle('podcast:cancel', async () => {
     let cancelled = false
-    if (pendingAbort) {
+
+    if (pendingAbort && !pendingAbort.signal.aborted) {
       pendingAbort.abort()
       cancelled = true
     }
+
     if (monitor?.cancelProcessing()) {
       cancelled = true
     }
-    if (cancelled) {
+
+    if (!cancelled) {
+      const state = loadState()
+      const zombieCount = state.activeTasks.filter(t => t.status === 'running').length
+      if (zombieCount > 0) {
+        const fixed = runConsistencyCheck(hasActiveProcess, (msg: string) => {
+          try { mainWindow?.webContents.send('log', msg) } catch {}
+        })
+        if (fixed > 0) {
+          cancelled = true
+          try { mainWindow?.webContents.send('task:state-changed') } catch {}
+        }
+      }
+    }
+
+    if (cancelled && pendingAbort) {
       await new Promise<void>(resolve => { pendingProcessDone = resolve })
     }
+
     return cancelled
+  })
+
+  ipcMain.handle('task:getRecoveryLogs', () => {
+    return getRecoveryLogs()
   })
 
   ipcMain.handle('app:cleanTemp', () => {
@@ -228,12 +290,36 @@ function setupIPC() {
 }
 
 app.whenReady().then(() => {
+  runStartupRecovery((msg: string) => {
+    console.log(msg)
+  })
+
   createWindow()
   setupIPC()
+
+  startConsistencyChecker(
+    hasActiveProcess,
+    (msg: string) => {
+      console.log(msg)
+      try { mainWindow?.webContents.send('log', msg) } catch {}
+    },
+    (_count: number) => {
+      try { mainWindow?.webContents.send('task:state-changed') } catch {}
+    },
+  )
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  stopConsistencyChecker()
+  if (pendingAbort && !pendingAbort.signal.aborted) {
+    pendingAbort.abort()
+  }
+  monitor?.cancelProcessing()
+  monitor?.stop()
 })
 
 app.on('window-all-closed', () => {

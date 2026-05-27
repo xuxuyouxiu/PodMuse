@@ -1,4 +1,4 @@
-import { StepInfo } from '../../../shared/types'
+import { StepInfo } from '@shared/types'
 
 interface Props {
   steps: StepInfo[]

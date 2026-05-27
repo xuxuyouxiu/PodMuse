@@ -1,4 +1,4 @@
-import { RecentTaskState } from '../../../shared/types'
+import { RecentTaskState } from '@shared/types'
 
 interface Props {
   tasks: RecentTaskState[]

@@ -15,6 +15,8 @@ declare global {
       onLog: (callback: (msg: string) => void) => void
       onFeishuStatus: (callback: (status: any) => void) => void
       onProcessingChange: (callback: (processing: boolean, url?: string) => void) => void
+      onTasksChanged: (callback: () => void) => void
+      getRecoveryLogs: () => Promise<any[]>
       cleanTemp: () => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>

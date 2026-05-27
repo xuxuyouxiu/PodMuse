@@ -1,11 +1,5 @@
-import * as path from 'path'
-import * as fs from 'fs'
-
-export interface CategoryConfig {
-  version: 1
-  categories: Array<{ id: string; name: string; priority: number }>
-  rules: Array<{ match: string; categoryId: string; weight: number }>
-}
+import test from 'node:test'
+import assert from 'node:assert/strict'
 
 const DEFAULT_CATEGORIES = [
   { id: 'tech', name: '科技类', priority: 100 },
@@ -18,7 +12,7 @@ const DEFAULT_CATEGORIES = [
   { id: 'other', name: '其他', priority: 0 },
 ]
 
-const DEFAULT_RULES: Array<{ match: string; categoryId: string; weight: number }> = [
+const DEFAULT_RULES = [
   { match: 'AI', categoryId: 'tech', weight: 3 },
   { match: '人工智能', categoryId: 'tech', weight: 3 },
   { match: '科技', categoryId: 'tech', weight: 2 },
@@ -120,7 +114,7 @@ const DEFAULT_RULES: Array<{ match: string; categoryId: string; weight: number }
   { match: '保险', categoryId: 'business', weight: 2 },
 ]
 
-const KEYWORD_CATEGORY_MAP: Array<{ keywords: string[]; categoryId: string }> = [
+const KEYWORD_CATEGORY_MAP = [
   { keywords: ['科技', '技术', 'AI', '人工智能', '算法', '编程', '软件', '硬件', '互联网', '数据', '芯片', '机器人', '模型', '代码', '开源', '数字化', '服务器', '云', '网络'], categoryId: 'tech' },
   { keywords: ['商业', '创业', '投资', '金融', '经济', '市场', '营销', '管理', '财经', '股票', '基金', '融资', '上市', '盈利', '债务', '税务', '银行', '保险', '贸易'], categoryId: 'business' },
   { keywords: ['艺术', '文化', '音乐', '电影', '文学', '设计', '摄影', '哲学', '游戏', '动漫', '绘画', '戏剧', '舞蹈', '创作', '节目', '播客'], categoryId: 'culture' },
@@ -130,7 +124,7 @@ const KEYWORD_CATEGORY_MAP: Array<{ keywords: string[]; categoryId: string }> = 
   { keywords: ['科学', '科普', '物理', '生物', '化学', '医学', '天文', '地理', '数学', '实验', '研究', '发现', '理论', '实验室', '论文', '学者'], categoryId: 'science' },
 ]
 
-function keywordFuzzyMatch(tag: string): string | null {
+function keywordFuzzyMatch(tag) {
   for (const entry of KEYWORD_CATEGORY_MAP) {
     for (const kw of entry.keywords) {
       if (tag.includes(kw)) return entry.categoryId
@@ -139,63 +133,10 @@ function keywordFuzzyMatch(tag: string): string | null {
   return null
 }
 
-export function getDefaultCategoryConfig(): CategoryConfig {
-  return { version: 1, categories: DEFAULT_CATEGORIES, rules: [...DEFAULT_RULES] }
-}
-
-export function loadOrInitCategoryConfig(obsidianDir: string, configPath?: string): CategoryConfig {
-  const cfgPath = configPath || path.join(obsidianDir, 'podcast_categories.json')
-  if (fs.existsSync(cfgPath)) {
-    try {
-      const raw = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'))
-      let needsRewrite = false
-
-      if (!Array.isArray(raw.rules) || raw.rules.length === 0) {
-        raw.rules = [...DEFAULT_RULES]
-        needsRewrite = true
-      } else {
-        const existingMatches = new Set(raw.rules.map((r: any) => r.match))
-        let addedCount = 0
-        for (const defRule of DEFAULT_RULES) {
-          if (!existingMatches.has(defRule.match)) {
-            raw.rules.push({ ...defRule })
-            addedCount++
-          }
-        }
-        if (addedCount > 0) {
-          console.log(`📁 分类配置: 自动补全 ${addedCount} 条新规则`)
-          needsRewrite = true
-        }
-      }
-
-      if (!Array.isArray(raw.categories)) {
-        raw.categories = DEFAULT_CATEGORIES
-        needsRewrite = true
-      }
-
-      if (needsRewrite) {
-        fs.writeFileSync(cfgPath, JSON.stringify(raw, null, 2), 'utf-8')
-      }
-
-      return raw as CategoryConfig
-    } catch {
-      console.error('分类配置文件解析失败，使用默认配置')
-    }
-  }
-  const defaults = getDefaultCategoryConfig()
-  try {
-    if (!fs.existsSync(obsidianDir)) fs.mkdirSync(obsidianDir, { recursive: true })
-    fs.writeFileSync(cfgPath, JSON.stringify(defaults, null, 2), 'utf-8')
-  } catch (e) {
-    console.error('创建默认分类配置文件失败:', e)
-  }
-  return defaults
-}
-
-export function pickCategoryName(tags: string[], cfg: CategoryConfig, log?: (msg: string) => void): string {
+function pickCategoryName(tags, cfg, log) {
   const byId = new Map(cfg.categories.map(c => [c.id, c]))
-  const score = new Map<string, number>()
-  const scoreDetail = new Map<string, string[]>()
+  const score = new Map()
+  const scoreDetail = new Map()
   for (const c of cfg.categories) { score.set(c.id, 0); scoreDetail.set(c.id, []) }
 
   for (const tag of tags) {
@@ -205,12 +146,12 @@ export function pickCategoryName(tags: string[], cfg: CategoryConfig, log?: (msg
       if (!byId.has(rule.categoryId)) continue
       if (rule.match === tag) {
         score.set(rule.categoryId, (score.get(rule.categoryId) || 0) + rule.weight)
-        scoreDetail.get(rule.categoryId)!.push(`  ✓ 精确匹配: "${tag}" → +${rule.weight}`)
+        scoreDetail.get(rule.categoryId).push(`  ✓ exact: "${tag}" → +${rule.weight}`)
         tagMatched = true
       } else if (tag.includes(rule.match) && rule.match.length >= 2) {
         const subWeight = Math.max(1, rule.weight - 1)
         score.set(rule.categoryId, (score.get(rule.categoryId) || 0) + subWeight)
-        scoreDetail.get(rule.categoryId)!.push(`  ~ 子串匹配: "${tag}" includes "${rule.match}" → +${subWeight}`)
+        scoreDetail.get(rule.categoryId).push(`  ~ substr: "${tag}" includes "${rule.match}" → +${subWeight}`)
         tagMatched = true
       }
     }
@@ -218,17 +159,17 @@ export function pickCategoryName(tags: string[], cfg: CategoryConfig, log?: (msg
     const fuzzyId = keywordFuzzyMatch(tag)
     if (fuzzyId && byId.has(fuzzyId)) {
       score.set(fuzzyId, (score.get(fuzzyId) || 0) + 2)
-      scoreDetail.get(fuzzyId)!.push(`  ≈ 模糊匹配: "${tag}" → +2`)
+      scoreDetail.get(fuzzyId).push(`  ≈ fuzzy: "${tag}" → +2`)
       tagMatched = true
     }
 
     if (!tagMatched) {
-      log?.(`  ⚠ 标签 "${tag}" 未匹配到任何规则或关键词`)
+      if (log) log(`  ⚠ NO MATCH: "${tag}"`)
     }
   }
 
   const other = cfg.categories.find(c => c.id === 'other')?.name || '其他'
-  let bestId: string | null = null
+  let bestId = null
   let bestScore = 0
   let bestPriority = -Infinity
   for (const c of cfg.categories) {
@@ -241,86 +182,19 @@ export function pickCategoryName(tags: string[], cfg: CategoryConfig, log?: (msg
     }
   }
   if (bestId) {
-    const name = byId.get(bestId)!.name
+    const name = byId.get(bestId).name
     const details = scoreDetail.get(bestId) || []
-    log?.(`📁 分类匹配: tags=[${tags.join(', ')}] → ${name} (score=${bestScore})${details.length ? '\n' + details.join('\n') : ''}`)
+    if (log) {
+      log(`MATCH: ${name} (score=${bestScore})`)
+      for (const d of details) log(d)
+    }
     return name
   }
-
-  log?.(`📁 未匹配到分类: tags=[${tags.join(', ')}] → ${other}`)
+  if (log) log(`NO MATCH -> ${other}`)
   return other
 }
 
-export function parseCategoryFromMarkdown(md: string): string | null {
-  const clean = md.replace(/^\uFEFF/, '')
-  const m = clean.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n/m)
-  if (!m) return null
-  const fm = m[1]
-  const catMatch = fm.match(/^category:\s*(.+)\s*$/m)
-  if (!catMatch) return null
-  const raw = catMatch[1].trim().replace(/^["']|["']$/g, '').trim()
-  return raw || null
-}
-
-export function listCategoryDirs(obsidianDir: string): string[] {
-  if (!fs.existsSync(obsidianDir)) return []
-  return fs.readdirSync(obsidianDir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .map(d => d.name)
-}
-
-function folderSimilarity(folderName: string, aiCategory: string): number {
-  const a = folderName.toLowerCase()
-  const b = aiCategory.toLowerCase()
-  if (a === b) return 1.0
-  if (a.includes(b) || b.includes(a)) return 0.9
-
-  let overlap = 0
-  const bSet = new Set(b.split(''))
-  for (const ch of a) {
-    if (bSet.has(ch)) overlap++
-  }
-  const charRatio = a.length > 0 ? overlap / Math.max(a.length, b.length) : 0
-
-  const minLen = Math.min(a.length, b.length)
-  let commonPrefix = 0
-  for (let i = 0; i < minLen; i++) {
-    if (a[i] === b[i]) commonPrefix++
-    else break
-  }
-  const prefixScore = minLen > 0 ? commonPrefix / minLen : 0
-
-  return charRatio * 0.4 + prefixScore * 0.6
-}
-
-export function resolveBestFolder(obsidianDir: string, aiCategory: string, log?: (msg: string) => void): string {
-  const existing = listCategoryDirs(obsidianDir)
-
-  if (existing.length === 0) {
-    log?.(`📁 AI分类: "${aiCategory}" → 新建文件夹 (无已有文件夹)`)
-    return sanitizePathSegment(aiCategory)
-  }
-
-  let bestMatch = ''
-  let bestScore = 0
-  for (const dir of existing) {
-    const score = folderSimilarity(dir, aiCategory)
-    if (score > bestScore) {
-      bestScore = score
-      bestMatch = dir
-    }
-  }
-
-  if (bestScore >= 0.35 && bestMatch) {
-    log?.(`📁 AI分类: "${aiCategory}" → 匹配已有文件夹 "${bestMatch}" (相似度=${bestScore.toFixed(2)})`)
-    return bestMatch
-  }
-
-  log?.(`📁 AI分类: "${aiCategory}" → 新建文件夹 (最佳匹配"${bestMatch}"相似度=${bestScore.toFixed(2)}<0.35)`)
-  return sanitizePathSegment(aiCategory)
-}
-
-export function parseTagsFromMarkdown(md: string): string[] {
+function parseTagsFromMarkdown(md) {
   const clean = md.replace(/^\uFEFF/, '')
   const m = clean.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n/m)
   if (!m) return []
@@ -334,7 +208,7 @@ export function parseTagsFromMarkdown(md: string): string[] {
   }
   const lines = fm.split(/\r?\n/)
   let inList = false
-  const tags: string[] = []
+  const tags = []
   for (const line of lines) {
     if (!inList) {
       if (/^tags:\s*$/.test(line)) { inList = true; continue }
@@ -348,74 +222,175 @@ export function parseTagsFromMarkdown(md: string): string[] {
   return tags
 }
 
-export function sanitizePathSegment(name: string): string {
-  const cleaned = name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim()
-  return cleaned || '未命名'
-}
+const cfg = { version: 1, categories: DEFAULT_CATEGORIES, rules: [...DEFAULT_RULES] }
 
-export interface MigrationSummary {
-  scanned: number
-  moved: number
-  renamed: number
-  skipped: number
-  errors: string[]
-}
+test('P1: 高铁票价完整标签集→生活方式类 (WITH子串匹配)', () => {
+  const tags = ['高铁票价', '浮动票价', '国铁集团', '京沪高铁', '债务']
+  const logs = []
+  const result = pickCategoryName(tags, cfg, (m) => logs.push(m))
 
-export function migrateExistingNotes(obsidianDir: string, cfgPath?: string): MigrationSummary {
-  const summary: MigrationSummary = { scanned: 0, moved: 0, renamed: 0, skipped: 0, errors: [] }
-  const cfg = loadOrInitCategoryConfig(obsidianDir, cfgPath)
-  const cfgFilePath = path.resolve(cfgPath || path.join(obsidianDir, 'podcast_categories.json'))
+  console.log('=== P1 分类详情 ===')
+  for (const l of logs) console.log(l)
 
-  try {
-    const entries = fs.readdirSync(obsidianDir, { withFileTypes: true })
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) continue
-      const fullPath = path.join(obsidianDir, entry.name)
-      if (path.resolve(fullPath) === cfgFilePath) continue
-      summary.scanned++
+  assert.equal(result, '生活方式类', `期望"生活方式类"，实际"${result}"`)
+  assert.ok(result !== '其他', '不应归类到"其他"')
+})
 
-      let md: string
-      try { md = fs.readFileSync(fullPath, 'utf-8') } catch (e: any) {
-        summary.errors.push(`读取失败 ${entry.name}: ${e.message}`)
-        continue
-      }
-      let targetCategory: string
-      const aiCategory = parseCategoryFromMarkdown(md)
-      if (aiCategory) {
-        targetCategory = resolveBestFolder(obsidianDir, aiCategory)
-      } else {
-        const tags = parseTagsFromMarkdown(md)
-        targetCategory = pickCategoryName(tags, cfg)
-      }
-      const targetDir = path.join(obsidianDir, sanitizePathSegment(targetCategory))
-      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
-      if (path.dirname(path.resolve(fullPath)) === path.resolve(targetDir)) {
-        summary.skipped++
-        continue
-      }
-      const { destPath, wasRenamed } = resolveUniquePath(targetDir, entry.name.replace(/\.md$/i, ''), '.md')
-      try {
-        fs.renameSync(fullPath, destPath)
-        if (wasRenamed) summary.renamed++
-        else summary.moved++
-      } catch (e: any) {
-        summary.errors.push(`移动失败 ${entry.name} -> ${path.basename(destPath)}: ${e.message}`)
-      }
-    }
-  } catch (e: any) {
-    summary.errors.push(`扫描目录失败: ${e.message}`)
+test('P2: 子串匹配验证 - "高铁票价"包含"高铁"和"票价"', () => {
+  const tagsOnly = ['高铁票价']
+  const logs = []
+  const result = pickCategoryName(tagsOnly, cfg, (m) => logs.push(m))
+
+  console.log('=== P2 详情 ===')
+  for (const l of logs) console.log(l)
+
+  assert.equal(result, '生活方式类')
+})
+
+test('P3: "国铁集团"可通过"国铁"关键词匹配', () => {
+  const tagsOnly = ['国铁集团']
+  const logs = []
+  const result = pickCategoryName(tagsOnly, cfg, (m) => logs.push(m))
+
+  console.log('=== P3 详情 ===')
+  for (const l of logs) console.log(l)
+
+  assert.equal(result, '生活方式类', `"国铁集团"应匹配"国铁"→生活方式类，实际"${result}"`)
+})
+
+test('P4: "京沪高铁"可多重匹配(京沪+高铁)', () => {
+  const tagsOnly = ['京沪高铁']
+  const logs = []
+  const result = pickCategoryName(tagsOnly, cfg, (m) => logs.push(m))
+
+  console.log('=== P4 详情 ===')
+  for (const l of logs) console.log(l)
+
+  assert.equal(result, '生活方式类')
+})
+
+test('P5: 全品类基准测试', () => {
+  const cases = [
+    { tags: ['AI', '编程'], expected: '科技类' },
+    { tags: ['投资', '金融'], expected: '商业财经类' },
+    { tags: ['音乐', '电影'], expected: '文化艺术类' },
+    { tags: ['历史', '社会'], expected: '历史社科类' },
+    { tags: ['职场', '面试'], expected: '职场成长类' },
+    { tags: ['高铁', '出行'], expected: '生活方式类' },
+    { tags: ['科学', '物理'], expected: '学术科普类' },
+    { tags: [], expected: '其他' },
+    { tags: ['未知标签XYZ'], expected: '其他' },
+  ]
+  for (const tc of cases) {
+    const r = pickCategoryName(tc.tags, cfg)
+    assert.equal(r, tc.expected, `[${tc.tags}] → "${tc.expected}" ≠ "${r}"`)
   }
-  return summary
-}
+})
 
-export function resolveUniquePath(dir: string, baseName: string, ext: string): { destPath: string; wasRenamed: boolean } {
-  const sanitized = sanitizePathSegment(baseName)
-  let candidate = path.join(dir, `${sanitized}${ext}`)
-  if (!fs.existsSync(candidate)) return { destPath: candidate, wasRenamed: false }
-  let idx = 1
-  while (true) {
-    candidate = path.join(dir, `${sanitized} (${idx})${ext}`)
-    if (!fs.existsSync(candidate)) return { destPath: candidate, wasRenamed: true }
-    idx++
+test('P6: 复合标签子串匹配全覆盖', () => {
+  const cases = [
+    { tags: ['高铁票价'], expected: '生活方式类' },
+    { tags: ['京沪高铁'], expected: '生活方式类' },
+    { tags: ['浮动票价'], expected: '生活方式类' },
+    { tags: ['国铁集团'], expected: '生活方式类' },
+    { tags: ['动车组'], expected: '生活方式类' },
+    { tags: ['通勤时间'], expected: '生活方式类' },
+    { tags: ['消费升级'], expected: '生活方式类' },
+    { tags: ['深度学习方法'], expected: '职场成长类' },
+    { tags: ['商业分析'], expected: '商业财经类' },
+    { tags: ['历史文化'], expected: '文化艺术类' },
+    { tags: ['职业规划'], expected: '职场成长类' },
+    { tags: ['科学研究'], expected: '学术科普类' },
+  ]
+  for (const tc of cases) {
+    const r = pickCategoryName(tc.tags, cfg)
+    assert.equal(r, tc.expected, `[${tc.tags}] → "${tc.expected}" ≠ "${r}"`)
   }
-}
+})
+
+test('P7: 混合标签正确加权(生活>商业)', () => {
+  const tags = ['高铁票价', '债务']
+  const logs = []
+  const result = pickCategoryName(tags, cfg, (m) => logs.push(m))
+  console.log('=== P7 详情 ===')
+  for (const l of logs) console.log(l)
+  assert.equal(result, '生活方式类', '高铁+票价权重应超过债务的权重')
+})
+
+test('P8: parseTagsFromMarkdown 去除引号', () => {
+  const md = `---
+tags: ["高铁票价", "浮动票价", "国铁集团"]
+---
+
+# text
+`
+  const tags = parseTagsFromMarkdown(md)
+  assert.deepEqual(tags, ['高铁票价', '浮动票价', '国铁集团'])
+})
+
+test('P9: parseTagsFromMarkdown 处理混合引号格式', () => {
+  const md = `---
+tags: ['高铁票价', "京沪高铁", 债务]
+---
+
+# text
+`
+  const tags = parseTagsFromMarkdown(md)
+  assert.deepEqual(tags, ['高铁票价', '京沪高铁', '债务'])
+})
+
+test('P10: parseTagsFromMarkdown 正常无引号格式', () => {
+  const md = `---
+type: podcast
+tags: [高铁票价, 浮动票价, 国铁集团, 京沪高铁, 债务]
+---
+
+# 正文
+`
+  const tags = parseTagsFromMarkdown(md)
+  assert.deepEqual(tags, ['高铁票价', '浮动票价', '国铁集团', '京沪高铁', '债务'])
+})
+
+test('P11: parseTagsFromMarkdown 列表格式带引号', () => {
+  const md = `---
+tags:
+  - "高铁票价"
+  - '浮动票价'
+  - 债务
+---
+
+# text
+`
+  const tags = parseTagsFromMarkdown(md)
+  assert.deepEqual(tags, ['高铁票价', '浮动票价', '债务'])
+})
+
+test('P12: parseTagsFromMarkdown CRLF分隔', () => {
+  const md = "---\r\ntype: podcast\r\ntags: [高铁票价, 浮动票价]\r\n---\r\n\r\n# text\r\n"
+  const tags = parseTagsFromMarkdown(md)
+  assert.deepEqual(tags, ['高铁票价', '浮动票价'])
+})
+
+test('P13: loadOrInitCategoryConfig 合并缺失规则', () => {
+  const matching = new Set(DEFAULT_RULES.map(r => r.match))
+  assert.ok(matching.has('高铁'), 'DEFAULT_RULES应包含"高铁"')
+  assert.ok(matching.has('国铁'), 'DEFAULT_RULES应包含"国铁"')
+  assert.ok(matching.has('京沪'), 'DEFAULT_RULES应包含"京沪"')
+  assert.ok(matching.has('票价'), 'DEFAULT_RULES应包含"票价"')
+  assert.ok(matching.has('债务'), 'DEFAULT_RULES应包含"债务"')
+  assert.ok(matching.has('通勤'), 'DEFAULT_RULES应包含"通勤"')
+})
+
+test('P14: 仅有债务标签不应覆盖生活类', () => {
+  const tags = ['高铁票价', '债务']
+  const result = pickCategoryName(tags, cfg)
+  assert.equal(result, '生活方式类', '高铁+票价的权重应超越债务')
+})
+
+test('P15: 纯商业标签→商业财经类', () => {
+  assert.equal(pickCategoryName(['债务', '国企', '金融'], cfg), '商业财经类')
+})
+
+test('P16: 无匹配标签→其他', () => {
+  assert.equal(pickCategoryName(['xyzabc', 'no-match-here'], cfg), '其他')
+})

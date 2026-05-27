@@ -15,16 +15,16 @@ test('parseWhisperPercent extracts numeric progress from whisper output', () => 
   assert.match(src, /%\/g/)
 })
 
-test('isWhisperTranscriptActivity detects timestamped transcript lines without percent', () => {
+test('extractTimestampEndSec parses timestamp end times', () => {
   const src = readSource()
-  assert.match(src, /isWhisperTranscriptActivity/)
+  assert.match(src, /extractTimestampEndSec/)
   assert.match(src, /-->/)
 })
 
-test('estimateWhisperProgress advances during transcribing without jumping to completion', () => {
+test('getAudioDurationSec estimates audio duration', () => {
   const src = readSource()
-  assert.match(src, /estimateWhisperProgress/)
-  assert.match(src, /elapsedMs/)
+  assert.match(src, /getAudioDurationSec/)
+  assert.match(src, /ffprobe/)
 })
 
 test('formatWhisperProgress no longer shows estimated wording during transcribing', () => {

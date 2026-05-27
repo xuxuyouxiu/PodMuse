@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState } from '../../shared/types'
+import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState } from '@shared/types'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
 import StepPanel from './components/StepPanel'
@@ -71,6 +71,15 @@ export default function App() {
         setCancelling(false)
       }
     })
+    window.electronAPI.onTasksChanged(() => {
+      window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
+        setActiveTasks(aTasks)
+        setRecentTasks(rTasks)
+        if (aTasks.length === 0 && !processing) {
+          setLastUrl(null)
+        }
+      })
+    })
   }, [])
 
   useEffect(() => {
@@ -80,10 +89,6 @@ export default function App() {
   useEffect(() => {
     document.body.dataset.theme = theme
   }, [theme])
-
-  const handleProcess = useCallback(async (url: string) => {
-    return handleProcessWithMode(url, false)
-  }, [])
 
   const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string) => {
     cancelFlag.current = false
@@ -104,19 +109,32 @@ export default function App() {
     return result
   }, [])
 
+  const handleProcess = useCallback(async (url: string) => {
+    return handleProcessWithMode(url, false)
+  }, [handleProcessWithMode])
+
   const handleCancel = useCallback(async () => {
     cancelFlag.current = true
     setCancelling(true)
-    await window.electronAPI.cancelProcessing()
-  }, [])
+    const result = await window.electronAPI.cancelProcessing()
+    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
+    setActiveTasks(aTasks)
+    setRecentTasks(rTasks)
+    if (!result && aTasks.length === 0 && !processing) {
+      setCancelling(false)
+      cancelFlag.current = false
+    }
+  }, [processing])
 
   const handleResume = useCallback(() => {
     if (lastUrl) handleProcess(lastUrl)
   }, [lastUrl, handleProcess])
 
   const handleTaskResume = useCallback((task: RecentTaskState) => {
+    cancelFlag.current = false
+    setCancelling(false)
     setLastUrl(task.url)
-    handleProcessWithMode(task.url, false, task.id)
+    handleProcessWithMode(task.url, true, task.id)
   }, [handleProcessWithMode])
 
   const handleTaskReplay = useCallback((task: RecentTaskState) => {
@@ -198,7 +216,18 @@ export default function App() {
             </div>
             <aside className="workspace-aside">
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-                <ActiveTasksPanel tasks={activeTasks} onCancel={async () => { await window.electronAPI.cancelProcessing() }} />
+                <ActiveTasksPanel tasks={activeTasks} processing={processing} onCancel={async (taskId: string) => {
+                  if (taskId) {
+                    const result = await window.electronAPI.cancelProcessing()
+                    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
+                    setActiveTasks(aTasks)
+                    setRecentTasks(rTasks)
+                    if (!result) {
+                      cancelFlag.current = false
+                      setCancelling(false)
+                    }
+                  }
+                }} />
                 <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleTaskResume} onReplay={handleTaskReplay} onDelete={handleTaskDelete} />
               </div>
             </aside>
