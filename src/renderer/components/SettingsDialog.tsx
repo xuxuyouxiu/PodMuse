@@ -1,14 +1,6 @@
 import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 
-interface MigrateResult {
-  scanned: number
-  moved: number
-  renamed: number
-  skipped: number
-  errors: string[]
-}
-
 interface Props {
   config: PodcastConfig
   onSave: (config: PodcastConfig) => void
@@ -17,25 +9,10 @@ interface Props {
 
 export default function SettingsDialog({ config, onSave, onClose }: Props) {
   const [form, setForm] = useState<PodcastConfig>({ ...config })
-  const [migrating, setMigrating] = useState(false)
-  const [migrateResult, setMigrateResult] = useState<MigrateResult | null>(null)
   const [models, setModels] = useState<Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }> | null>(null)
   const [scanningModels, setScanningModels] = useState(false)
   const [modelScanStatus, setModelScanStatus] = useState<string | null>(null)
   const [hardwareWarn, setHardwareWarn] = useState<{ pass: boolean; warning: string | null } | null>(null)
-
-  async function handleMigrate() {
-    setMigrating(true)
-    setMigrateResult(null)
-    try {
-      const result = await window.electronAPI.migrateObsidianNotes()
-      setMigrateResult(result)
-    } catch (e: any) {
-      setMigrateResult({ scanned: 0, moved: 0, renamed: 0, skipped: 0, errors: [e.message || String(e)] })
-    } finally {
-      setMigrating(false)
-    }
-  }
 
   async function handleScanModels() {
     setScanningModels(true)
@@ -168,46 +145,8 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
 
         <section className="settings-section">
           <div className="settings-section-header">
-            <div className="settings-section-title">笔记分类</div>
-            <div className="settings-section-copy">按核心大分类归档笔记（保留原 tags），不按细分标签建目录。</div>
-          </div>
-          <div className="settings-grid">
-            <div className="settings-field">
-              <div className="settings-field-label">分类配置文件</div>
-              <div className="settings-dir-display has-value">
-                {form.obsidian_dir ? `${form.obsidian_dir}\\podcast_categories.json` : '未设置 Obsidian 目录'}
-              </div>
-            </div>
-            <div className="settings-field">
-              <div className="settings-field-label">整理存量笔记</div>
-              <div className="settings-dir-row">
-                <button
-                  onClick={handleMigrate}
-                  disabled={migrating}
-                  className="settings-save-button"
-                  style={{ flex: 1, opacity: migrating ? 0.6 : 1 }}
-                >
-                  {migrating ? '整理中…' : '整理存量笔记'}
-                </button>
-              </div>
-              {migrateResult && (
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  <div>扫描 {migrateResult.scanned} 篇，移动 {migrateResult.moved} 篇{migrateResult.renamed > 0 ? `（${migrateResult.renamed} 篇因重名自动改名）` : ''}，跳过 {migrateResult.skipped} 篇</div>
-                  {migrateResult.errors.length > 0 && (
-                    <div style={{ marginTop: 4, padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                      {migrateResult.errors.map((e, i) => <div key={i}>⚠ {e}</div>)}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="settings-section">
-          <div className="settings-section-header">
             <div className="settings-section-title">音频识别模型设置</div>
-            <div className="settings-section-copy">选择 Whisper 模型版本。首次使用需从下方链接下载模型文件到本地。</div>
+            <div className="settings-section-copy">选择 Whisper 模型版本。首次使用时会自动下载，无需手动操作。</div>
           </div>
           <div className="settings-grid">
             <div className="settings-field">
@@ -221,7 +160,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 >
                   {(models ?? []).map(m => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.size}){m.downloaded ? ' ✓ 已下载' : ''}
+                      {m.label} ({m.size}){m.downloaded ? ' ✓' : ' · 未下载'}
                     </option>
                   ))}
                   {(!models || models.length === 0) && (
@@ -244,6 +183,27 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                   {scanningModels ? '…' : '刷新'}
                 </button>
               </div>
+              {models && models.length > 0 && (
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-light)',
+                  }}>
+                    已下载 {models.filter(m => m.downloaded).length}/{models.length}
+                  </span>
+                  {(() => {
+                    const selected = models.find(m => m.id === form.whisper_model)
+                    if (!selected) return null
+                    return selected.downloaded
+                      ? <span style={{ fontSize: 11, color: '#4caf50' }}>✓ 当前模型已就绪</span>
+                      : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⬇ 首次使用将自动下载 ~{selected.ramMinGB}GB</span>
+                  })()}
+                </div>
+              )}
               {modelScanStatus && (
                 <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{modelScanStatus}</div>
               )}
@@ -254,7 +214,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
             <div className="settings-field">
               <div className="settings-field-label">下载模型</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                模型文件需放置在上述 Whisper 可执行文件同目录下的 models 文件夹中。
+                Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。
                 <br />
                 <a
                   href="https://github.com/Purfview/whisper-standalone-win/releases"

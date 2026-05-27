@@ -48,7 +48,6 @@ src/
 │   ├── index.ts                   # Electron IPC 主入口
 │   ├── message-parser.ts          # 消息解析器
 │   ├── message-poller.ts          # 消息轮询调度器
-│   ├── obsidian-categories.ts     # Obsidian 大分类映射
 │   ├── podcast-dispatcher.ts      # 播客处理调度器
 │   ├── podcast.ts                 # 播客处理主流程
 │   ├── preload.ts                 # Electron 预加载脚本
@@ -85,13 +84,10 @@ src/
 
 | 文件 | 测试目标 |
 |------|---------|
-| `ai-category.test.mjs` | AI 分类功能 |
 | `app-order.test.mjs` | 应用数据排序 |
 | `entity-cards.test.mjs` | 实体卡片生成 |
 | `message-poller.test.mjs` | 消息轮询 |
-| `obsidian-categories.test.mjs` | 大分类映射 |
 | `people-filter.test.mjs` | 人物过滤 |
-| `pickCategory-real.test.mjs` | 分类选择 |
 | `processed-message-store.test.mjs` | 消息存储 |
 | `recent-task-state.test.mjs` | 任务状态管理 |
 | `refresh-test-flow.test.mjs` | 构建-部署流程 |

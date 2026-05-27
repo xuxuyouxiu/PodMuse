@@ -6,7 +6,6 @@
   "feishu_chat_id": "你的飞书群聊 Chat ID",
   "obsidian_dir": "你的 Obsidian 笔记目录路径",
   "audio_dir": "",
-  "category_config_path": "",
   "whisper_exe_path": "你的 Faster-Whisper-XXL 可执行文件路径",
   "whisper_model": "large-v3-turbo"
 }

@@ -3,7 +3,6 @@ import * as fs from 'fs'
 import { StepInfo } from '@shared/types'
 import { runWhisper } from './whisper'
 import { correctTranscript, generateNotes } from './deepseek'
-import { pickCategoryName, parseTagsFromMarkdown, sanitizePathSegment, resolveUniquePath, parseCategoryFromMarkdown, resolveBestFolder } from './obsidian-categories'
 import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards } from './entity-cards'
 
 const HEADERS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
@@ -289,21 +288,9 @@ export async function processPodcast(
   if (!fs.existsSync(obsDir)) fs.mkdirSync(obsDir, { recursive: true })
   const filename = sanitize(title || '未命名播客')
 
-  const aiCategory = parseCategoryFromMarkdown(notes.content)
-  let categoryFolder: string
-  if (aiCategory) {
-    categoryFolder = resolveBestFolder(obsDir, aiCategory, log)
-  } else {
-    const tags = parseTagsFromMarkdown(notes.content)
-    const cfg = { version: 1 as const, categories: [], rules: [] }
-    categoryFolder = pickCategoryName(tags, cfg, log)
-  }
-  const saveDir = path.join(obsDir, sanitizePathSegment(categoryFolder))
-  if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true })
-
-  const { destPath: filepath } = resolveUniquePath(saveDir, filename, '.md')
+  const filepath = path.join(obsDir, `${filename}.md`)
   fs.writeFileSync(filepath, notes.content, 'utf-8')
 
-  log(`  📝 笔记已保存: ${sanitizePathSegment(categoryFolder)}/${path.basename(filepath)}`)
+  log(`  📝 笔记已保存: ${path.basename(filepath)}`)
   return path.basename(filepath)
 }

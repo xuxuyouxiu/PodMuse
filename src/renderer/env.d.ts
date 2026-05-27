@@ -20,7 +20,6 @@ declare global {
       cleanTemp: () => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>
-      migrateObsidianNotes: () => Promise<{ scanned: number; moved: number; renamed: number; skipped: number; errors: string[] }>
       scanWhisperModels: () => Promise<Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }>>
       checkWhisperHardware: (modelId: string) => Promise<{ pass: boolean; totalRamGB: number; requiredGB: number; warning: string | null }>
       minimizeWindow: () => Promise<void>
