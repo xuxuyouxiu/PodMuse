@@ -44,7 +44,6 @@ const DEFAULTS: PodcastConfig = {
   language: 'auto', feishu_chat_id: '',
   obsidian_dir: 'G:\\xuxuya_Notes\\小宇宙播客',
   audio_dir: '',
-  category_config_path: '',
   whisper_exe_path: 'D:\\Tools\\Faster-Whisper-XXL\\faster-whisper-xxl.exe',
   whisper_model: 'large-v3-turbo',
 }

@@ -23,7 +23,7 @@ export function getStandardModels(): Omit<WhisperModelInfo, 'downloaded'>[] {
   return STANDARD_MODELS
 }
 
-function getCacheDirs(): string[] {
+function getCacheDirs(whisperExePath?: string): string[] {
   const home = os.homedir()
   const dirs: string[] = []
   const candidates = [
@@ -36,11 +36,18 @@ function getCacheDirs(): string[] {
   for (const d of candidates) {
     if (d && fs.existsSync(d)) dirs.push(d)
   }
+
+  if (whisperExePath) {
+    const exeDir = path.dirname(whisperExePath)
+    const modelsDir = path.join(exeDir, '_models')
+    if (fs.existsSync(modelsDir)) dirs.push(modelsDir)
+  }
+
   return dirs
 }
 
-export function scanLocalModels(): WhisperModelInfo[] {
-  const cacheDirs = getCacheDirs()
+export function scanLocalModels(whisperExePath?: string): WhisperModelInfo[] {
+  const cacheDirs = getCacheDirs(whisperExePath)
   const downloadedIds = new Set<string>()
 
   for (const cacheDir of cacheDirs) {
@@ -48,7 +55,10 @@ export function scanLocalModels(): WhisperModelInfo[] {
       const entries = fs.readdirSync(cacheDir, { withFileTypes: true })
       for (const entry of entries) {
         if (entry.isDirectory()) {
-          downloadedIds.add(entry.name.toLowerCase())
+          const name = entry.name.toLowerCase()
+          downloadedIds.add(name)
+          const stripped = name.replace(/^(faster-whisper-|faster-|whisper-)/, '')
+          if (stripped !== name) downloadedIds.add(stripped)
         }
       }
     } catch {}

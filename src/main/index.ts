@@ -4,7 +4,6 @@ import { loadConfig, loadState, saveConfig, saveState } from './config'
 import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
 import { fetchPodcastTitle } from './podcast'
-import { migrateExistingNotes } from './obsidian-categories'
 import { scanLocalModels, checkHardware } from './whisper-model-manager'
 import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, getRecentTasks, removeRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
@@ -269,13 +268,9 @@ function setupIPC() {
     return result.canceled ? null : result.filePaths[0] || null
   })
 
-  ipcMain.handle('obsidian:migrateNotes', async () => {
-    const config = loadConfig()
-    return migrateExistingNotes(config.obsidian_dir, config.category_config_path)
-  })
-
   ipcMain.handle('whisper:scanModels', () => {
-    return scanLocalModels()
+    const config = loadConfig()
+    return scanLocalModels(config.whisper_exe_path)
   })
 
   ipcMain.handle('whisper:checkHardware', (_e, modelId: string) => {
