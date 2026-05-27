@@ -17,6 +17,6 @@ win:
   icon: build/icon.png
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: false
+  allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   artifactName: 播客笔记助手-Setup-${version}.${ext}
