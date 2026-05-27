@@ -1,5 +1,7 @@
 # 播客笔记助手 🎧
 
+[**English**](./README_EN.md) | **中文**
+
 将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、DeepSeek AI 提炼，以及飞书消息轮询自动处理。
 
 [![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](package.json)
@@ -12,7 +14,6 @@
 - **自动实体卡片** — 自动识别播客中的人物、项目、概念，用预设模板生成独立卡片笔记
 - **双向链接** — 播客笔记与实体卡片之间自动建立 Obsidian 双向链接
 - **飞书消息集成** — 在飞书群聊中发送播客链接即可自动触发处理流程
-- **大分类归档** — 笔记按标签自动归类到「科技类」「商业财经类」「文化艺术类」等顶层文件夹
 - **Whisper 模型管理** — 支持 tiny 到 large-v3-turbo 多种模型切换，自动检测硬件兼容性
 - **Obsidian 模板化** — 使用自定义模板生成笔记，保持知识体系一致性
 
@@ -35,7 +36,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/xuxuyouxiu/podcast-notes.git
+git clone https://github.com/xuxuyouxiu/Podcast_notes.git
 cd podcast-notes
 
 # 安装依赖

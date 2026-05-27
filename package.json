@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xuxuyouxiu/podcast-notes"
+    "url": "https://github.com/xuxuyouxiu/Podcast_notes"
   },
   "bugs": {
-    "url": "https://github.com/xuxuyouxiu/podcast-notes/issues"
+    "url": "https://github.com/xuxuyouxiu/Podcast_notes/issues"
   },
-  "homepage": "https://github.com/xuxuyouxiu/podcast-notes#readme",
+  "homepage": "https://github.com/xuxuyouxiu/Podcast_notes#readme",
   "keywords": [
     "podcast",
     "obsidian",
