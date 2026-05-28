@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState } from '@shared/types'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
+import FileDropArea from './components/FileDropArea'
 import StepPanel from './components/StepPanel'
 import ControlBar from './components/ControlBar'
 import ActiveTasksPanel from './components/ActiveTasksPanel'
@@ -113,6 +114,25 @@ export default function App() {
     return handleProcessWithMode(url, false)
   }, [handleProcessWithMode])
 
+  const handleProcessFile = useCallback(async (filePath: string) => {
+    cancelFlag.current = false
+    setProcessing(true)
+    setLastUrl(filePath)
+    setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+    const result = await window.electronAPI.processPodcast(filePath, false, undefined, true)
+    setProcessing(false)
+    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
+    setActiveTasks(aTasks)
+    setRecentTasks(rTasks)
+    const latestPending = aTasks.find((task: RecentTaskState) => task.status !== 'completed')
+    setLastUrl(latestPending?.url || aTasks[0]?.url || filePath)
+    if (cancelFlag.current) {
+      cancelFlag.current = false
+      setCancelling(false)
+    }
+    return result
+  }, [])
+
   const handleCancel = useCallback(async () => {
     cancelFlag.current = true
     setCancelling(true)
@@ -199,8 +219,9 @@ export default function App() {
                     </div>
                   )}
                 </section>
-                <section className="workspace-input-card">
+                <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <UrlInput onProcess={handleProcess} disabled={processing || cancelling} />
+                  <FileDropArea onProcessFile={handleProcessFile} disabled={processing || cancelling} />
                 </section>
                 <section className="workspace-process-card">
                   <StepPanel steps={steps} processing={processing} />

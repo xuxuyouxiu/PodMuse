@@ -9,7 +9,7 @@ declare global {
       startFeishu: () => Promise<any>
       stopFeishu: () => Promise<any>
       getFeishuStatus: () => Promise<any>
-      processPodcast: (url: string, force?: boolean, taskId?: string) => Promise<any>
+      processPodcast: (url: string, force?: boolean, taskId?: string, isLocalFile?: boolean) => Promise<any>
       cancelProcessing: () => Promise<boolean>
       onStepUpdate: (callback: (step: any) => void) => void
       onLog: (callback: (msg: string) => void) => void
