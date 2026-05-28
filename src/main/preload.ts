@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 try {
   contextBridge.exposeInMainWorld('electronAPI', {
@@ -41,6 +41,8 @@ try {
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
     closeWindow: () => ipcRenderer.invoke('window:close'),
+
+    getPathForFile: (file: File) => webUtils.getPathForFile(file),
   })
 } catch (e) {
   console.error('Preload failed:', e)
