@@ -102,6 +102,7 @@ export async function processPodcast(
   sendStep?: (step: StepInfo) => void,
   sendLog?: (msg: string) => void,
   signal?: AbortSignal,
+  isLocalFile?: boolean,
 ): Promise<string | null> {
   const log = (m: string) => { sendLog?.(m); console.log(m) }
   const step = (s: StepInfo) => {
@@ -113,81 +114,103 @@ export async function processPodcast(
   }
   const check = () => { if (signal?.aborted) throw Object.assign(new Error('已取消'), { name: 'AbortError' }) }
 
-  log(`开始处理: ${podcastUrl}`)
-
-  check()
-  if (!XIAOYUZHOU_PATTERN.test(podcastUrl)) {
-    step({ step: 1, title: '解析页面', subtitle: '无效链接', status: 'error', detail: '不是有效的小宇宙播客链接' })
-    log('  ❌ 不是有效的小宇宙播客链接')
-    return null
-  }
-
-  step({ step: 1, title: '解析页面', subtitle: '提取音频链接', status: 'running', detail: '正在抓取小宇宙页面...' })
-  let audioUrl: string | null = null
   let title: string | null = null
-  try {
-    const result = await extractAudio(podcastUrl)
-    audioUrl = result.audioUrl
-    title = result.title
-  } catch (e: any) {
-    step({ step: 1, title: '解析页面', subtitle: '网络错误', status: 'error', detail: e.message })
-    log(`  ❌ 解析页面失败: ${e.message}`)
-    return null
-  }
-  if (!audioUrl) {
-    step({ step: 1, title: '解析页面', subtitle: '提取音频链接', status: 'error', detail: '未找到音频链接' })
-    log('  ❌ 无法提取音频链接')
-    return null
-  }
-  step({ step: 1, title: '解析页面', subtitle: title || '未知标题', status: 'done', detail: '找到音频链接' })
-  log(`  标题: ${title || '未知'}`)
+  let audioPath: string
 
-  check()
-  step({ step: 2, title: '下载音频', subtitle: '下载中...', status: 'running', detail: '开始下载', progress: 0 })
-  log('  [2/5] 下载音频...')
-  const tmp = getTempDir(audioDir)
-  let ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3'
-  if (!['mp3', 'm4a', 'ogg', 'aac', 'wav'].includes(ext)) ext = 'mp3'
-  const audioName = sanitize(title || 'episode')
-  const audioPath = path.join(tmp, `${audioName}.${ext}`)
+  if (isLocalFile) {
+    log(`开始处理本地文件: ${podcastUrl}`)
+    check()
+    title = path.basename(podcastUrl, path.extname(podcastUrl))
+    audioPath = podcastUrl
 
-  if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 1024) {
-    log('  ⏭ 音频已存在，跳过下载')
-    step({ step: 2, title: '下载音频', subtitle: `${(fs.statSync(audioPath).size / 1048576).toFixed(1)} MB (已缓存)`, status: 'done', progress: 100 })
-  } else {
-    try {
-      const audioResp = await fetch(audioUrl, { headers: { 'User-Agent': HEADERS_UA }, signal })
-      if (!audioResp.ok || !audioResp.body) {
-        step({ step: 2, title: '下载音频', subtitle: `HTTP ${audioResp.status}`, status: 'error' })
-        log(`  ❌ 下载失败 HTTP ${audioResp.status}`)
-        return null
-      }
-      const reader = audioResp.body.getReader()
-      const chunks: Uint8Array[] = []
-      let received = 0
-      const total = parseInt(audioResp.headers.get('content-length') || '0')
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        chunks.push(value)
-        received += value.length
-        if (total > 0) {
-          step({ step: 2, title: '下载音频', subtitle: '下载中...', status: 'running', detail: `${(received / 1048576).toFixed(1)} MB`, progress: Math.round((received / total) * 100) })
-        }
-      }
-      if (received === 0) {
-        step({ step: 2, title: '下载音频', subtitle: '空文件', status: 'error' })
-        log('  ❌ 下载内容为空')
-        return null
-      }
-      fs.writeFileSync(audioPath, Buffer.concat(chunks))
-      step({ step: 2, title: '下载音频', subtitle: `${(received / 1048576).toFixed(1)} MB`, status: 'done', progress: 100 })
-      log('  ✓ 下载完成')
-    } catch (e: any) {
-      if (signal?.aborted) throw e
-      step({ step: 2, title: '下载音频', subtitle: '下载失败', status: 'error', detail: e.message })
-      log(`  ❌ 下载失败: ${e.message}`)
+    if (!fs.existsSync(audioPath)) {
+      step({ step: 1, title: '解析页面', subtitle: '文件不存在', status: 'error', detail: audioPath })
+      log(`  ❌ 文件不存在: ${audioPath}`)
       return null
+    }
+    step({ step: 1, title: '解析页面', subtitle: title, status: 'done', detail: `本地文件: ${path.basename(audioPath)}` })
+    log(`  文件名: ${title}`)
+
+    check()
+    const stat = fs.statSync(audioPath)
+    step({ step: 2, title: '下载音频', subtitle: `${(stat.size / 1048576).toFixed(1)} MB`, status: 'done', progress: 100, detail: '本地文件，跳过下载' })
+    log('  [2/5] 使用本地文件，跳过下载')
+  } else {
+    log(`开始处理: ${podcastUrl}`)
+
+    check()
+    if (!XIAOYUZHOU_PATTERN.test(podcastUrl)) {
+      step({ step: 1, title: '解析页面', subtitle: '无效链接', status: 'error', detail: '不是有效的小宇宙播客链接' })
+      log('  ❌ 不是有效的小宇宙播客链接')
+      return null
+    }
+
+    step({ step: 1, title: '解析页面', subtitle: '提取音频链接', status: 'running', detail: '正在抓取小宇宙页面...' })
+    let audioUrl: string | null = null
+    try {
+      const result = await extractAudio(podcastUrl)
+      audioUrl = result.audioUrl
+      title = result.title
+    } catch (e: any) {
+      step({ step: 1, title: '解析页面', subtitle: '网络错误', status: 'error', detail: e.message })
+      log(`  ❌ 解析页面失败: ${e.message}`)
+      return null
+    }
+    if (!audioUrl) {
+      step({ step: 1, title: '解析页面', subtitle: '提取音频链接', status: 'error', detail: '未找到音频链接' })
+      log('  ❌ 无法提取音频链接')
+      return null
+    }
+    step({ step: 1, title: '解析页面', subtitle: title || '未知标题', status: 'done', detail: '找到音频链接' })
+    log(`  标题: ${title || '未知'}`)
+
+    check()
+    step({ step: 2, title: '下载音频', subtitle: '下载中...', status: 'running', detail: '开始下载', progress: 0 })
+    log('  [2/5] 下载音频...')
+    const tmp = getTempDir(audioDir)
+    let ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3'
+    if (!['mp3', 'm4a', 'ogg', 'aac', 'wav'].includes(ext)) ext = 'mp3'
+    const audioName = sanitize(title || 'episode')
+    audioPath = path.join(tmp, `${audioName}.${ext}`)
+
+    if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 1024) {
+      log('  ⏭ 音频已存在，跳过下载')
+      step({ step: 2, title: '下载音频', subtitle: `${(fs.statSync(audioPath).size / 1048576).toFixed(1)} MB (已缓存)`, status: 'done', progress: 100 })
+    } else {
+      try {
+        const audioResp = await fetch(audioUrl, { headers: { 'User-Agent': HEADERS_UA }, signal })
+        if (!audioResp.ok || !audioResp.body) {
+          step({ step: 2, title: '下载音频', subtitle: `HTTP ${audioResp.status}`, status: 'error' })
+          log(`  ❌ 下载失败 HTTP ${audioResp.status}`)
+          return null
+        }
+        const reader = audioResp.body.getReader()
+        const chunks: Uint8Array[] = []
+        let received = 0
+        const total = parseInt(audioResp.headers.get('content-length') || '0')
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          chunks.push(value)
+          received += value.length
+          if (total > 0) {
+            step({ step: 2, title: '下载音频', subtitle: '下载中...', status: 'running', detail: `${(received / 1048576).toFixed(1)} MB`, progress: Math.round((received / total) * 100) })
+          }
+        }
+        if (received === 0) {
+          step({ step: 2, title: '下载音频', subtitle: '空文件', status: 'error' })
+          log('  ❌ 下载内容为空')
+          return null
+        }
+        fs.writeFileSync(audioPath, Buffer.concat(chunks))
+        step({ step: 2, title: '下载音频', subtitle: `${(received / 1048576).toFixed(1)} MB`, status: 'done', progress: 100 })
+        log('  ✓ 下载完成')
+      } catch (e: any) {
+        if (signal?.aborted) throw e
+        step({ step: 2, title: '下载音频', subtitle: '下载失败', status: 'error', detail: e.message })
+        log(`  ❌ 下载失败: ${e.message}`)
+        return null
+      }
     }
   }
 

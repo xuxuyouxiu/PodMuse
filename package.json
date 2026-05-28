@@ -1,6 +1,6 @@
 {
   "name": "podcast-notes",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "播客笔记助手 - 小宇宙链接自动下载、AI提炼、写入Obsidian",
   "main": "dist-electron/main/index.js",
   "author": "podcast-notes contributors",

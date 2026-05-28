@@ -160,14 +160,17 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
-  ipcMain.handle('podcast:process', async (_event, { url, force, taskId }: { url: string; force?: boolean; taskId?: string }) => {
-    const episodeMatch = url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)
-    const episodeId = episodeMatch ? episodeMatch[1] : null
-    if (!force && episodeId && processedEpisodeIds.has(episodeId)) {
-      mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
-      return { success: false, error: '该播客已处理过' }
+  ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean }) => {
+    if (!isLocalFile) {
+      const episodeMatch = url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)
+      const episodeId = episodeMatch ? episodeMatch[1] : null
+      if (!force && episodeId && processedEpisodeIds.has(episodeId)) {
+        mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
+        return { success: false, error: '该播客已处理过' }
+      }
     }
-    const initialTitle = await fetchPodcastTitle(url).catch(() => null)
+    const initialTitle = isLocalFile ? null : await fetchPodcastTitle(url).catch(() => null)
+    const episodeId = isLocalFile ? null : (url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)?.[1] || null)
     updateRecentState(state => startRecentTask(state, { id: taskId, url, episodeId, title: initialTitle }))
     pendingAbort = new AbortController()
     const signal = pendingAbort.signal
@@ -179,6 +182,7 @@ function setupIPC() {
         (step: any) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
         (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
         signal,
+        isLocalFile,
       )
       if (result) {
         if (episodeId) processedEpisodeIds.add(episodeId)
