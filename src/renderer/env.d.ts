@@ -25,6 +25,7 @@ declare global {
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>
+      getPathForFile: (file: File) => string
     }
   }
 }

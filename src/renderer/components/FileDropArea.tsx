@@ -20,7 +20,11 @@ function validateFile(file: File): string | null {
 }
 
 function getFilePath(file: File): string | null {
-  return (file as any).path || null
+  try {
+    return window.electronAPI?.getPathForFile?.(file) || (file as any).path || null
+  } catch {
+    return null
+  }
 }
 
 export default function FileDropArea({ onProcessFile, disabled }: Props) {
