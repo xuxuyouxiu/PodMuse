@@ -35,6 +35,20 @@ function sanitize(name: string) {
 }
 
 /**
+ * 生成时间戳字符串，格式为 YYYYMMDD_HHmmss
+ */
+function getTimestamp(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  return `${year}${month}${day}_${hours}${minutes}${seconds}`
+}
+
+/**
  * 从笔记内容中解析 frontmatter 的 category 字段
  * @param content 笔记内容（Markdown）
  * @returns category 值，如果未找到则返回空字符串
@@ -335,8 +349,13 @@ export async function processPodcast(
     log(`  📁 已创建笔记目录: ${obsDir}`)
   }
 
+  // 生成带时间戳的文件名
+  const baseFilename = sanitize(title || '未命名播客')
+  const timestamp = getTimestamp()
+  const filename = `${baseFilename}_${timestamp}`
+
   if (patchedEntities.people.length || patchedEntities.projects.length || patchedEntities.concepts.length || patchedEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${sanitize(title || '未命名播客')}.md`, apiKey }, signal)
+    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${filename}.md`, apiKey }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
@@ -348,8 +367,6 @@ export async function processPodcast(
     }
     log(`  🃏 生成实体卡片: ${parts.join(', ')}`)
   }
-
-  const filename = sanitize(title || '未命名播客')
   
   // 解析笔记中的 category 字段，按分类存储到对应文件夹
   const category = parseCategory(notes.content || '')
