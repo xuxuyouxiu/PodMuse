@@ -43,12 +43,18 @@ function splitFieldValue(block: string): Map<string, string> {
 }
 
 function parseEntitySection(text: string, tag: string, splitField: string): Map<string, string>[] {
-  const re = new RegExp(`---CARD-${tag}---\\n([\\s\\S]*?)\\n---CARD-${tag}-END---`)
-  const m = text.match(re)
-  if (!m) return []
-  const raw = m[1]
-  const segments = raw.split(new RegExp(`(?=^${splitField}：)`, 'm'))
-  return segments.filter(Boolean).map(seg => splitFieldValue(seg.trim()))
+  const re = new RegExp(`---CARD-${tag}---\\n([\\s\\S]*?)\\n---CARD-${tag}-END---`, 'g')
+  const matches = [...text.matchAll(re)]
+  if (matches.length === 0) return []
+  
+  const results: Map<string, string>[] = []
+  for (const match of matches) {
+    const raw = match[1].trim()
+    if (raw) {
+      results.push(splitFieldValue(raw))
+    }
+  }
+  return results
 }
 
 export function parseEntityBlocks(markdown: string): EntityResult {
