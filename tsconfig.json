@@ -14,7 +14,8 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

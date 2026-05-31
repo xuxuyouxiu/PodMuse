@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, dialog, nativeImage } from 'electron'
-import { join } from 'path'
+import { join, basename, extname } from 'path'
 import { loadConfig, loadState, saveConfig, saveState } from './config'
 import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
@@ -184,7 +184,7 @@ function setupIPC() {
         return { success: false, error: '该播客已处理过' }
       }
     }
-    const initialTitle = isLocalFile ? null : await fetchPodcastTitle(url).catch(() => null)
+    const initialTitle = isLocalFile ? basename(url, extname(url)) : await fetchPodcastTitle(url).catch(() => null)
     const episodeId = isLocalFile ? null : (url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)?.[1] || null)
     updateRecentState(state => startRecentTask(state, { id: taskId, url, episodeId, title: initialTitle }))
     pendingAbort = new AbortController()

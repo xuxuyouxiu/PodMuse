@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig, AIProviderPreset } from '@shared/types'
+import ConfirmDialog from './ConfirmDialog'
 
 // 预设供应商列表（与主进程同步）
 const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
@@ -149,6 +150,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
   const [cleaningTemp, setCleaningTemp] = useState(false)
   const [tempCleanResult, setTempCleanResult] = useState<string | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const initialFormRef = useRef<PodcastConfig>(initialConfig)
 
   // 检测脏状态
@@ -262,10 +264,19 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
 
   function handleClose() {
     if (isDirty) {
-      const confirmed = window.confirm('您有未保存的更改，确定要关闭吗？')
-      if (!confirmed) return
+      setShowCloseConfirm(true)
+      return
     }
     onClose()
+  }
+
+  function handleConfirmClose() {
+    setShowCloseConfirm(false)
+    onClose()
+  }
+
+  function handleCancelClose() {
+    setShowCloseConfirm(false)
   }
 
   async function handleCleanTemp() {
@@ -451,7 +462,20 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
         .settings-link-button:hover {
           text-decoration: underline;
         }
-      `}</style>
+      `}      </style>
+
+      {/* 关闭确认对话框 */}
+      {showCloseConfirm && (
+        <ConfirmDialog
+          title="未保存的更改"
+          message="您有未保存的更改，确定要关闭设置吗？"
+          confirmText="不保存"
+          cancelText="继续编辑"
+          danger={true}
+          onConfirm={handleConfirmClose}
+          onCancel={handleCancelClose}
+        />
+      )}
     </div>
   )
 }
@@ -712,7 +736,7 @@ function TabApi({ form, update, validationErrors }: {
                       value={currentProvider.model || ''}
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
-                      style={{ outline: 'none', cursor: 'pointer' }}
+                      style={{ outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
                     >
                       <option value="">选择模型...</option>
                       {fetchedModels.map(model => (
@@ -726,7 +750,7 @@ function TabApi({ form, update, validationErrors }: {
                       value={currentProvider.model || ''}
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
-                      style={{ outline: 'none', cursor: 'pointer' }}
+                      style={{ outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
                     >
                       <option value="">选择模型...</option>
                       {currentPreset.availableModels.map(model => (
@@ -886,7 +910,7 @@ function TabWhisper({ form, update, models, scanningModels, modelScanStatus, har
               value={form.whisper_model}
               onChange={e => onModelChange(e.target.value)}
               className="settings-input"
-              style={{ flex: 1, outline: 'none', cursor: 'pointer' }}
+              style={{ flex: 1, outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
             >
               {(models ?? []).map(m => (
                 <option key={m.id} value={m.id}>

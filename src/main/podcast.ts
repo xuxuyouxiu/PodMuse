@@ -34,6 +34,35 @@ function sanitize(name: string) {
   return name.replace(/[<>:"/\\|?*\n\r\t]/g, '_').trim()
 }
 
+/**
+ * 从笔记内容中解析 frontmatter 的 category 字段
+ * @param content 笔记内容（Markdown）
+ * @returns category 值，如果未找到则返回空字符串
+ */
+function parseCategory(content: string): string {
+  // 匹配 YAML frontmatter 中的 category 字段
+  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/)
+  if (!frontmatterMatch) return ''
+  
+  const frontmatter = frontmatterMatch[1]
+  const categoryMatch = frontmatter.match(/category:\s*\[?([^\]\n]+)/)
+  if (!categoryMatch) return ''
+  
+  // 清理 category 值：去掉方括号、引号、多余空格
+  let category = categoryMatch[1].trim()
+  category = category.replace(/[\[\]"']/g, '').trim()
+  
+  // 如果 category 包含多个值（用逗号分隔），只取第一个
+  if (category.includes(',')) {
+    category = category.split(',')[0].trim()
+  }
+  if (category.includes('，')) {
+    category = category.split('，')[0].trim()
+  }
+  
+  return category
+}
+
 function findAudioInJSON(obj: any, depth = 0): string | null {
   if (depth > 12 || !obj) return null
   const audioKeys = ['mediaKey', 'enclosureUrl', 'mediaUrl', 'audioUrl', 'streamUrl', 'url']
@@ -321,10 +350,25 @@ export async function processPodcast(
   }
 
   const filename = sanitize(title || '未命名播客')
+  
+  // 解析笔记中的 category 字段，按分类存储到对应文件夹
+  const category = parseCategory(notes.content || '')
+  let targetDir = obsDir
+  
+  if (category) {
+    targetDir = path.join(obsDir, category)
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true })
+      log(`  📁 已创建分类文件夹: ${category}`)
+    }
+    log(`  📂 笔记分类: ${category}`)
+  } else {
+    log(`  ⚠ 未检测到分类信息，笔记将保存到根目录`)
+  }
 
-  const filepath = path.join(obsDir, `${filename}.md`)
+  const filepath = path.join(targetDir, `${filename}.md`)
   fs.writeFileSync(filepath, notes.content, 'utf-8')
 
-  log(`  📝 笔记已保存: ${path.basename(filepath)}`)
-  return path.basename(filepath)
+  log(`  📝 笔记已保存: ${path.relative(obsDir, filepath)}`)
+  return path.relative(obsDir, filepath)
 }

@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { motion } from 'motion/react'
+import { AlertTriangle, HelpCircle } from 'lucide-react'
 
 interface Props {
   title: string
@@ -81,7 +83,7 @@ export default function ConfirmDialog({
               flexShrink: 0,
             }}
           >
-            {danger ? '⚠' : '❓'}
+            {danger ? <AlertTriangle size={20} /> : <HelpCircle size={20} />}
           </div>
           <div>
             <div

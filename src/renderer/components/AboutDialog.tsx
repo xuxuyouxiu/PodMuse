@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'motion/react'
+import { X, ExternalLink, Github } from 'lucide-react'
 
 interface Props {
   onClose: () => void
@@ -97,7 +99,7 @@ export default function AboutDialog({ onClose }: Props) {
               rel="noopener noreferrer"
               style={{ color: 'var(--accent)', textDecoration: 'none' }}
             >
-              GitHub 仓库
+              GitHub 仓库 <ExternalLink size={12} />
             </a>
           } />
           <InfoRow label="问题反馈" value={
@@ -105,9 +107,9 @@ export default function AboutDialog({ onClose }: Props) {
               href="https://github.com/anthropics/claude-code/issues"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'var(--accent)', textDecoration: 'none' }}
+              style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
-              提交 Issue
+              提交 Issue <ExternalLink size={12} />
             </a>
           } />
           <InfoRow label="许可证" value="MIT License" />

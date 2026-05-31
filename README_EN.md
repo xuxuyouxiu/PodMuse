@@ -2,20 +2,22 @@
 
 [**中文**](./README.md) | **English**
 
-Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes. Supports audio download, Whisper speech-to-text, DeepSeek AI summarization, and Lark message polling for automated processing.
+Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes. Supports audio download, Whisper speech-to-text, multi-AI provider summarization, and Lark message polling for automated processing.
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.33-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
 
 - **One-Click Processing** — Paste a Xiaoyuzhou FM link and auto-complete extraction, download, transcription, correction, and note organization
-- **AI Note Generation** — DeepSeek LLM generates structured notes (key insights, dialogue highlights, glossary, quotes, etc.)
+- **Multi-AI Providers** — Supports DeepSeek, OpenAI, Moonshot (Kimi), Zhipu AI (GLM), Qwen, Yi, MiniMax, and 7+ other providers
+- **AI Note Generation** — LLM generates structured notes (key insights, dialogue highlights, glossary, quotes, etc.)
 - **Auto Entity Cards** — Automatically identifies people, projects, and concepts, generating standalone card notes from templates
 - **Bidirectional Links** — Auto-creates Obsidian [[wikilinks]] between podcast notes and entity cards
 - **Lark Integration** — Send a podcast link in a Lark group chat to trigger automated processing
 - **Whisper Model Management** — Switch between tiny to large-v3-turbo models with automatic hardware compatibility detection
 - **Obsidian Templates** — Custom templates for consistent knowledge base structure
+- **Modern UI** — Glassmorphism design, dark theme, smooth animations
 
 ## Quick Start
 
@@ -25,9 +27,15 @@ Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes
    - Download: [GitHub Releases](https://github.com/Purfview/whisper-standalone-win/releases)
    - Place `faster-whisper-xxl.exe` in a local directory
 
-2. **DeepSeek API Key** — AI note generation
-   - Register: [DeepSeek Platform](https://platform.deepseek.com/)
-   - Create an API Key
+2. **AI API Key** — AI note generation (choose one)
+   - [DeepSeek](https://platform.deepseek.com/)
+   - [OpenAI](https://platform.openai.com/)
+   - [Moonshot (Kimi)](https://platform.moonshot.cn/)
+   - [Zhipu AI (GLM)](https://open.bigmodel.cn/)
+   - [Qwen](https://dashscope.aliyun.com/)
+   - [Yi](https://platform.lingyiwanwu.com/)
+   - [MiniMax](https://platform.minimaxi.com/)
+   - Or other OpenAI-compatible APIs
 
 3. **Obsidian** (optional) — Knowledge base
    - https://obsidian.md/
@@ -54,7 +62,10 @@ npm start
 
 ```json
 {
-  "api_key": "Your DeepSeek API Key",
+  "ai_provider": "deepseek",
+  "api_key": "Your AI API Key",
+  "api_base_url": "https://api.deepseek.com/v1",
+  "model": "deepseek-chat",
   "feishu_app_id": "Your Lark App ID",
   "feishu_app_secret": "Your Lark App Secret",
   "language": "auto",
@@ -72,7 +83,7 @@ Config is persisted to `%APPDATA%\播客笔记助手\podcast_config.json`, unaff
 
 ```
 Podcast Link → ① Parse Page → ② Download Audio → ③ Whisper Transcription
-             → ④ DeepSeek Named-Entity Correction → ⑤ DeepSeek Note Generation
+             → ④ AI Named-Entity Correction → ⑤ AI Note Generation
              → Write to Obsidian + Generate Entity Cards (People/Projects/Concepts)
 ```
 
@@ -114,12 +125,16 @@ npm run refresh:test
 
 | Technology | Purpose |
 |---|---|
-| Electron | Desktop app framework |
-| React | Frontend UI |
+| Electron 33 | Desktop app framework |
+| React 18 | Frontend UI |
 | TypeScript | Type safety |
-| Vite | Build tooling |
+| Vite 6 | Build tooling |
+| Tailwind CSS 3 | Styling system |
+| shadcn/ui | UI component library |
+| Lucide React | Icon library |
+| motion/react | Animation engine |
 | Whisper / faster-whisper-xxl | Speech-to-text |
-| DeepSeek API | AI note generation |
+| Multi-AI Providers | AI note generation |
 | electron-builder | Packaging & distribution |
 | ESLint + Prettier | Code quality |
 
