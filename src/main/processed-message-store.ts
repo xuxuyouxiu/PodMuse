@@ -28,9 +28,6 @@ export class ProcessedMessageStore {
       task.status !== 'completed'
       && ((episodeId && task.episodeId === episodeId) || task.url === url),
     )
-    // #region debug-point D:incomplete-history-check
-    ;(()=>{let u='http://127.0.0.1:7777/event',s='whisper-history-bugs';try{const e=require('fs').readFileSync('.dbg/whisper-history-bugs.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'D',location:'src/main/processed-message-store.ts:hasIncompleteRecentTask',msg:'[DEBUG] check incomplete recent task',data:{url,episodeId,matched,recentTasks:(state.recentTasks||[]).map(t=>({id:t.id,status:t.status,url:t.url,episodeId:t.episodeId,updatedAt:t.updatedAt}))},ts:Date.now()})}).catch(()=>{})})()
-    // #endregion
     return matched
   }
 
@@ -65,8 +62,5 @@ export class ProcessedMessageStore {
       processed,
       processedUrls,
     })
-    // #region debug-point D:flush-state
-    ;(()=>{let u='http://127.0.0.1:7777/event',s='whisper-history-bugs';try{const e=require('fs').readFileSync('.dbg/whisper-history-bugs.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'D',location:'src/main/processed-message-store.ts:flush',msg:'[DEBUG] processed store flush state',data:{processedCount:processed.length,processedUrlsCount:processedUrls.length,recentTasksCount:(currentState.recentTasks||[]).length,recentTasks:(currentState.recentTasks||[]).map(t=>({id:t.id,status:t.status,url:t.url,episodeId:t.episodeId,updatedAt:t.updatedAt}))},ts:Date.now()})}).catch(()=>{})})()
-    // #endregion
   }
 }

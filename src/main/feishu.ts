@@ -35,6 +35,7 @@ export class FeishuMonitor {
       config.api_key, config.language,
       config.obsidian_dir || '', config.audio_dir || '',
       logFunc, stepFunc, processingFunc, stateChangedFunc,
+      config.notification_enabled !== false,
     );
     (this as any)._dispatcher = dispatcher
 

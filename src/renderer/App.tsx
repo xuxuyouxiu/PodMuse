@@ -8,6 +8,8 @@ import ControlBar from './components/ControlBar'
 import ActiveTasksPanel from './components/ActiveTasksPanel'
 import RecentTasksPanel from './components/RecentTasksPanel'
 import SettingsDialog from './components/SettingsDialog'
+import ConfirmDialog from './components/ConfirmDialog'
+import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import './styles/globals.css'
 
@@ -32,10 +34,12 @@ export default function App() {
   const [processing, setProcessing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [lastUrl, setLastUrl] = useState<string | null>(null)
   const [activeTasks, setActiveTasks] = useState<RecentTaskState[]>([])
   const [recentTasks, setRecentTasks] = useState<RecentTaskState[]>([])
   const [toast, setToast] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
@@ -56,9 +60,6 @@ export default function App() {
       setLastUrl(latestPending?.url || aTasks[0]?.url || null)
     })
     window.electronAPI.onStepUpdate((step: StepInfo) => {
-      // #region debug-point E:renderer-step3-update
-      if (step.step === 3) { fetch('http://127.0.0.1:7777/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'whisper-history-bugs',runId:'pre-fix',hypothesisId:'E',location:'src/renderer/App.tsx:onStepUpdate',msg:'[DEBUG] renderer received step3 update',data:{subtitle:step.subtitle,status:step.status,detail:step.detail,progress:step.progress},ts:Date.now()})}).catch(()=>{}) }
-      // #endregion
       setSteps(prev => prev.map(s => s.step === step.step ? { ...s, ...step } : s))
     })
     window.electronAPI.onFeishuStatus((status: FeishuStatus) => {
@@ -162,13 +163,22 @@ export default function App() {
     handleProcessWithMode(task.url, true, task.id)
   }, [handleProcessWithMode])
 
-  const handleTaskDelete = useCallback(async (taskId: string) => {
-    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.removeRecentTask(taskId)
+  // 显示删除确认对话框
+  const handleTaskDelete = useCallback((taskId: string) => {
+    setDeleteConfirmId(taskId)
+  }, [])
+
+  // 执行删除操作
+  const confirmDeleteTask = useCallback(async () => {
+    if (!deleteConfirmId) return
+    
+    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.removeRecentTask(deleteConfirmId)
     setActiveTasks(aTasks)
     setRecentTasks(rTasks)
     const latestPending = aTasks.find((task: RecentTaskState) => task.status !== 'completed')
     setLastUrl(latestPending?.url || aTasks[0]?.url || null)
-  }, [])
+    setDeleteConfirmId(null)
+  }, [deleteConfirmId])
 
   const handleSaveConfig = useCallback(async (c: PodcastConfig) => {
     await window.electronAPI.saveConfig(c)
@@ -194,7 +204,7 @@ export default function App() {
       <div className="workspace-shell">
         <WorkspaceSidebar 
           onSettings={() => setSettingsOpen(true)}
-          onAbout={() => alert('播客笔记助手 v3.0\n\n小宇宙 → 下载 → Whisper → DeepSeek → Obsidian')}
+          onAbout={() => setAboutOpen(true)}
         />
         <div className="workspace-main">
           <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
@@ -262,6 +272,9 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {aboutOpen && (
+        <AboutDialog onClose={() => setAboutOpen(false)} />
+      )}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)',
@@ -272,6 +285,17 @@ export default function App() {
         }}>
           ✓ {toast}
         </div>
+      )}
+      {deleteConfirmId && (
+        <ConfirmDialog
+          title="删除任务记录"
+          message="确定要删除这条任务记录吗？此操作不可撤销。"
+          confirmText="删除"
+          cancelText="取消"
+          danger={true}
+          onConfirm={confirmDeleteTask}
+          onCancel={() => setDeleteConfirmId(null)}
+        />
       )}
       <style>{`
         @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }

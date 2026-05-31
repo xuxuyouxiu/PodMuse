@@ -3,6 +3,7 @@ import { FeishuClient } from './feishu-client'
 import { ProcessedMessageStore } from './processed-message-store'
 import { loadState, saveState } from './config'
 import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
+import { sendNotification } from './notify'
 
 const STEP_TITLES = ['解析页面', '下载音频', '语音转文字', '修正专有名词', 'AI 提炼笔记']
 
@@ -28,6 +29,7 @@ export class PodcastDispatchService {
     private stepFunc?: (step: any) => void,
     private processingFunc?: (p: boolean, url?: string) => void,
     private onStateChanged?: () => void,
+    private notificationEnabled: boolean = true,
   ) {}
 
   async dispatch(url: string, episodeId: string | null): Promise<void> {
@@ -48,9 +50,15 @@ export class PodcastDispatchService {
         if (episodeId) this.store.markUrl(episodeId)
         this.updateRecentState(state => completeRecentTask(state, { filename }))
         await this.client.sendMessage(this.chatId, `笔记已生成！\n文件：${filename}\n位置：Obsidian → 小宇宙播客`)
+        if (this.notificationEnabled) {
+          sendNotification('播客笔记助手', `笔记已生成：${filename}`)
+        }
       } else {
         this.updateRecentState(state => failRecentTask(state))
         await this.client.sendMessage(this.chatId, '处理失败，请检查日志。')
+        if (this.notificationEnabled) {
+          sendNotification('播客笔记助手', '处理失败，请检查日志')
+        }
       }
     } catch (e: any) {
       if (signal.aborted) {
@@ -63,6 +71,9 @@ export class PodcastDispatchService {
         this.updateRecentState(state => failRecentTask(state))
         this.logFunc(`处理异常: ${e.message}`)
         await this.client.sendMessage(this.chatId, `❌ 处理出错: ${e.message}`)
+        if (this.notificationEnabled) {
+          sendNotification('播客笔记助手', `处理出错：${e.message}`)
+        }
       }
     } finally {
       this.processing = false

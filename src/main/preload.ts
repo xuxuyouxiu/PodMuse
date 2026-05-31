@@ -33,14 +33,18 @@ try {
     },
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),
+    searchNotes: (keyword: string) => ipcRenderer.invoke('search:notes', keyword),
+    openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
     scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
+    fetchAIModels: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
 
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
     closeWindow: () => ipcRenderer.invoke('window:close'),
+    getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
 
     getPathForFile: (file: File) => webUtils.getPathForFile(file),
   })

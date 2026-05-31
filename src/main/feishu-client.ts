@@ -44,9 +44,6 @@ export class FeishuClient {
       return []
     }
     const items = result.data?.items || []
-    // #region debug-point F:list-messages
-    ;(()=>{let u='http://127.0.0.1:7777/event',s='feishu-poller-no-response';try{const e=require('fs').readFileSync('.dbg/feishu-poller-no-response.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'F',location:'src/main/feishu-client.ts:listMessages',msg:'[DEBUG] feishu listMessages result',data:{chatId,count:items.length,items:items.slice(0,10).map((item:any)=>({message_id:item.message_id,msg_type:item.msg_type,create_time:item.create_time,content:String(item.body?.content||'').slice(0,160)}))},ts:Date.now()})}).catch(()=>{})})()
-    // #endregion
     this.logFunc(`扫描到 ${items.length} 条消息`)
     return items
   }

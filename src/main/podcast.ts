@@ -107,9 +107,6 @@ export async function processPodcast(
   const log = (m: string) => { sendLog?.(m); console.log(m) }
   const step = (s: StepInfo) => {
     if (signal?.aborted && s.status !== 'stopped') return
-    // #region debug-point C:step3-dispatch
-    if (s.step === 3) { (()=>{let u='http://127.0.0.1:7777/event',sid='whisper-history-bugs';try{const e=fs.readFileSync('.dbg/whisper-history-bugs.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;sid=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||sid}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sid,runId:'pre-fix',hypothesisId:'C',location:'src/main/podcast.ts:step',msg:'[DEBUG] step3 dispatch to renderer',data:{subtitle:s.subtitle,status:s.status,detail:s.detail,progress:s.progress},ts:Date.now()})}).catch(()=>{})})() }
-    // #endregion
     sendStep?.(s)
   }
   const check = () => { if (signal?.aborted) throw Object.assign(new Error('已取消'), { name: 'AbortError' }) }
@@ -244,6 +241,14 @@ export async function processPodcast(
   log(`  ✓ 转写完成，共 ${transcript.length} 字`)
 
   check()
+
+  // 在 AI 处理之前校验 obsidianDir，确保输出目录可用
+  if (!obsidianDir || !obsidianDir.trim()) {
+    step({ step: 4, title: '修正专有名词', subtitle: '未配置笔记目录', status: 'error', detail: '请在设置中配置 Obsidian 笔记目录' })
+    log('  ❌ 未配置 Obsidian 笔记目录，请在设置中填写 obsidian_dir')
+    return null
+  }
+
   if (!apiKey) {
     step({ step: 4, title: '修正专有名词', subtitle: '未配置 API Key', status: 'error' })
     log('  ❌ 未配置 DeepSeek API Key，跳过 AI 处理')
@@ -293,8 +298,16 @@ export async function processPodcast(
   if (filledTerms > 0) {
     log(`  ⚠ 检测到 ${filledTerms} 个术语在词典中存在但缺少卡片，已自动补全`)
   }
+
+  // 确保 Obsidian 笔记目录存在（在写入任何文件之前）
+  const obsDir = obsidianDir.trim()
+  if (!fs.existsSync(obsDir)) {
+    fs.mkdirSync(obsDir, { recursive: true })
+    log(`  📁 已创建笔记目录: ${obsDir}`)
+  }
+
   if (patchedEntities.people.length || patchedEntities.projects.length || patchedEntities.concepts.length || patchedEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsidianDir, podcastFilename: `${sanitize(title || '未命名播客')}.md`, apiKey }, signal)
+    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${sanitize(title || '未命名播客')}.md`, apiKey }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
@@ -307,8 +320,6 @@ export async function processPodcast(
     log(`  🃏 生成实体卡片: ${parts.join(', ')}`)
   }
 
-  const obsDir = obsidianDir
-  if (!fs.existsSync(obsDir)) fs.mkdirSync(obsDir, { recursive: true })
   const filename = sanitize(title || '未命名播客')
 
   const filepath = path.join(obsDir, `${filename}.md`)

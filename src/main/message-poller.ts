@@ -66,9 +66,6 @@ export class MessagePoller {
         this.logFunc('⚠️ 飞书任务同步失败，正在使用本地缓存')
         return
       }
-      // #region debug-point H:tick-summary
-      ;(()=>{let u='http://127.0.0.1:7777/event',s='feishu-poller-no-response';try{const e=require('fs').readFileSync('.dbg/feishu-poller-no-response.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'H',location:'src/main/message-poller.ts:tick',msg:'[DEBUG] feishu tick summary',data:{chatId:this.chatId,messageCount:messages.length,tasks:tasks.map(task=>({id:task.id,kind:task.kind,url:task.url||null,episodeId:task.episodeId||null,alreadyProcessed:this.store.has(task.id)}))},ts:Date.now()})}).catch(()=>{})})()
-      // #endregion
 
       if (!this.baselineReady) {
         for (const task of tasks) {
@@ -82,9 +79,6 @@ export class MessagePoller {
 
       for (const task of tasks) {
         if (this.store.has(task.id)) {
-          // #region debug-point H:skip-processed
-          ;(()=>{let u='http://127.0.0.1:7777/event',s='feishu-poller-no-response';try{const e=require('fs').readFileSync('.dbg/feishu-poller-no-response.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre-fix',hypothesisId:'H',location:'src/main/message-poller.ts:tick',msg:'[DEBUG] feishu skip processed message',data:{taskId:task.id,kind:task.kind,url:task.url||null},ts:Date.now()})}).catch(()=>{})})()
-          // #endregion
           continue
         }
 
