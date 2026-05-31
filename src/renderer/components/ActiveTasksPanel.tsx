@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import { Zap, Square, Loader2 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
 interface Props {
@@ -39,7 +41,7 @@ export default function ActiveTasksPanel({ tasks, processing, onCancel }: Props)
       <div className="task-panel-list">
         {tasks.length === 0 && (
           <div className="task-panel-empty">
-            <div className="task-panel-empty-icon">⚡</div>
+            <div className="task-panel-empty-icon"><Zap size={24} /></div>
             <div className="task-panel-empty-title">暂无活跃任务</div>
             <div className="task-panel-empty-copy">新发起的任务会显示在这里</div>
           </div>
@@ -65,7 +67,7 @@ export default function ActiveTasksPanel({ tasks, processing, onCancel }: Props)
                     disabled={isStopping}
                     className="recent-task-danger"
                   >
-                    {isStopping ? '停止中...' : '停止'}
+                    {isStopping ? <><Loader2 size={12} className="animate-spin" /> 停止中...</> : <><Square size={12} /> 停止</>}
                   </button>
                 )}
               </div>

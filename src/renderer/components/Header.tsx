@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion } from 'motion/react'
+import { Minus, Square, X, Sun, Moon, Search } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 import StatusBar from './StatusBar'
 
@@ -126,6 +128,8 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
       borderBottom: '1px solid var(--border)',
       gap: 10,
       flexShrink: 0,
+      backdropFilter: 'blur(20px)',
+      background: 'var(--bg-panel)',
     } as React.CSSProperties}>
       <div className="workspace-topbar__content" style={{
         display: 'flex',
@@ -177,8 +181,10 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             background: 'color-mix(in srgb, var(--bg-elevated) 86%, transparent)',
             color: 'var(--text-muted)',
             fontSize: 12,
-            transition: 'border-color 0.2s',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+            boxShadow: open ? '0 0 0 2px var(--accent-glow)' : 'none',
           }}>
+            <Search size={14} style={{ flexShrink: 0, opacity: 0.5 }} />
             <input
               ref={inputRef}
               type="text"
@@ -282,14 +288,15 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
         <div className="workspace-topbar__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <StatusBar status={status} />
           <button onClick={onToggleTheme} style={themeBtn}>
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             {theme === 'dark' ? '浅色' : '深色'}
           </button>
         </div>
       </div>
       <div className="workspace-topbar__window-controls" style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <button onClick={handleMinimize} style={tbBtn}>─</button>
-        <button onClick={handleMaximize} style={tbBtn}>□</button>
-        <button onClick={handleClose} style={tbBtn}>✕</button>
+        <button onClick={handleMinimize} style={tbBtn}><Minus size={14} /></button>
+        <button onClick={handleMaximize} style={tbBtn}><Square size={14} /></button>
+        <button onClick={handleClose} style={tbBtn}><X size={14} /></button>
       </div>
     </div>
   )
@@ -319,5 +326,6 @@ const themeBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: 6,
   transition: 'all 0.15s',
 }

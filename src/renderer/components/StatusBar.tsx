@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+import { Wifi, WifiOff, Radio, RadioOff } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 
 interface Props {
@@ -14,11 +16,11 @@ export default function StatusBar({ status }: Props) {
       minWidth: 0,
     }}>
       <div style={getPillStyle(status.connected, true)}>
-        <span style={getDotStyle(status.connected, true)} />
+        {status.connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         {status.connected ? '飞书已连接' : '飞书未连接'}
       </div>
       <div style={getPillStyle(status.monitoring, false)}>
-        <span style={getDotStyle(status.monitoring, false)} />
+        {status.monitoring ? <Radio size={12} /> : <RadioOff size={12} />}
         {status.monitoring ? '监听运行中' : '监听未启动'}
       </div>
       <span className="status-bar__meta" style={{ fontSize: 11, color: 'var(--text-muted)' }}>

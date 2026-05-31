@@ -1,11 +1,13 @@
 import { StepInfo } from '@shared/types'
+import { motion, AnimatePresence } from 'motion/react'
+import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Pause } from 'lucide-react'
 
 interface Props {
   steps: StepInfo[]
   processing: boolean
 }
 
-const STEP_ICONS = ['🔍', '⬇️', '🎙️', '✏️', '✨']
+const STEP_ICONS_LUCIDE = [Search, Download, Mic, PenTool, Sparkles]
 
 export default function StepPanel({ steps, processing }: Props) {
   if (!processing && steps.every(s => s.status === 'pending')) {
@@ -29,7 +31,9 @@ export default function StepPanel({ steps, processing }: Props) {
           pointerEvents: 'none',
         }} />
         <div className="step-panel-empty step-panel-body--idle" style={{ textAlign: 'center', zIndex: 1 }}>
-          <div className="step-panel-empty-icon" style={{ fontSize: 'clamp(36px, 4.2vw, 48px)', opacity: 0.55 }}>🎧</div>
+          <div className="step-panel-empty-icon" style={{ opacity: 0.55 }}>
+            <Headphones size={48} />
+          </div>
           <div className="step-panel-empty-title" style={{ fontSize: 'clamp(14px, 1.6vw, 15px)', fontWeight: 650, color: 'var(--text-primary)' }}>
             等待处理任务
           </div>
@@ -104,7 +108,7 @@ export default function StepPanel({ steps, processing }: Props) {
           }}>
             <div className="step-panel-summary-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="step-panel-summary-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
-                {STEP_ICONS[currentStep.step - 1]} {currentStep.title}
+                {currentStep.title}
               </span>
               <span className="step-panel-summary-step" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 步骤 {currentStep.step}/5
@@ -136,7 +140,9 @@ export default function StepPanel({ steps, processing }: Props) {
 
         {!processing && allDone && (
           <div className="step-panel-state" style={{ textAlign: 'center' }}>
-            <div className="step-panel-state-icon" style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
+            <div className="step-panel-state-icon" style={{ marginBottom: 10, color: 'var(--success)' }}>
+              <PartyPopper size={40} />
+            </div>
             <div className="step-panel-state-title success" style={{ fontSize: 15, fontWeight: 600, color: 'var(--success)', marginBottom: 4 }}>
               笔记已保存到 Obsidian
             </div>
@@ -148,7 +154,9 @@ export default function StepPanel({ steps, processing }: Props) {
 
         {showPaused && (
           <div className="step-panel-state" style={{ textAlign: 'center' }}>
-            <div className="step-panel-state-icon" style={{ fontSize: 40, marginBottom: 10 }}>⏸</div>
+            <div className="step-panel-state-icon" style={{ marginBottom: 10, color: 'var(--accent)' }}>
+              <Pause size={40} />
+            </div>
             <div className="step-panel-state-title accent" style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)', marginBottom: 4 }}>
               处理已停止
             </div>
@@ -212,15 +220,13 @@ function StepNode({ step, index }: { step: StepInfo; index: number }) {
           border: '2px solid var(--border-light)', color: 'var(--text-muted)',
         }),
       }}>
-        {s === 'done' ? '✓' : s === 'error' ? '✗' : s === 'running' ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" opacity="0.3"/>
-            <path d="M12 2a10 10 0 1 0 0 20" strokeDasharray="32" strokeDashoffset="0">
-              <animate attributeName="stroke-dashoffset" from="63" to="0" dur="1.5s" repeatCount="indefinite"/>
-            </path>
-          </svg>
+        {s === 'done' ? <Check size={18} /> : s === 'error' ? <X size={18} /> : s === 'running' ? (
+          <Loader2 size={18} className="animate-spin" />
         ) : (
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{STEP_ICONS[index]}</span>
+          (() => {
+            const IconComp = STEP_ICONS_LUCIDE[index]
+            return <IconComp size={16} />
+          })()
         )}
       </div>
       <span className="step-node-label" style={{

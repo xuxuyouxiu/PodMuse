@@ -2,20 +2,22 @@
 
 [**English**](./README_EN.md) | **中文**
 
-将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、DeepSeek AI 提炼，以及飞书消息轮询自动处理。
+将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、多 AI 供应商提炼，以及飞书消息轮询自动处理。
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.33-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 功能特性
 
 - **一键处理** — 粘贴小宇宙播客链接，自动完成提取、下载、转写、校对和笔记整理
-- **AI 笔记生成** — DeepSeek 大模型自动生成结构化笔记（核心观点、关键对话、术语词典、金句摘录等）
+- **多 AI 供应商** — 支持 DeepSeek、OpenAI、Moonshot（Kimi）、智谱AI（GLM）、通义千问（Qwen）、零一万物（Yi）、MiniMax 等 7+ 供应商
+- **AI 笔记生成** — 大语言模型自动生成结构化笔记（核心观点、关键对话、术语词典、金句摘录等）
 - **自动实体卡片** — 自动识别播客中的人物、项目、概念，用预设模板生成独立卡片笔记
 - **双向链接** — 播客笔记与实体卡片之间自动建立 Obsidian 双向链接
 - **飞书消息集成** — 在飞书群聊中发送播客链接即可自动触发处理流程
 - **Whisper 模型管理** — 支持 tiny 到 large-v3-turbo 多种模型切换，自动检测硬件兼容性
 - **Obsidian 模板化** — 使用自定义模板生成笔记，保持知识体系一致性
+- **现代化 UI** — Glassmorphism 设计风格，深色主题，流畅动画
 
 ## 快速开始
 
@@ -25,9 +27,15 @@
    - 下载：[GitHub Releases](https://github.com/Purfview/whisper-standalone-win/releases)
    - 将 `faster-whisper-xxl.exe` 放置到本地目录
 
-2. **DeepSeek API Key** — AI 笔记生成
-   - 注册：[DeepSeek 开放平台](https://platform.deepseek.com/)
-   - 创建 API Key
+2. **AI API Key** — AI 笔记生成（任选其一）
+   - [DeepSeek](https://platform.deepseek.com/)
+   - [OpenAI](https://platform.openai.com/)
+   - [Moonshot (Kimi)](https://platform.moonshot.cn/)
+   - [智谱AI (GLM)](https://open.bigmodel.cn/)
+   - [通义千问 (Qwen)](https://dashscope.aliyun.com/)
+   - [零一万物 (Yi)](https://platform.lingyiwanwu.com/)
+   - [MiniMax](https://platform.minimaxi.com/)
+   - 或其他 OpenAI 兼容接口
 
 3. **Obsidian**（可选）— 笔记知识库
    - https://obsidian.md/
@@ -54,7 +62,10 @@ npm start
 
 ```json
 {
-  "api_key": "你的 DeepSeek API Key",
+  "ai_provider": "deepseek",
+  "api_key": "你的 AI API Key",
+  "api_base_url": "https://api.deepseek.com/v1",
+  "model": "deepseek-chat",
   "feishu_app_id": "你的飞书应用 App ID",
   "feishu_app_secret": "你的飞书应用 App Secret",
   "language": "auto",
@@ -72,7 +83,7 @@ npm start
 
 ```
 播客链接 → ① 解析页面 → ② 下载音频 → ③ Whisper 转文字
-         → ④ DeepSeek 专有名词修正 → ⑤ DeepSeek 笔记生成
+         → ④ AI 专有名词修正 → ⑤ AI 笔记生成
          → 写入 Obsidian（大分类文件夹） + 生成实体卡片（人物/项目/概念）
 ```
 
@@ -114,12 +125,16 @@ npm run refresh:test
 
 | 技术 | 用途 |
 |---|---|
-| Electron | 桌面应用框架 |
-| React | 前端界面 |
+| Electron 33 | 桌面应用框架 |
+| React 18 | 前端界面 |
 | TypeScript | 类型安全 |
-| Vite | 构建工具 |
+| Vite 6 | 构建工具 |
+| Tailwind CSS 3 | 样式系统 |
+| shadcn/ui | UI 组件库 |
+| Lucide React | 图标库 |
+| motion/react | 动画引擎 |
 | Whisper / faster-whisper-xxl | 语音转文字 |
-| DeepSeek API | AI 笔记生成 |
+| 多 AI 供应商 | AI 笔记生成 |
 | electron-builder | 打包分发 |
 | ESLint + Prettier | 代码规范 |
 
