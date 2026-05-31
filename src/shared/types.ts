@@ -1,5 +1,48 @@
+// AI 供应商类型
+export type AIProviderId = 'deepseek' | 'openai' | 'moonshot' | 'zhipu' | 'qwen' | 'yi' | 'minimax' | 'custom'
+
+// 供应商模型配置
+export interface AIModelConfig {
+  id: string
+  name: string
+  maxTokens?: number
+  temperature?: number
+}
+
+// 供应商配置
+export interface AIProviderConfig {
+  id: AIProviderId
+  name: string
+  apiKey: string
+  baseUrl: string
+  model: string
+  availableModels: AIModelConfig[]
+  website?: string
+  description?: string
+  isCustom?: boolean
+}
+
+// 预设供应商信息
+export interface AIProviderPreset {
+  id: AIProviderId
+  name: string
+  baseUrl: string
+  defaultModel: string
+  availableModels: AIModelConfig[]
+  website: string
+  description: string
+  apiKeyPlaceholder?: string
+  apiKeyUrl?: string
+}
+
 export interface PodcastConfig {
+  // AI 供应商配置（新增）
+  ai_provider: AIProviderId
+  ai_providers: Record<AIProviderId, AIProviderConfig>
+  
+  // 旧字段保留兼容
   api_key: string
+  
   feishu_app_id: string
   feishu_app_secret: string
   language: 'zh' | 'en' | 'auto'
@@ -8,6 +51,7 @@ export interface PodcastConfig {
   audio_dir: string
   whisper_exe_path: string
   whisper_model: string
+  notification_enabled: boolean
 }
 
 export interface FeishuState {

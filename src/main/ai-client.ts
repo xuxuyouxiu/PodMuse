@@ -1,4 +1,4 @@
-const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions'
+import type { AIProviderId, AIProviderConfig } from '../shared/types'
 
 // 重试配置
 const MAX_RETRIES = 3
@@ -161,47 +161,66 @@ category: [根据播客内容的核心领域，自由判断1-3个字的分类名
 {transcript}
 `
 
-async function callDeepseekRaw(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens = 4096, signal?: AbortSignal) {
-  // 判断错误是否可重试
-  const isRetryableError = (error: any): boolean => {
-    // 网络错误、超时、连接重置
-    if (error.name === 'TypeError' && error.message.includes('fetch')) return true
-    if (error.name === 'AbortError' && !signal?.aborted) return true // 超时但不是用户取消
-    
-    // HTTP 状态码错误
-    if (error.message.includes('HTTP')) {
-      const statusMatch = error.message.match(/HTTP (\d+)/)
-      if (statusMatch) {
-        const status = parseInt(statusMatch[1])
-        // 429 请求过多、5xx 服务器错误可重试
-        if (status === 429 || status >= 500) return true
-        // 4xx 客户端错误（除了429）不可重试
-        if (status >= 400 && status < 500) return false
-      }
-    }
-    
-    // DeepSeek API 特定错误
-    if (error.message.includes('DeepSeek API 错误')) {
-      // 速率限制、服务器过载等可重试
-      if (error.message.includes('rate_limit') || 
-          error.message.includes('overloaded') || 
-          error.message.includes('timeout')) {
-        return true
-      }
-    }
-    
-    // 其他未知错误默认不重试
-    return false
+// 构建请求URL
+function buildApiUrl(baseUrl: string, providerId: AIProviderId): string {
+  // 确保 baseUrl 以 /v1 结尾
+  let url = baseUrl.replace(/\/+$/, '')
+  if (!url.endsWith('/v1')) {
+    url += '/v1'
   }
+  return `${url}/chat/completions`
+}
 
-  // 计算延迟时间（指数退避）
-  const getDelay = (retryCount: number): number => {
-    const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), MAX_DELAY_MS)
-    // 添加随机抖动（±20%）
-    const jitter = delay * 0.2 * (Math.random() * 2 - 1)
-    return Math.max(0, delay + jitter)
+// 判断错误是否可重试
+function isRetryableError(error: any): boolean {
+  // 网络错误、超时、连接重置
+  if (error.name === 'TypeError' && error.message.includes('fetch')) return true
+  if (error.name === 'AbortError') return true
+  
+  // HTTP 状态码错误
+  if (error.message.includes('HTTP')) {
+    const statusMatch = error.message.match(/HTTP (\d+)/)
+    if (statusMatch) {
+      const status = parseInt(statusMatch[1])
+      // 429 请求过多、5xx 服务器错误可重试
+      if (status === 429 || status >= 500) return true
+      // 4xx 客户端错误（除了429）不可重试
+      if (status >= 400 && status < 500) return false
+    }
   }
+  
+  // API 特定错误
+  if (error.message.includes('API 错误') || error.message.includes('API error')) {
+    if (error.message.includes('rate_limit') || 
+        error.message.includes('overloaded') || 
+        error.message.includes('timeout') ||
+        error.message.includes('insufficient_quota')) {
+      return true
+    }
+  }
+  
+  return false
+}
 
+// 计算延迟时间（指数退避）
+function getDelay(retryCount: number): number {
+  const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), MAX_DELAY_MS)
+  // 添加随机抖动（±20%）
+  const jitter = delay * 0.2 * (Math.random() * 2 - 1)
+  return Math.max(0, delay + jitter)
+}
+
+// 通用AI API调用
+async function callAI(
+  providerConfig: { baseUrl: string; apiKey: string; model: string },
+  providerId: AIProviderId,
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens = 4096,
+  signal?: AbortSignal
+) {
+  const apiUrl = buildApiUrl(providerConfig.baseUrl, providerId)
+  
   let lastError: any = null
   
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -211,12 +230,15 @@ async function callDeepseekRaw(apiKey: string, systemPrompt: string, userPrompt:
     }
     
     try {
-      const resp = await fetch(DEEPSEEK_URL, {
+      const resp = await fetch(apiUrl, {
         method: 'POST',
         signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${providerConfig.apiKey}` 
+        },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: providerConfig.model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -227,16 +249,18 @@ async function callDeepseekRaw(apiKey: string, systemPrompt: string, userPrompt:
       })
 
       if (!resp.ok) {
-        throw new Error(`DeepSeek API HTTP ${resp.status}`)
+        const errorText = await resp.text().catch(() => '')
+        throw new Error(`API HTTP ${resp.status}: ${errorText}`)
       }
 
       const result = await resp.json() as any
       if (result.error) {
-        throw new Error(`DeepSeek API 错误: ${result.error.message || JSON.stringify(result.error)}`)
+        throw new Error(`API 错误: ${result.error.message || JSON.stringify(result.error)}`)
       }
 
       const content = result.choices?.[0]?.message?.content
       const usage = result.usage || {}
+      // 简单估算成本（不同供应商价格不同，这里用通用估算）
       const cost = (usage.prompt_tokens || 0) * 0.000001 + (usage.completion_tokens || 0) * 0.000002
       return { content: content || null, cost }
       
@@ -255,13 +279,12 @@ async function callDeepseekRaw(apiKey: string, systemPrompt: string, userPrompt:
       
       // 等待后重试
       const delay = getDelay(attempt)
-      console.log(`DeepSeek API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${error.message}`)
+      console.log(`AI API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${error.message}`)
       
       // 等待延迟，但可被取消
       await new Promise<void>((resolve, reject) => {
         const timeoutId = setTimeout(resolve, delay)
         
-        // 如果有信号，监听取消事件
         if (signal) {
           const abortHandler = () => {
             clearTimeout(timeoutId)
@@ -270,27 +293,67 @@ async function callDeepseekRaw(apiKey: string, systemPrompt: string, userPrompt:
           
           signal.addEventListener('abort', abortHandler, { once: true })
           
-          // 清理函数
-          const cleanup = () => {
+          const cleanupTimeoutId = setTimeout(() => {
             signal.removeEventListener('abort', abortHandler)
-          }
-          
-          // 延迟结束后清理
-          const cleanupTimeoutId = setTimeout(cleanup, delay + 100)
+          }, delay + 100)
         }
       })
     }
   }
   
-  // 理论上不会执行到这里，但为了类型安全
-  throw lastError || new Error('DeepSeek API 调用失败')
+  throw lastError || new Error('AI API 调用失败')
 }
 
-export async function correctTranscript(apiKey: string, transcript: string, signal?: AbortSignal) {
-  return callDeepseekRaw(apiKey, '转录校对员', CORRECTION_PROMPT.replace('{transcript}', transcript), 4096, signal)
+// 导出的函数：校正转录
+export async function correctTranscript(
+  providerConfig: { baseUrl: string; apiKey: string; model: string },
+  providerId: AIProviderId,
+  transcript: string,
+  signal?: AbortSignal
+) {
+  return callAI(
+    providerConfig,
+    providerId,
+    '转录校对员',
+    CORRECTION_PROMPT.replace('{transcript}', transcript),
+    4096,
+    signal
+  )
 }
 
-export async function generateNotes(apiKey: string, transcript: string, signal?: AbortSignal) {
+// 导出的函数：生成笔记
+export async function generateNotes(
+  providerConfig: { baseUrl: string; apiKey: string; model: string },
+  providerId: AIProviderId,
+  transcript: string,
+  signal?: AbortSignal
+) {
   const date = new Date().toISOString().split('T')[0]
-  return callDeepseekRaw(apiKey, '知识管理助手', AI_PROMPT.replace('{date}', date).replace('{transcript}', transcript), undefined, signal)
+  return callAI(
+    providerConfig,
+    providerId,
+    '知识管理助手',
+    AI_PROMPT.replace('{date}', date).replace('{transcript}', transcript),
+    undefined,
+    signal
+  )
+}
+
+// 兼容旧接口：使用 DeepSeek 配置
+export async function correctTranscriptLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
+  return correctTranscript(
+    { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
+    'deepseek',
+    transcript,
+    signal
+  )
+}
+
+export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
+  return generateNotes(
+    { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
+    'deepseek',
+    transcript,
+    signal
+  )
 }

@@ -2,6 +2,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { app } from 'electron'
 import { PodcastConfig, FeishuState } from '@shared/types'
+import { getAllDefaultProviderConfigs } from './ai-providers'
 
 function findShippedConfigPath(): string {
   const isProd = !!(process as any).resourcesPath
@@ -40,12 +41,20 @@ function getUserStatePath(): string {
 }
 
 const DEFAULTS: PodcastConfig = {
-  api_key: '', feishu_app_id: '', feishu_app_secret: '',
+  // AI 供应商配置
+  ai_provider: 'deepseek',
+  ai_providers: getAllDefaultProviderConfigs(),
+  
+  // 旧字段保留兼容
+  api_key: '',
+  
+  feishu_app_id: '', feishu_app_secret: '',
   language: 'auto', feishu_chat_id: '',
   obsidian_dir: 'G:\\xuxuya_Notes\\小宇宙播客',
   audio_dir: '',
   whisper_exe_path: 'D:\\Tools\\Faster-Whisper-XXL\\faster-whisper-xxl.exe',
   whisper_model: 'large-v3-turbo',
+  notification_enabled: true,
 }
 
 function loadShippedConfig(): PodcastConfig | null {

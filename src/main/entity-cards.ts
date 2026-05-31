@@ -238,9 +238,19 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     termsWritten: 0, termToConcept: 0, conceptSearched: 0,
   }
 
+  // 确保 Obsidian 根目录存在
+  if (!obsidianDir || !obsidianDir.trim()) {
+    console.log('⚠ obsidianDir 为空，跳过实体卡片写入')
+    return result
+  }
+  const baseDir = obsidianDir.trim()
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true })
+  }
+
   for (const person of entities.people) {
     if (!person.name) continue
-    const dir = path.join(obsidianDir, '人物')
+    const dir = path.join(baseDir, '人物')
     const filePath = path.join(dir, `${sanitizeName(person.name)}.md`)
     if (fs.existsSync(filePath)) {
       appendSourceLink(filePath, podcastFilename)
@@ -263,7 +273,7 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
 
   for (const project of entities.projects) {
     if (!project.name) continue
-    const dir = path.join(obsidianDir, '项目')
+    const dir = path.join(baseDir, '项目')
     const filePath = path.join(dir, `${sanitizeName(project.name)}.md`)
     if (fs.existsSync(filePath)) {
       appendSourceLink(filePath, podcastFilename)
@@ -286,7 +296,7 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
 
   for (const concept of entities.concepts) {
     if (!concept.name) continue
-    const dir = path.join(obsidianDir, '概念')
+    const dir = path.join(baseDir, '概念')
     const filePath = path.join(dir, `${sanitizeName(concept.name)}.md`)
     if (fs.existsSync(filePath)) {
       appendSourceLink(filePath, podcastFilename)
@@ -309,11 +319,10 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     if (!term.name) continue
 
     if (hasRealContext(term)) {
-      const dir = path.join(obsidianDir, '术语')
+      const dir = path.join(baseDir, '术语')
       const filePath = path.join(dir, `${sanitizeName(term.name)}.md`)
       if (fs.existsSync(filePath)) {
         appendSourceLink(filePath, podcastFilename)
-        result.termsWritten++
       } else {
         const tmpl = loadTemplate('Term_Template.md')
         const content = fillTemplate(tmpl, {
@@ -340,7 +349,7 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
         definition = null
       }
 
-      const dir = path.join(obsidianDir, '概念')
+      const dir = path.join(baseDir, '概念')
       const filePath = path.join(dir, `${sanitizeName(term.name)}.md`)
       if (fs.existsSync(filePath)) {
         appendSourceLink(filePath, podcastFilename)
