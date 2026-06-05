@@ -3,11 +3,28 @@ const FEISHU_MESSAGES_URL = 'https://open.feishu.cn/open-apis/im/v1/messages'
 const FEISHU_SEND_URL = 'https://open.feishu.cn/open-apis/im/v1/messages'
 const TOKEN_TTL = 3500 * 1000
 
-async function feishuApi(method: string, url: string, token: string | null, body?: any) {
+export interface FeishuMessage {
+  message_id: string
+  msg_type: string
+  body?: {
+    content?: string
+  }
+}
+
+interface FeishuApiResponse {
+  code: number
+  msg?: string
+  data?: {
+    items?: FeishuMessage[]
+  }
+  tenant_access_token?: string
+}
+
+async function feishuApi(method: string, url: string, token: string | null, body?: unknown): Promise<FeishuApiResponse> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
-  return resp.json()
+  return resp.json() as Promise<FeishuApiResponse>
 }
 
 export class FeishuClient {
@@ -28,7 +45,7 @@ export class FeishuClient {
     if (this.token && Date.now() < this.tokenExpires) return true
     const result = await feishuApi('POST', FEISHU_AUTH_URL, null, { app_id: this.appId, app_secret: this.appSecret })
     if (result.code === 0) {
-      this.token = result.tenant_access_token
+      this.token = result.tenant_access_token ?? null
       this.tokenExpires = Date.now() + TOKEN_TTL
       return true
     }
@@ -36,7 +53,7 @@ export class FeishuClient {
     return false
   }
 
-  async listMessages(chatId: string): Promise<any[]> {
+  async listMessages(chatId: string): Promise<FeishuMessage[]> {
     const url = `${FEISHU_MESSAGES_URL}?container_id_type=chat&container_id=${chatId}&sort_type=ByCreateTimeDesc&page_size=10`
     const result = await feishuApi('GET', url, this.token)
     if (result.code !== 0) {

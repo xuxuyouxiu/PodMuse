@@ -3,18 +3,19 @@ import { motion } from 'motion/react'
 import { Link, Play } from 'lucide-react'
 
 interface Props {
-  onProcess: (url: string) => Promise<{ success: boolean; error?: string }>
+  onProcess: (url: string, contentType: string) => Promise<{ success: boolean; error?: string }>
   disabled: boolean
+  contentType: string
 }
 
-export default function UrlInput({ onProcess, disabled }: Props) {
+export default function UrlInput({ onProcess, disabled, contentType }: Props) {
   const [url, setUrl] = useState('')
   const [focused, setFocused] = useState(false)
 
   const handleSubmit = () => {
     const trimmed = url.trim()
     if (!trimmed) return
-    onProcess(trimmed)
+    onProcess(trimmed, contentType)
   }
 
   return (

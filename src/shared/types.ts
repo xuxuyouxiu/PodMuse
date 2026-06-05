@@ -52,6 +52,7 @@ export interface PodcastConfig {
   whisper_exe_path: string
   whisper_model: string
   notification_enabled: boolean
+  content_type?: 'news' | 'article' | 'tutorial' | 'default'
 }
 
 export interface FeishuState {

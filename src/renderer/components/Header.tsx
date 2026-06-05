@@ -28,9 +28,9 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleMinimize = () => (window as any).electronAPI?.minimizeWindow?.()
-  const handleMaximize = () => (window as any).electronAPI?.maximizeWindow?.()
-  const handleClose = () => (window as any).electronAPI?.closeWindow?.()
+  const handleMinimize = () => window.electronAPI?.minimizeWindow?.()
+  const handleMaximize = () => window.electronAPI?.maximizeWindow?.()
+  const handleClose = () => window.electronAPI?.closeWindow?.()
 
   // 获取应用版本号
   useEffect(() => {
@@ -234,7 +234,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
               boxShadow: 'var(--shadow-lg)',
               maxHeight: 360,
               overflowY: 'auto',
-              zIndex: 100,
+              zIndex: 10000,
               animation: 'fadeIn 0.15s ease',
             }}>
               {loading && (

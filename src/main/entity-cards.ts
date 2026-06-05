@@ -1,5 +1,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
+import type { AIProviderId } from '../shared/types'
+import { buildApiUrl } from './ai-client'
 
 export interface PeopleEntity {
   name: string; role?: string; opinions?: string[]; timeline?: string; quotes?: string[]
@@ -42,7 +44,7 @@ function splitFieldValue(block: string): Map<string, string> {
   return map
 }
 
-function parseEntitySection(text: string, tag: string, splitField: string): Map<string, string>[] {
+function parseEntitySection(text: string, tag: string): Map<string, string>[] {
   const re = new RegExp(`---CARD-${tag}---\\n([\\s\\S]*?)\\n---CARD-${tag}-END---`, 'g')
   const matches = [...text.matchAll(re)]
   if (matches.length === 0) return []
@@ -58,10 +60,10 @@ function parseEntitySection(text: string, tag: string, splitField: string): Map<
 }
 
 export function parseEntityBlocks(markdown: string): EntityResult {
-  const people = parseEntitySection(markdown, 'PEOPLE', '姓名')
-  const projects = parseEntitySection(markdown, 'PROJECT', '项目名称')
-  const concepts = parseEntitySection(markdown, 'CONCEPT', '概念名称')
-  const terms = parseEntitySection(markdown, 'TERM', '术语名称')
+  const people = parseEntitySection(markdown, 'PEOPLE')
+  const projects = parseEntitySection(markdown, 'PROJECT')
+  const concepts = parseEntitySection(markdown, 'CONCEPT')
+  const terms = parseEntitySection(markdown, 'TERM')
   const parsed: EntityResult = {
     people: people.map(m => ({ name: m.get('姓名') || '', role: m.get('角色'), opinions: m.get('核心观点')?.split('\n').filter(Boolean), timeline: m.get('时间轴'), quotes: m.get('金句')?.split('\n').filter(Boolean) })),
     projects: projects.map(m => ({ name: m.get('项目名称') || '', summary: m.get('核心定位'), timeline: m.get('提及时间点'), links: m.get('相关链接'), achievements: m.get('关键成果')?.split('\n').filter(Boolean) })),
@@ -123,14 +125,22 @@ export function filterNonNotablePeople(entities: EntityResult): EntityResult {
 }
 
 export function sanitizeName(name: string): string {
-  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || '未命名'
+  return name
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/\.\./g, '_')
+    .replace(/\.+$/, '')
+    .trim()
+    .slice(0, 100) || '未命名'
 }
 
 export interface WriteEntityOptions {
   entities: EntityResult
   obsidianDir: string
   podcastFilename: string
-  apiKey: string
+  apiKey?: string
+  contentType?: 'news' | 'article' | 'tutorial' | 'default'
+  providerConfig?: { baseUrl: string; apiKey: string; model: string } | null
+  providerId?: AIProviderId
 }
 
 export interface WriteEntityResult {
@@ -154,6 +164,8 @@ function loadTemplate(name: string): string {
   return getFallbackTemplate(name)
 }
 
+
+
 function fillTemplate(tmpl: string, fields: Record<string, string>): string {
   let result = tmpl
   for (const [key, val] of Object.entries(fields)) {
@@ -163,16 +175,16 @@ function fillTemplate(tmpl: string, fields: Record<string, string>): string {
   return result
 }
 
-async function fetchConceptDefinition(name: string, apiKey: string, signal?: AbortSignal): Promise<string | null> {
+async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: string; apiKey: string; model: string } | null, providerId?: string, signal?: AbortSignal): Promise<string | null> {
   const sources = [
     async () => {
       const url = `https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetch(url, { signal })
       if (!resp.ok) return null
-      const data = await resp.json() as any
+      const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
       const pages = data?.query?.pages
       if (!pages) return null
-      const page: any = Object.values(pages)[0]
+      const page = Object.values(pages)[0]
       if (page?.extract && !page.extract.includes('may refer to')) return page.extract.slice(0, 600)
       return null
     },
@@ -180,20 +192,20 @@ async function fetchConceptDefinition(name: string, apiKey: string, signal?: Abo
       const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetch(url, { signal })
       if (!resp.ok) return null
-      const data = await resp.json() as any
+      const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
       const pages = data?.query?.pages
       if (!pages) return null
-      const page: any = Object.values(pages)[0]
+      const page = Object.values(pages)[0]
       if (page?.extract && !page.extract.includes('may refer to')) return page.extract.slice(0, 600)
       return null
     },
-    apiKey ? async () => {
-      const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    providerConfig ? async () => {
+      const resp = await fetch(buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId), {
         method: 'POST',
         signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${providerConfig.apiKey}` },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: providerConfig.model,
           messages: [
             { role: 'user', content: `请用一段话（不超过200字）简洁解释什么是"${name}"。如果是中文概念用中文回答，如果是英文概念用中文解释。只输出解释内容，不要加任何前缀如"${name}是"。` }
           ],
@@ -202,7 +214,7 @@ async function fetchConceptDefinition(name: string, apiKey: string, signal?: Abo
         }),
       })
       if (!resp.ok) return null
-      const result = await resp.json() as any
+      const result = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
       return result.choices?.[0]?.message?.content?.trim() || null
     } : null,
   ]
@@ -349,7 +361,7 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
 
       let definition: string | null = null
       try {
-        definition = await fetchConceptDefinition(term.name, options.apiKey, signal)
+        definition = await fetchConceptDefinition(term.name, options.providerConfig, options.providerId, signal)
         if (definition) result.conceptSearched++
       } catch {
         definition = null

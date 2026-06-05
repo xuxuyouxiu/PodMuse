@@ -1,3 +1,5 @@
+import type { FeishuMessage } from './feishu-client'
+
 const PODCAST_PATTERN = /https?:\/\/[^\s]*xiaoyuzhoufm\.com\/[^\s]*/i
 const EPISODE_ID_PATTERN = /xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/
 
@@ -6,7 +8,7 @@ function extractEpisodeId(url: string): string | null {
   return m ? m[1] : null
 }
 
-function safeReadText(msg: any): string {
+function safeReadText(msg: FeishuMessage): string {
   try {
     const content = JSON.parse(msg.body?.content || '{}')
     return content.text || ''
@@ -23,11 +25,11 @@ export interface MessageTask {
 }
 
 export class MessageParser {
-  extract(messages: any[]): MessageTask[] {
+  extract(messages: FeishuMessage[]): MessageTask[] {
     return messages.map((msg) => this.parseOne(msg))
   }
 
-  private parseOne(msg: any): MessageTask {
+  private parseOne(msg: FeishuMessage): MessageTask {
     const msgId = msg.message_id
     const msgType = msg.msg_type
 

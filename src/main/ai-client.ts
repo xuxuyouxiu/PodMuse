@@ -28,18 +28,7 @@ const CORRECTION_PROMPT = `你是一位专业的转录校对员。以下是一�
 
 修正后的转录：`
 
-const AI_PROMPT = `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
-
-这段播客可能包含中文、英文或中英混合内容。
-
-要求：
-1. 输出为纯 Markdown 格式，使用以下模板结构，不要添加模板以外的任何解释。
-2. **重要：必须覆盖播客从头到尾的所有重要内容**，不要只提炼前半部分。如果内容很多，请精简表达但不要遗漏后半部分的关键观点。
-3. 「术语词典」仅作为术语名称索引，每个术语用 [[术语名]] 格式包裹。术语的完整解释、定义和补充说明全部放在对应的 CARD-TERM 卡片中。**术语词典中列出的每一个术语都必须生成对应的 CARD-TERM 卡片，不允许遗漏。**
-4. 「关联延伸」中的书籍、论文、人物、节目等也用 [[xxx]] 包裹。
-5. **人物卡片硬性筛选（最高优先级）：** 绝对不要为没有公开知名度的人物生成 CARD-PEOPLE 卡片。具体规则见下方实体区的详细说明。如果不确定某人是否符合条件，跳过他，宁可少生成也不要多生成。
-6. 语言使用简体中文（播客中的英文内容保留原文）。
-7. 如果逐字稿中没有相关信息，该板块写「（本期未提及）」。
+const AI_PROMPT = `
 
 ---
 
@@ -57,6 +46,14 @@ category: [从以下4个类别中选择最匹配的一个：科技商业（AI/�
 ---
 
 # 一句话总结
+
+---
+
+# 本期主要内容
+- 主要内容1
+- 主要内容2
+- 主要内容3
+- 主要内容4
 
 ---
 
@@ -162,8 +159,45 @@ category: [从以下4个类别中选择最匹配的一个：科技商业（AI/�
 {transcript}
 `
 
+// 根据内容类型生成完整的 prompt
+function getAIPrompt(contentType: string = 'default'): string {
+  const basePrompt = `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
+
+这段播客可能包含中文、英文或中英混合内容。
+
+要求：
+1. 输出为纯 Markdown 格式，使用以下模板结构，不要添加模板以外的任何解释。
+2. **重要：必须覆盖播客从头到尾的所有重要内容**，不要只提炼前半部分。如果内容很多，请精简表达但不要遗漏后半部分的关键观点。
+3. 「术语词典」仅作为术语名称索引，每个术语用 [[术语名]] 格式包裹。术语的完整解释、定义和补充说明全部放在对应的 CARD-TERM 卡片中。**术语词典中列出的每一个术语都必须生成对应的 CARD-TERM 卡片，不允许遗漏。**
+4. 「关联延伸」中的书籍、论文、人物、节目等也用 [[xxx]] 包裹。
+5. **人物卡片硬性筛选（最高优先级）：** 绝对不要为没有公开知名度的人物生成 CARD-PEOPLE 卡片。具体规则见下方实体区的详细说明。如果不确定某人是否符合条件，跳过他，宁可少生成也不要多生成。
+6. 语言使用简体中文（播客中的英文内容保留原文）。
+7. 如果逐字稿中没有相关信息，该板块写「（本期未提及）」。`
+
+  // 根据内容类型添加特定要求
+  let specificRequirements = ''
+
+  switch (contentType) {
+    case 'news':
+      specificRequirements = `
+8. **新闻资讯类型**：重点关注事件、影响和关键信息，保持简洁明了。`
+      break
+    case 'article':
+    case 'tutorial':
+      specificRequirements = `
+8. **长文章/演讲类型**：必须保留所有具体例子、案例和故事，用引用格式（>）标注，保持原汁原味。
+9. **详细观点保留**：不要只写结论，要保留作者的论证过程和论据。
+10. **完整论证逻辑**：保留作者从前提到结论的完整推理过程。`
+      break
+    default:
+      specificRequirements = ''
+  }
+
+  return basePrompt + specificRequirements + AI_PROMPT
+}
+
 // 构建请求URL
-function buildApiUrl(baseUrl: string, providerId: AIProviderId): string {
+export function buildApiUrl(baseUrl: string, providerId: AIProviderId): string {
   // 确保 baseUrl 以 /v1 结尾
   let url = baseUrl.replace(/\/+$/, '')
   if (!url.endsWith('/v1')) {
@@ -173,14 +207,17 @@ function buildApiUrl(baseUrl: string, providerId: AIProviderId): string {
 }
 
 // 判断错误是否可重试
-function isRetryableError(error: any): boolean {
+function isRetryableError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error)
+  const name = error instanceof Error ? error.name : ''
+
   // 网络错误、超时、连接重置
-  if (error.name === 'TypeError' && error.message.includes('fetch')) return true
-  if (error.name === 'AbortError') return true
+  if (name === 'TypeError' && msg.includes('fetch')) return true
+  if (name === 'AbortError') return true
   
   // HTTP 状态码错误
-  if (error.message.includes('HTTP')) {
-    const statusMatch = error.message.match(/HTTP (\d+)/)
+  if (msg.includes('HTTP')) {
+    const statusMatch = msg.match(/HTTP (\d+)/)
     if (statusMatch) {
       const status = parseInt(statusMatch[1])
       // 429 请求过多、5xx 服务器错误可重试
@@ -191,11 +228,11 @@ function isRetryableError(error: any): boolean {
   }
   
   // API 特定错误
-  if (error.message.includes('API 错误') || error.message.includes('API error')) {
-    if (error.message.includes('rate_limit') || 
-        error.message.includes('overloaded') || 
-        error.message.includes('timeout') ||
-        error.message.includes('insufficient_quota')) {
+  if (msg.includes('API 错误') || msg.includes('API error')) {
+    if (msg.includes('rate_limit') || 
+        msg.includes('overloaded') || 
+        msg.includes('timeout') ||
+        msg.includes('insufficient_quota')) {
       return true
     }
   }
@@ -222,7 +259,7 @@ async function callAI(
 ) {
   const apiUrl = buildApiUrl(providerConfig.baseUrl, providerId)
   
-  let lastError: any = null
+  let lastError: unknown = null
   
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     // 检查是否已取消
@@ -254,7 +291,11 @@ async function callAI(
         throw new Error(`API HTTP ${resp.status}: ${errorText}`)
       }
 
-      const result = await resp.json() as any
+      const result = await resp.json() as {
+        error?: { message?: string }
+        choices?: Array<{ message?: { content?: string } }>
+        usage?: { prompt_tokens?: number; completion_tokens?: number }
+      }
       if (result.error) {
         throw new Error(`API 错误: ${result.error.message || JSON.stringify(result.error)}`)
       }
@@ -265,11 +306,12 @@ async function callAI(
       const cost = (usage.prompt_tokens || 0) * 0.000001 + (usage.completion_tokens || 0) * 0.000002
       return { content: content || null, cost }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error
       
       // 如果是用户主动取消，直接抛出
-      if (signal?.aborted || error.name === 'AbortError') {
+      const errName = error instanceof Error ? error.name : ''
+      if (signal?.aborted || errName === 'AbortError') {
         throw error
       }
       
@@ -280,7 +322,8 @@ async function callAI(
       
       // 等待后重试
       const delay = getDelay(attempt)
-      console.log(`AI API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${error.message}`)
+      const errDetail = error instanceof Error ? error.message : String(error)
+      console.log(`AI API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${errDetail}`)
       
       // 等待延迟，但可被取消
       await new Promise<void>((resolve, reject) => {
@@ -327,14 +370,16 @@ export async function generateNotes(
   providerConfig: { baseUrl: string; apiKey: string; model: string },
   providerId: AIProviderId,
   transcript: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  contentType: string = 'default',
 ) {
   const date = new Date().toISOString().split('T')[0]
+  const prompt = getAIPrompt(contentType)
   return callAI(
     providerConfig,
     providerId,
     '知识管理助手',
-    AI_PROMPT.replace('{date}', date).replace('{transcript}', transcript),
+    prompt.replace('{date}', date).replace('{transcript}', transcript),
     8192, // 增加输出token限制到8192，确保长音频内容完整
     signal
   )
@@ -350,11 +395,12 @@ export async function correctTranscriptLegacy(apiKey: string, transcript: string
   )
 }
 
-export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
+export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal, contentType: string = 'default') {
   return generateNotes(
     { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
     'deepseek',
     transcript,
-    signal
+    signal,
+    contentType,
   )
 }
