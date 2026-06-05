@@ -1,4 +1,3 @@
-import { motion } from 'motion/react'
 import { Wifi, WifiOff, Radio, RadioOff } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 
@@ -56,18 +55,4 @@ function getPillStyle(active: boolean, useErrorWhenInactive: boolean): React.CSS
   }
 }
 
-function getDotStyle(active: boolean, useErrorWhenInactive: boolean): React.CSSProperties {
-  return {
-    width: 7,
-    height: 7,
-    borderRadius: '50%',
-    background: active
-      ? 'var(--success)'
-      : useErrorWhenInactive
-        ? 'var(--error)'
-        : 'var(--text-muted)',
-    boxShadow: active ? '0 0 8px var(--success-glow)' : 'none',
-    animation: active ? 'pulse 2s ease-in-out infinite' : 'none',
-    flexShrink: 0,
-  }
-}
+

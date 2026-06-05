@@ -64,7 +64,7 @@ export class MessagePoller {
       try {
         messages = await this.client.listMessages(this.chatId)
         tasks = this.parser.extract(messages)
-      } catch (err: unknown) {
+      } catch {
         this.logFunc('⚠️ 飞书任务同步失败，正在使用本地缓存')
         return
       }

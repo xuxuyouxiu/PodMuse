@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion } from 'motion/react'
 import { Minus, Square, X, Sun, Moon, Search } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 import StatusBar from './StatusBar'

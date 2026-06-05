@@ -1,4 +1,3 @@
-import { motion } from 'motion/react'
 import { Clock, RotateCcw, Play, Trash2 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { cleanTitle } from '@shared/utils'

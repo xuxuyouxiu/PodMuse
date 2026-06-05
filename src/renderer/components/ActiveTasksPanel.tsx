@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
 import { Zap, Square, Loader2 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
@@ -16,7 +15,7 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
   completed: { label: '已完成' },
 }
 
-export default function ActiveTasksPanel({ tasks, processing, onCancel }: Props) {
+export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel }: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const handleStop = async (taskId: string) => {

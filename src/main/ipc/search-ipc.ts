@@ -10,7 +10,7 @@ interface NoteSearchResult {
   type: string
 }
 
-export function registerSearchIPC(mainWindow?: BrowserWindow | null): void {
+export function registerSearchIPC(_mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('search:notes', async (_e, keyword: string): Promise<NoteSearchResult[]> => {
     const config = loadConfig()
     const obsidianDir = config.obsidian_dir?.trim()

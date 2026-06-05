@@ -1,4 +1,4 @@
-import type { AIProviderId, AIProviderConfig } from '../shared/types'
+import type { AIProviderId } from '../shared/types'
 
 // 重试配置
 const MAX_RETRIES = 3
@@ -197,7 +197,7 @@ function getAIPrompt(contentType: string = 'default'): string {
 }
 
 // 构建请求URL
-export function buildApiUrl(baseUrl: string, providerId: AIProviderId): string {
+export function buildApiUrl(baseUrl: string, _providerId: AIProviderId): string {
   // 确保 baseUrl 以 /v1 结尾
   let url = baseUrl.replace(/\/+$/, '')
   if (!url.endsWith('/v1')) {
@@ -337,7 +337,7 @@ async function callAI(
           
           signal.addEventListener('abort', abortHandler, { once: true })
           
-          const cleanupTimeoutId = setTimeout(() => {
+          setTimeout(() => {
             signal.removeEventListener('abort', abortHandler)
           }, delay + 100)
         }

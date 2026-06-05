@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { motion } from 'motion/react'
 import { AlertTriangle, HelpCircle } from 'lucide-react'
 
 interface Props {

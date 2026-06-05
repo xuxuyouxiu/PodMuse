@@ -36,22 +36,12 @@ function getTempDir(audioDir: string) {
   return d
 }
 
-function sanitize(name: string) {
-  return name
-    .replace(/[<>:"/\\|?*\n\r\t]/g, '_')
-    .replace(/\.\./g, '_')
-    .replace(/\.+$/, '')
-    .trim()
-    .slice(0, 100)
-}
-
 /**
  * 从笔记内容中解析 frontmatter 的 category 字段
  * @param content 笔记内容（Markdown）
  * @returns category 值，如果未找到则返回空字符串
  */
 function parseCategory(content: string): string {
-  // 匹配 YAML frontmatter 中的 category 字段
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/)
   if (!frontmatterMatch) return ''
   
