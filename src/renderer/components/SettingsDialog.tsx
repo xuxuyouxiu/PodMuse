@@ -83,7 +83,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     }
   }
 
-  function update(key: keyof PodcastConfig, value: string | boolean) {
+  function update(key: keyof PodcastConfig, value: PodcastConfig[keyof PodcastConfig]) {
     setForm((prev: PodcastConfig) => ({ ...prev, [key]: value }))
     if (validationErrors[key]) {
       setValidationErrors(prev => {
