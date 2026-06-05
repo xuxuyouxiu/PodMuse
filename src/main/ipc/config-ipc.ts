@@ -47,7 +47,7 @@ function validateConfigInput(config: Record<string, unknown>): string | null {
 
   // 验证 AI 供应商配置
   if (config.ai_providers && typeof config.ai_providers === 'object') {
-    for (const [_id, provider] of Object.entries(config.ai_providers as Record<string, unknown>)) {
+    for (const provider of Object.values(config.ai_providers as Record<string, unknown>)) {
       if (!provider || typeof provider !== 'object') return 'AI 供应商配置无效'
     }
   }

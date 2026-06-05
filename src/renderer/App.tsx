@@ -90,6 +90,7 @@ export default function App() {
     }))
 
     return () => { cleanups.forEach(fn => fn?.()) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -144,6 +145,7 @@ export default function App() {
       setCancelling(false)
     }
     return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleCancel = useCallback(async () => {
@@ -197,10 +199,6 @@ export default function App() {
     setConfig(c)
     setToast('保存成功')
     setTimeout(() => setToast(null), 2000)
-  }, [])
-
-  const handleCleanTemp = useCallback(async () => {
-    await window.electronAPI.cleanTemp()
   }, [])
 
   const toggleTheme = useCallback(() => {

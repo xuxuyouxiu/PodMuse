@@ -333,7 +333,7 @@ export default function TabApi({ form, update, validationErrors }: {
                 </div>
               )}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                填写 API Key 后点击"加载模型"可获取该供应商的可用模型列表
+                填写 API Key 后点击「加载模型」可获取该供应商的可用模型列表
               </div>
             </div>
           </div>

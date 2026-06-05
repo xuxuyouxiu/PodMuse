@@ -1,7 +1,7 @@
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
 
-export default function TabWhisper({ form, update, models, scanningModels, modelScanStatus, hardwareWarn, showAdvanced, setShowAdvanced, onScanModels, onModelChange, onBrowse }: {
+export default function TabWhisper({ form, update: _update, models, scanningModels, modelScanStatus, hardwareWarn, showAdvanced, setShowAdvanced, onScanModels, onModelChange, onBrowse }: {
   form: PodcastConfig
   update: (key: keyof PodcastConfig, value: string | boolean) => void
   models: Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }> | null

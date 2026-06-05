@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
-import { X, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 
 interface Props {
   onClose: () => void

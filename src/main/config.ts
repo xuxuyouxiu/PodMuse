@@ -8,9 +8,6 @@ import { encryptField, decryptField } from './security'
 /** 需要加密保护的敏感字段 */
 const SENSITIVE_FIELDS = ['api_key', 'feishu_app_secret'] as const
 
-/** 配置中所有路径类型的字段 */
-const PATH_FIELDS = ['obsidian_dir', 'audio_dir', 'whisper_exe_path'] as const
-
 function findShippedConfigPath(): string {
   const isProd = !!process.resourcesPath
   if (isProd && process.resourcesPath) {

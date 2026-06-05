@@ -60,7 +60,7 @@ export function completeRecentTask(state: FeishuState, input: {
   }
 }
 
-export function shouldAutoResumeRecentTask(state: FeishuState): boolean {
+export function shouldAutoResumeRecentTask(_state: FeishuState): boolean {
   return false
 }
 

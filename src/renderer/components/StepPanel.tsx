@@ -1,5 +1,4 @@
 import { StepInfo } from '@shared/types'
-import { motion, AnimatePresence } from 'motion/react'
 import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Pause } from 'lucide-react'
 
 interface Props {
