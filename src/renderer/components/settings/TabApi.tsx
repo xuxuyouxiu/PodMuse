@@ -20,7 +20,7 @@ function getProviderIcon(providerId: AIProviderId): string {
 
 export default function TabApi({ form, update, validationErrors }: {
   form: PodcastConfig
-  update: (key: keyof PodcastConfig, value: string | boolean) => void
+  update: (key: keyof PodcastConfig, value: PodcastConfig[keyof PodcastConfig]) => void
   validationErrors: Record<string, string>
 }) {
   const [activeProvider, setActiveProvider] = useState<AIProviderId>(form.ai_provider || 'deepseek')
