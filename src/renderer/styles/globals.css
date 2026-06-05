@@ -362,6 +362,30 @@ body {
   gap: 16px;
 }
 
+.workspace-hero__footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.workspace-hero__type-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-hero__type-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .workspace-hero__title,
 .url-input-title,
 .step-panel-title {
@@ -493,6 +517,104 @@ body {
   cursor: not-allowed;
 }
 
+/* Content Type Selector */
+.content-type-selector {
+  position: relative;
+}
+
+.content-type-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.content-type-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.content-type-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.content-type-label {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.content-type-arrow {
+  transition: transform 0.2s ease;
+}
+
+.content-type-arrow.open {
+  transform: rotate(180deg);
+}
+
+.content-type-menu {
+  z-index: 9999;
+  min-width: 200px;
+  background: #1a1a2e;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  padding: 4px;
+}
+
+body[data-theme='light'] .content-type-menu {
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.content-type-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 150ms ease;
+  text-align: left;
+}
+
+.content-type-option:hover {
+  background: var(--bg-card);
+}
+
+.content-type-option.active {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.content-type-option .type-option-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.content-type-option .type-option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* End Content Type Selector */
+
 .url-input-submit,
 .control-bar-primary,
 .control-bar-secondary,
@@ -500,6 +622,89 @@ body {
 .recent-task-secondary,
 .recent-task-danger {
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.url-input-type-wrapper {
+  position: relative;
+}
+
+.url-input-type-btn {
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.url-input-type-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.url-input-type-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.url-input-type-label {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.url-input-type-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 100;
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.url-input-type-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 150ms ease;
+  text-align: left;
+}
+
+.url-input-type-option:hover {
+  background: var(--bg-card);
+}
+
+.url-input-type-option.active {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.type-option-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.type-option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .url-input-submit,

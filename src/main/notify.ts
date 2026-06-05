@@ -10,7 +10,7 @@ function getIcon(): Electron.NativeImage | undefined {
   iconResolved = true
   try {
     const baseDirs = [
-      (process as any).resourcesPath,
+      process.resourcesPath,
       join(__dirname, '..', '..'),
       app.getAppPath(),
     ].filter(Boolean)

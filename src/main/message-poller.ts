@@ -1,5 +1,7 @@
 import { FeishuClient } from './feishu-client'
+import type { FeishuMessage } from './feishu-client'
 import { MessageParser } from './message-parser'
+import type { MessageTask } from './message-parser'
 import { ProcessedMessageStore } from './processed-message-store'
 import { PodcastDispatchService } from './podcast-dispatcher'
 
@@ -57,12 +59,12 @@ export class MessagePoller {
         return
       }
 
-      let messages: any[] = []
-      let tasks: any[] = []
+      let messages: FeishuMessage[] = []
+      let tasks: MessageTask[] = []
       try {
         messages = await this.client.listMessages(this.chatId)
         tasks = this.parser.extract(messages)
-      } catch (err: any) {
+      } catch (err: unknown) {
         this.logFunc('⚠️ 飞书任务同步失败，正在使用本地缓存')
         return
       }
@@ -102,8 +104,9 @@ export class MessagePoller {
       }
 
       this.store.flush()
-    } catch (e: any) {
-      this.logFunc(`扫描异常: ${e.message}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      this.logFunc(`扫描异常: ${msg}`)
     } finally {
       this.scanning = false
     }

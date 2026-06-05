@@ -1,10 +1,15 @@
 import * as path from 'path'
 import * as fs from 'fs'
-import { StepInfo } from '@shared/types'
+import { StepInfo, AIProviderId } from '@shared/types'
 import { cleanTitleForFilename } from '@shared/utils'
 import { runWhisper } from './whisper'
-import { correctTranscript, generateNotes } from './deepseek'
+import { correctTranscript, generateNotes } from './ai-client'
 import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards } from './entity-cards'
+import { isSubPathOf } from './security'
+
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
 
 const HEADERS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
 
@@ -32,7 +37,12 @@ function getTempDir(audioDir: string) {
 }
 
 function sanitize(name: string) {
-  return name.replace(/[<>:"/\\|?*\n\r\t]/g, '_').trim()
+  return name
+    .replace(/[<>:"/\\|?*\n\r\t]/g, '_')
+    .replace(/\.\./g, '_')
+    .replace(/\.+$/, '')
+    .trim()
+    .slice(0, 100)
 }
 
 /**
@@ -64,16 +74,17 @@ function parseCategory(content: string): string {
   return category
 }
 
-function findAudioInJSON(obj: any, depth = 0): string | null {
+function findAudioInJSON(obj: unknown, depth = 0): string | null {
   if (depth > 12 || !obj) return null
   const audioKeys = ['mediaKey', 'enclosureUrl', 'mediaUrl', 'audioUrl', 'streamUrl', 'url']
   const hints = ['.mp3', '.m4a', '.ogg', '.aac', 'audio', 'podcast', 'sound']
   if (typeof obj === 'object' && !Array.isArray(obj)) {
+    const record = obj as Record<string, unknown>
     for (const key of audioKeys) {
-      const val = obj[key]
+      const val = record[key]
       if (typeof val === 'string' && val.startsWith('http') && hints.some(h => val.toLowerCase().includes(h))) return val
     }
-    for (const val of Object.values(obj)) {
+    for (const val of Object.values(record)) {
       const found = findAudioInJSON(val, depth + 1)
       if (found) return found
     }
@@ -125,7 +136,8 @@ async function extractAudio(url: string) {
 
 export async function processPodcast(
   podcastUrl: string,
-  apiKey: string,
+  providerConfig: { baseUrl: string; apiKey: string; model: string } | null,
+  providerId: string,
   language: string = 'zh',
   obsidianDir: string = '',
   audioDir: string = '',
@@ -133,6 +145,7 @@ export async function processPodcast(
   sendLog?: (msg: string) => void,
   signal?: AbortSignal,
   isLocalFile?: boolean,
+  contentType: string = 'default',
 ): Promise<string | null> {
   const log = (m: string) => { sendLog?.(m); console.log(m) }
   const step = (s: StepInfo) => {
@@ -178,9 +191,9 @@ export async function processPodcast(
       const result = await extractAudio(podcastUrl)
       audioUrl = result.audioUrl
       title = result.title
-    } catch (e: any) {
-      step({ step: 1, title: '解析页面', subtitle: '网络错误', status: 'error', detail: e.message })
-      log(`  ❌ 解析页面失败: ${e.message}`)
+    } catch (e: unknown) {
+      step({ step: 1, title: '解析页面', subtitle: '网络错误', status: 'error', detail: errMsg(e) })
+      log(`  ❌ 解析页面失败: ${errMsg(e)}`)
       return null
     }
     if (!audioUrl) {
@@ -232,10 +245,10 @@ export async function processPodcast(
         fs.writeFileSync(audioPath, Buffer.concat(chunks))
         step({ step: 2, title: '下载音频', subtitle: `${(received / 1048576).toFixed(1)} MB`, status: 'done', progress: 100 })
         log('  ✓ 下载完成')
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (signal?.aborted) throw e
-        step({ step: 2, title: '下载音频', subtitle: '下载失败', status: 'error', detail: e.message })
-        log(`  ❌ 下载失败: ${e.message}`)
+        step({ step: 2, title: '下载音频', subtitle: '下载失败', status: 'error', detail: errMsg(e) })
+        log(`  ❌ 下载失败: ${errMsg(e)}`)
         return null
       }
     }
@@ -279,9 +292,9 @@ export async function processPodcast(
     return null
   }
 
-  if (!apiKey) {
-    step({ step: 4, title: '修正专有名词', subtitle: '未配置 API Key', status: 'error' })
-    log('  ❌ 未配置 DeepSeek API Key，跳过 AI 处理')
+  if (!providerConfig) {
+    step({ step: 4, title: '修正专有名词', subtitle: '未配置 AI 供应商', status: 'error' })
+    log('  ❌ 未配置 AI 供应商，跳过 AI 处理')
     return null
   }
 
@@ -289,7 +302,7 @@ export async function processPodcast(
   log('  [4/5] 修正专有名词 (DeepSeek)...')
   let finalTranscript = transcript
   try {
-    const correction = await correctTranscript(apiKey, transcript, signal)
+    const correction = await correctTranscript(providerConfig, providerId as AIProviderId, transcript, signal)
     if (correction.content) {
       finalTranscript = correction.content
       step({ step: 4, title: '修正专有名词', subtitle: `≈¥${correction.cost.toFixed(4)}`, status: 'done' })
@@ -298,10 +311,10 @@ export async function processPodcast(
       step({ step: 4, title: '修正专有名词', subtitle: '跳过（使用原始转录）', status: 'done' })
       log('  ⚠ 修正失败，使用原始转录')
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (signal?.aborted) throw e
     step({ step: 4, title: '修正专有名词', subtitle: 'API 异常，使用原始转录', status: 'done' })
-    log(`  ⚠ DeepSeek 修正异常: ${e.message}，使用原始转录`)
+    log(`  ⚠ DeepSeek 修正异常: ${errMsg(e)}，使用原始转录`)
   }
 
   check()
@@ -309,10 +322,10 @@ export async function processPodcast(
   log('  [5/5] AI 提炼笔记 (DeepSeek)...')
   let notes: { content: string | null; cost: number }
   try {
-    notes = await generateNotes(apiKey, finalTranscript, signal)
-  } catch (e: any) {
-    step({ step: 5, title: 'AI 提炼笔记', subtitle: 'API 异常', status: 'error', detail: e.message })
-    log(`  ❌ DeepSeek 生成异常: ${e.message}`)
+    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal, contentType)
+  } catch (e: unknown) {
+    step({ step: 5, title: 'AI 提炼笔记', subtitle: 'API 异常', status: 'error', detail: errMsg(e) })
+    log(`  ❌ DeepSeek 生成异常: ${errMsg(e)}`)
     return null
   }
   if (!notes.content) {
@@ -337,7 +350,7 @@ export async function processPodcast(
   }
 
   if (patchedEntities.people.length || patchedEntities.projects.length || patchedEntities.concepts.length || patchedEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey }, signal)
+    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
@@ -357,12 +370,28 @@ export async function processPodcast(
   let targetDir = obsDir
   
   if (category) {
-    targetDir = path.join(obsDir, category)
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true })
-      log(`  📁 已创建分类文件夹: ${category}`)
+    // 安全检查：category 来自 AI 输出（不可信来源），需防止路径遍历
+    const cleanedCategory = category
+      .replace(/\.\./g, '')           // 移除 .. 防止路径遍历
+      .replace(/[<>:"|?*\x00-\x1f]/g, '_') // 移除非法字符
+      .trim()
+    
+    if (cleanedCategory && !cleanedCategory.includes('/') && !cleanedCategory.includes('\\')) {
+      const candidateDir = path.join(obsDir, cleanedCategory)
+      // 二次验证：确保解析后的路径仍在 obsDir 范围内
+      if (isSubPathOf(candidateDir, obsDir)) {
+        targetDir = candidateDir
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true })
+          log(`  📁 已创建分类文件夹: ${cleanedCategory}`)
+        }
+        log(`  📂 笔记分类: ${cleanedCategory}`)
+      } else {
+        log(`  ⚠ 分类路径不安全，已忽略: ${category}`)
+      }
+    } else {
+      log(`  ⚠ 分类名称包含非法字符，已忽略: ${category}`)
     }
-    log(`  📂 笔记分类: ${category}`)
   } else {
     log(`  ⚠ 未检测到分类信息，笔记将保存到根目录`)
   }

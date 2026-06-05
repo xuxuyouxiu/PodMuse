@@ -94,20 +94,24 @@ export default function AboutDialog({ onClose }: Props) {
         }}>
           <InfoRow label="项目地址" value={
             <a
-              href="https://github.com/anthropics/claude-code"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--accent)', textDecoration: 'none' }}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                window.electronAPI.openExternal('https://github.com/xuxuyouxiu/Podcast_notes')
+              }}
+              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
             >
               GitHub 仓库 <ExternalLink size={12} />
             </a>
           } />
           <InfoRow label="问题反馈" value={
             <a
-              href="https://github.com/anthropics/claude-code/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                window.electronAPI.openExternal('https://github.com/xuxuyouxiu/Podcast_notes/issues')
+              }}
+              style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
             >
               提交 Issue <ExternalLink size={12} />
             </a>

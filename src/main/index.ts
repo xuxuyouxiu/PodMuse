@@ -1,18 +1,23 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, dialog, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
 import { join, basename, extname } from 'path'
-import { loadConfig, loadState, saveConfig, saveState } from './config'
+import { loadConfig, saveState, loadState } from './config'
+import { isSafeUrl } from './security'
+import { registerCoreIPC } from './ipc'
 import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
+import { getActiveProviderConfig } from './ai-providers'
 import { fetchPodcastTitle } from './podcast'
 import { scanLocalModels, checkHardware } from './whisper-model-manager'
 import * as fs from 'fs'
-import { completeRecentTask, failRecentTask, getRecentTasks, removeRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
-import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, getRecoveryLogs, runConsistencyCheck } from './task-recovery'
+import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
+import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, runConsistencyCheck } from './task-recovery'
 import { sendNotification, setupNotificationAppId } from './notify'
+import type { StepInfo, FeishuStatus } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let monitor: FeishuMonitor | null = null
 const processedEpisodeIds = new Set<string>(loadState().processedUrls || [])
+const lastProcessedContentTypes = new Map<string, string>() // 记录每个episodeId上次使用的contentType
 let pendingAbort: AbortController | null = null
 let pendingProcessDone: (() => void) | null = null
 let tray: Tray | null = null
@@ -22,8 +27,7 @@ function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true
   if (monitor) {
     try {
-      const dispatcher = (monitor as any)._dispatcher
-      if (dispatcher?.abortRef && !dispatcher.abortRef.signal.aborted) return true
+      if (monitor.hasActiveProcess()) return true
     } catch {}
   }
   return false
@@ -50,7 +54,7 @@ function createWindow() {
   try {
     const fs = require('fs')
     const baseDirs = [
-      (process as any).resourcesPath,
+      process.resourcesPath,
       join(__dirname, '..', '..'),
       app.getAppPath(),
     ].filter(Boolean)
@@ -115,38 +119,10 @@ function createWindow() {
 }
 
 function setupIPC() {
-  ipcMain.handle('app:getVersion', () => {
-    return app.getVersion()
-  })
+  // 注册无状态/轻量级 IPC handler（配置、任务、搜索、窗口、对话框等）
+  registerCoreIPC(mainWindow)
 
-  ipcMain.handle('config:get', () => {
-    try { return loadConfig() } catch (e: any) { return null }
-  })
-
-  ipcMain.handle('config:save', (_e, config) => {
-    try { saveConfig(config); return true } catch { return false }
-  })
-
-  ipcMain.handle('task:getRecent', () => {
-    return getRecentTasks(loadState())
-  })
-
-  ipcMain.handle('task:getAll', () => {
-    const state = loadState()
-    return {
-      activeTasks: state.activeTasks,
-      recentTasks: state.recentTasks
-    }
-  })
-
-  ipcMain.handle('task:removeRecent', (_event, taskId: string) => {
-    updateRecentState(state => removeRecentTask(state, taskId))
-    const state = loadState()
-    return {
-      activeTasks: state.activeTasks,
-      recentTasks: state.recentTasks
-    }
-  })
+  // ---- 以下为涉及模块级状态的 handler，保留在 index.ts 中 ----
 
   ipcMain.handle('feishu:start', async () => {
     if (monitor) monitor.stop()
@@ -154,8 +130,8 @@ function setupIPC() {
     monitor = new FeishuMonitor(
       config,
       (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
-      (status: any) => { try { mainWindow?.webContents.send('feishu:status', status) } catch {} },
-      (step: any) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
+      (status: FeishuStatus) => { try { mainWindow?.webContents.send('feishu:status', status) } catch {} },
+      (step: StepInfo) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
       (p: boolean, url?: string) => {
         try { mainWindow?.webContents.send('podcast:processing', p, url) } catch {}
         if (!p && pendingProcessDone) { pendingProcessDone(); pendingProcessDone = null }
@@ -175,13 +151,19 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
-  ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean }) => {
+  ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile, contentType }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean; contentType?: string }) => {
     if (!isLocalFile) {
       const episodeMatch = url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)
       const episodeId = episodeMatch ? episodeMatch[1] : null
+      const config = loadConfig()
+      const effectiveContentType = contentType || config.content_type || 'default'
       if (!force && episodeId && processedEpisodeIds.has(episodeId)) {
-        mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
-        return { success: false, error: '该播客已处理过' }
+        const lastContentType = lastProcessedContentTypes.get(episodeId)
+        if (lastContentType === effectiveContentType) {
+          mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
+          return { success: false, error: '该播客已处理过' }
+        }
+        mainWindow?.webContents.send('log', `🔄 内容类型已更改，重新处理播客 (${episodeId})`)
       }
     }
     const initialTitle = isLocalFile ? basename(url, extname(url)) : await fetchPodcastTitle(url).catch(() => null)
@@ -190,17 +172,26 @@ function setupIPC() {
     pendingAbort = new AbortController()
     const signal = pendingAbort.signal
     const config = loadConfig()
+    // 获取活跃 AI 供应商配置，回退到旧 api_key 字段
+    let activeProvider = getActiveProviderConfig(config.ai_provider, config.ai_providers)
+    if (!activeProvider && config.api_key) {
+      activeProvider = { baseUrl: 'https://api.deepseek.com', apiKey: config.api_key, model: 'deepseek-chat' }
+    }
     try {
       const result = await processPodcast(
-        url, config.api_key, config.language,
+        url, activeProvider, config.ai_provider, config.language,
         config.obsidian_dir, config.audio_dir,
-        (step: any) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
+        (step: StepInfo) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
         (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
         signal,
         isLocalFile,
+        contentType || config.content_type || 'default',
       )
       if (result) {
-        if (episodeId) processedEpisodeIds.add(episodeId)
+        if (episodeId) {
+          processedEpisodeIds.add(episodeId)
+          lastProcessedContentTypes.set(episodeId, contentType || config.content_type || 'default')
+        }
         updateRecentState(state => completeRecentTask(state, { taskId, url, episodeId, filename: result }))
         if (config.notification_enabled !== false) {
           sendNotification('播客笔记助手', `笔记已生成：${result}`)
@@ -212,8 +203,10 @@ function setupIPC() {
         }
       }
       return { success: true, filename: result }
-    } catch (err: any) {
-      if (err?.name === 'AbortError' || signal.aborted) {
+    } catch (err: unknown) {
+      const errName = err instanceof Error ? err.name : ''
+      const errMsg = err instanceof Error ? err.message : String(err)
+      if (errName === 'AbortError' || signal.aborted) {
         updateRecentState(state => stopRecentTask(state))
         mainWindow?.webContents.send('log', '■ 处理已取消')
         for (let i = 1; i <= 5; i++) {
@@ -224,9 +217,9 @@ function setupIPC() {
       }
       updateRecentState(state => failRecentTask(state))
       if (config.notification_enabled !== false) {
-        sendNotification('播客笔记助手', `处理出错：${err.message || String(err)}`)
+        sendNotification('播客笔记助手', `处理出错：${errMsg}`)
       }
-      return { success: false, error: err.message || String(err) }
+      return { success: false, error: errMsg }
     } finally {
       if (pendingAbort?.signal === signal) pendingAbort = null
       if (pendingProcessDone) { pendingProcessDone(); pendingProcessDone = null }
@@ -266,102 +259,6 @@ function setupIPC() {
     return cancelled
   })
 
-  ipcMain.handle('task:getRecoveryLogs', () => {
-    return getRecoveryLogs()
-  })
-
-  ipcMain.handle('app:cleanTemp', () => {
-    try {
-      const cfg = loadConfig()
-      const tempDir = cfg.audio_dir || join(app.getPath('userData'), '_podcast_temp')
-      if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
-    } catch {}
-    return true
-  })
-
-  ipcMain.handle('search:notes', (_e, keyword: string) => {
-    const config = loadConfig()
-    const obsidianDir = config.obsidian_dir?.trim()
-    if (!obsidianDir || !fs.existsSync(obsidianDir)) return []
-
-    const results: { path: string; name: string; excerpt: string; type: string }[] = []
-    const query = keyword.trim().toLowerCase()
-    if (!query) return []
-
-    function walkDir(dir: string) {
-      try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true })
-        for (const entry of entries) {
-          const fullPath = join(dir, entry.name)
-          if (entry.isDirectory()) {
-            walkDir(fullPath)
-          } else if (entry.name.endsWith('.md')) {
-            const nameLower = entry.name.toLowerCase()
-            let content = ''
-            try { content = fs.readFileSync(fullPath, 'utf-8') } catch {}
-            const contentLower = content.toLowerCase()
-
-            if (nameLower.includes(query) || contentLower.includes(query)) {
-              // 提取匹配处的上下文作为摘要
-              let excerpt = ''
-              const idx = contentLower.indexOf(query)
-              if (idx >= 0) {
-                const start = Math.max(0, idx - 40)
-                const end = Math.min(content.length, idx + query.length + 80)
-                excerpt = (start > 0 ? '...' : '') + content.slice(start, end).replace(/\n/g, ' ').trim() + (end < content.length ? '...' : '')
-              } else {
-                excerpt = content.slice(0, 120).replace(/\n/g, ' ').trim()
-              }
-
-              // 判断类型
-              let type = '笔记'
-              const relPath = fullPath.slice(obsidianDir.length)
-              if (relPath.includes('人物')) type = '人物'
-              else if (relPath.includes('项目')) type = '项目'
-              else if (relPath.includes('概念')) type = '概念'
-              else if (relPath.includes('术语')) type = '术语'
-
-              results.push({
-                path: fullPath,
-                name: entry.name.replace(/\.md$/, ''),
-                excerpt,
-                type,
-              })
-            }
-          }
-        }
-      } catch {}
-    }
-
-    walkDir(obsidianDir)
-    return results.slice(0, 30) // 最多返回 30 条
-  })
-
-  ipcMain.handle('dialog:selectDir', async () => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
-    })
-    return result.canceled ? null : result.filePaths[0] || null
-  })
-
-  ipcMain.handle('dialog:selectFile', async () => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openFile'],
-      filters: [{ name: '可执行文件', extensions: ['exe', 'bat', 'cmd'] }],
-    })
-    return result.canceled ? null : result.filePaths[0] || null
-  })
-
-  ipcMain.handle('shell:openPath', async (_e, filePath: string) => {
-    try {
-      const { shell } = require('electron')
-      await shell.openPath(filePath)
-      return true
-    } catch { return false }
-  })
-
   ipcMain.handle('whisper:scanModels', () => {
     const config = loadConfig()
     return scanLocalModels(config.whisper_exe_path)
@@ -371,27 +268,22 @@ function setupIPC() {
     return checkHardware(modelId)
   })
 
-  // 获取AI供应商模型列表
   ipcMain.handle('ai:fetchModels', async (_e, { baseUrl, apiKey }: { baseUrl: string; apiKey: string }) => {
     try {
       if (!baseUrl || !apiKey) {
         return { success: false, error: '请先填写API地址和API Key', models: [] }
       }
-
-      // 确保URL格式正确
-      let url = baseUrl.replace(/\/+$/, '')
-      if (!url.endsWith('/v1')) {
-        url += '/v1'
+      if (!isSafeUrl(baseUrl)) {
+        return { success: false, error: 'API 地址必须使用 http:// 或 https:// 协议', models: [] }
       }
+      let url = baseUrl.replace(/\/+$/, '')
+      if (!url.endsWith('/v1')) { url += '/v1' }
       url += '/models'
 
       const resp = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000), // 10秒超时
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
       })
 
       if (!resp.ok) {
@@ -399,32 +291,24 @@ function setupIPC() {
         return { success: false, error: `HTTP ${resp.status}: ${errorText}`, models: [] }
       }
 
-      const data = await resp.json() as any
+      const data = await resp.json() as { data?: Array<{ id: string }> }
       const models = (data.data || [])
-        .map((m: any) => ({
-          id: m.id,
-          name: m.id,
-        }))
-        .sort((a: any, b: any) => a.id.localeCompare(b.id))
+        .map((m) => ({ id: m.id, name: m.id }))
+        .sort((a, b) => a.id.localeCompare(b.id))
 
       return { success: true, models }
-    } catch (err: any) {
-      return { success: false, error: err.message || '获取模型列表失败', models: [] }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '获取模型列表失败'
+      return { success: false, error: msg, models: [] }
     }
   })
-
-  ipcMain.handle('window:minimize', () => mainWindow?.minimize())
-  ipcMain.handle('window:maximize', () => {
-    if (mainWindow?.isMaximized()) { mainWindow.unmaximize() } else { mainWindow?.maximize() }
-  })
-  ipcMain.handle('window:close', () => mainWindow?.hide())
 }
 
 function createTray() {
   let icon: Electron.NativeImage | undefined
   try {
     const baseDirs = [
-      (process as any).resourcesPath,
+      process.resourcesPath,
       join(__dirname, '..', '..'),
       app.getAppPath(),
     ].filter(Boolean)

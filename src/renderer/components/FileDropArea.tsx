@@ -23,7 +23,7 @@ function validateFile(file: File): string | null {
 
 function getFilePath(file: File): string | null {
   try {
-    return window.electronAPI?.getPathForFile?.(file) || (file as any).path || null
+    return window.electronAPI?.getPathForFile?.(file) || file.path || null
   } catch {
     return null
   }

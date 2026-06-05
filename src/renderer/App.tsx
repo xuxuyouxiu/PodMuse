@@ -11,6 +11,7 @@ import SettingsDialog from './components/SettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
+import ContentTypeSelector from './components/ContentTypeSelector'
 import './styles/globals.css'
 
 type ThemeMode = 'dark' | 'light'
@@ -40,6 +41,9 @@ export default function App() {
   const [recentTasks, setRecentTasks] = useState<RecentTaskState[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [contentType, setContentType] = useState<string>(() => {
+    return localStorage.getItem('podcast-content-type') || 'default'
+  })
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
@@ -52,36 +56,40 @@ export default function App() {
     : null
 
   useEffect(() => {
-    window.electronAPI.getConfig().then(setConfig)
+    window.electronAPI.getConfig().then(setConfig).catch(() => {})
     window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
       setActiveTasks(aTasks)
       setRecentTasks(rTasks)
       const latestPending = aTasks.find(task => task.status !== 'completed')
       setLastUrl(latestPending?.url || aTasks[0]?.url || null)
-    })
-    window.electronAPI.onStepUpdate((step: StepInfo) => {
+    }).catch(() => {})
+
+    const cleanups: (() => void)[] = []
+    cleanups.push(window.electronAPI.onStepUpdate((step: StepInfo) => {
       setSteps(prev => prev.map(s => s.step === step.step ? { ...s, ...step } : s))
-    })
-    window.electronAPI.onFeishuStatus((status: FeishuStatus) => {
+    }))
+    cleanups.push(window.electronAPI.onFeishuStatus((status: FeishuStatus) => {
       setFeishuStatus(status)
-    })
-    window.electronAPI.onProcessingChange((p: boolean, url?: string) => {
+    }))
+    cleanups.push(window.electronAPI.onProcessingChange((p: boolean, url?: string) => {
       setProcessing(p)
       if (p && url) setLastUrl(url)
       if (!p && cancelFlag.current) {
         cancelFlag.current = false
         setCancelling(false)
       }
-    })
-    window.electronAPI.onTasksChanged(() => {
+    }))
+    cleanups.push(window.electronAPI.onTasksChanged(() => {
       window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
         setActiveTasks(aTasks)
         setRecentTasks(rTasks)
         if (aTasks.length === 0 && !processing) {
           setLastUrl(null)
         }
-      })
-    })
+      }).catch(() => {})
+    }))
+
+    return () => { cleanups.forEach(fn => fn?.()) }
   }, [])
 
   useEffect(() => {
@@ -92,12 +100,16 @@ export default function App() {
     document.body.dataset.theme = theme
   }, [theme])
 
-  const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string) => {
+  useEffect(() => {
+    localStorage.setItem('podcast-content-type', contentType)
+  }, [contentType])
+
+  const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string, contentType?: string) => {
     cancelFlag.current = false
     setProcessing(true)
     setLastUrl(url)
     setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
-    const result = await window.electronAPI.processPodcast(url, force, taskId)
+    const result = await window.electronAPI.processPodcast(url, force, taskId, false, contentType)
     setProcessing(false)
     const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
     setActiveTasks(aTasks)
@@ -111,8 +123,8 @@ export default function App() {
     return result
   }, [])
 
-  const handleProcess = useCallback(async (url: string) => {
-    return handleProcessWithMode(url, false)
+  const handleProcess = useCallback(async (url: string, contentType?: string) => {
+    return handleProcessWithMode(url, false, undefined, contentType)
   }, [handleProcessWithMode])
 
   const handleProcessFile = useCallback(async (filePath: string) => {
@@ -120,7 +132,7 @@ export default function App() {
     setProcessing(true)
     setLastUrl(filePath)
     setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
-    const result = await window.electronAPI.processPodcast(filePath, false, undefined, true)
+    const result = await window.electronAPI.processPodcast(filePath, false, undefined, true, contentType)
     setProcessing(false)
     const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
     setActiveTasks(aTasks)
@@ -222,15 +234,29 @@ export default function App() {
                     </div>
                     <div className="workspace-hero__badge">{workflowStateLabel}</div>
                   </div>
-                  {currentTitle && (
-                    <div className="workspace-hero__meta">
-                      <span className="workspace-hero__meta-label">当前节目</span>
-                      <span className="workspace-hero__meta-value">{currentTitle}</span>
+                  <div className="workspace-hero__footer">
+                    {currentTitle && (
+                      <div className="workspace-hero__meta">
+                        <span className="workspace-hero__meta-label">当前节目</span>
+                        <span className="workspace-hero__meta-value">{currentTitle}</span>
+                      </div>
+                    )}
+                    <div className="workspace-hero__type-selector">
+                      <span className="workspace-hero__type-label">内容类型：</span>
+                      <ContentTypeSelector
+                        contentType={contentType}
+                        onContentTypeChange={setContentType}
+                        disabled={processing || cancelling}
+                      />
                     </div>
-                  )}
+                  </div>
                 </section>
                 <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  <UrlInput onProcess={handleProcess} disabled={processing || cancelling} />
+                  <UrlInput 
+                    onProcess={handleProcess} 
+                    disabled={processing || cancelling}
+                    contentType={contentType}
+                  />
                   <FileDropArea onProcessFile={handleProcessFile} disabled={processing || cancelling} />
                 </section>
                 <section className="workspace-process-card">

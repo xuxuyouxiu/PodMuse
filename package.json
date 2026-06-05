@@ -1,6 +1,6 @@
 {
   "name": "podcast-notes",
-  "version": "1.0.35",
+  "version": "1.4.5",
   "description": "播客笔记助手 - 小宇宙链接自动下载、AI提炼、写入Obsidian",
   "main": "dist-electron/main/index.js",
   "author": "podcast-notes contributors",
@@ -35,14 +35,15 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "format:fix": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "framer-motion": "^11.0.0",
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "react": "^18.3.1",
@@ -71,6 +72,7 @@
     "typescript-eslint": "^8.60.0",
     "vite": "^6.0.0",
     "vite-plugin-electron": "^0.28.0",
-    "vite-plugin-electron-renderer": "^0.14.0"
+    "vite-plugin-electron-renderer": "^0.14.0",
+    "vitest": "^4.1.8"
   }
 }
