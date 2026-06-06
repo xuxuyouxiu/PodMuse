@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.4] - 2026-06-06
+
+### 修复
+- 凭据解密失败时静默错误：`decryptField` 解密失败时将 base64 密文当作"原文"返回，导致 API 调用使用乱码凭据。现在解密失败会抛出异常并由上层正确处理
+- `decryptConfigFields` 新增逐字段错误处理：单个字段解密失败不再影响其他字段，失败的字段会重置为空值并记录到 `_decryptionFailedFields`
+- `feishu:start` 启动时检测解密失败字段并通过日志通知用户重新输入凭据
+
 ## [1.6.3] - 2026-06-06
 
 ### 修复
