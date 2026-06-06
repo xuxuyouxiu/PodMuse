@@ -125,21 +125,28 @@ function setupIPC() {
   // ---- 以下为涉及模块级状态的 handler，保留在 index.ts 中 ----
 
   ipcMain.handle('feishu:start', async () => {
-    if (monitor) monitor.stop()
-    const config = loadConfig()
-    monitor = new FeishuMonitor(
-      config,
-      (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
-      (status: FeishuStatus) => { try { mainWindow?.webContents.send('feishu:status', status) } catch {} },
-      (step: StepInfo) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
-      (p: boolean, url?: string) => {
-        try { mainWindow?.webContents.send('podcast:processing', p, url) } catch {}
-        if (!p && pendingProcessDone) { pendingProcessDone(); pendingProcessDone = null }
-      },
-      () => { try { mainWindow?.webContents.send('task:state-changed') } catch {} },
-    )
-    await monitor.start()
-    return monitor.getStatus()
+    try {
+      if (monitor) monitor.stop()
+      const config = loadConfig()
+      monitor = new FeishuMonitor(
+        config,
+        (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
+        (status: FeishuStatus) => { try { mainWindow?.webContents.send('feishu:status', status) } catch {} },
+        (step: StepInfo) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
+        (p: boolean, url?: string) => {
+          try { mainWindow?.webContents.send('podcast:processing', p, url) } catch {}
+          if (!p && pendingProcessDone) { pendingProcessDone(); pendingProcessDone = null }
+        },
+        () => { try { mainWindow?.webContents.send('task:state-changed') } catch {} },
+      )
+      await monitor.start()
+      return monitor.getStatus()
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('feishu:start error:', msg)
+      try { mainWindow?.webContents.send('log', `⚠ 飞书启动异常: ${msg}`) } catch {}
+      return { connected: false, monitoring: false, chatId: '' }
+    }
   })
 
   ipcMain.handle('feishu:stop', () => {
