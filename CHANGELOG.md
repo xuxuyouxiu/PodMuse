@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.5] - 2026-06-06
+
+### 新增
+- 便携模式支持：win-unpacked 目录下存在 `portable` 标记文件时，配置和状态数据存储在 `exe同级/data/` 而非 `%APPDATA%`，实现真正的便携版
+
+### 修复
+- 设置保存后飞书不自动重连：`handleSaveConfig` 保存配置后现在自动调用 `startFeishu()` 使用新凭据重新连接监听器
+
 ## [1.6.4] - 2026-06-06
 
 ### 修复

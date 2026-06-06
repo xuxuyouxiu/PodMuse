@@ -217,6 +217,10 @@ export default function App() {
     setConfig(c)
     setToast('保存成功')
     setTimeout(() => setToast(null), 2000)
+    // 保存后自动重启飞书监听器，使用新凭据重新连接
+    window.electronAPI.startFeishu()
+      .then(s => s && setFeishuStatus(s))
+      .catch(() => {})
   }, [])
 
   const toggleTheme = useCallback(() => {
