@@ -24,12 +24,34 @@ function findShippedConfigPath(): string {
 
 let _userDataDir: string | null = null
 
+/**
+ * 便携模式检测：如果 exe 同级目录存在 portable 标记文件，
+ * 则将配置存储在 exeDir/data/ 下（便携版）；
+ * 否则使用标准的 %APPDATA%/podcast-notes（安装版）
+ */
+function isPortableMode(): boolean {
+  try {
+    const exeDir = path.dirname(process.execPath)
+    return fs.existsSync(path.join(exeDir, 'portable'))
+  } catch {
+    return false
+  }
+}
+
 function getUserDataDir(): string {
   if (!_userDataDir) {
-    try {
-      _userDataDir = app.getPath('userData')
-    } catch {
-      _userDataDir = path.join(process.env.APPDATA || process.cwd(), '播客笔记助手')
+    if (isPortableMode()) {
+      const exeDir = path.dirname(process.execPath)
+      _userDataDir = path.join(exeDir, 'data')
+      if (!fs.existsSync(_userDataDir)) {
+        fs.mkdirSync(_userDataDir, { recursive: true })
+      }
+    } else {
+      try {
+        _userDataDir = app.getPath('userData')
+      } catch {
+        _userDataDir = path.join(process.env.APPDATA || process.cwd(), '播客笔记助手')
+      }
     }
   }
   return _userDataDir
