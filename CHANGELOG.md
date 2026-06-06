@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.2] - 2026-06-06
+
+### 修复
+- Hero 区域长标题截断内容类型选择器：为 `.workspace-hero__meta` 添加 `min-width: 0; flex: 1` 允许标题收缩省略，为 `.workspace-hero__type-selector` 添加 `flex-shrink: 0` 确保选择器始终可见
+
 ## [1.6.1] - 2026-06-06
 
 ### 修复

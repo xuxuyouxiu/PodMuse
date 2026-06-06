@@ -494,6 +494,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .workspace-hero__type-label {
@@ -542,6 +543,8 @@ body {
   gap: 10px;
   margin-top: 14px;
   max-width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 8px 12px;
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
