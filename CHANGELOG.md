@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.1] - 2026-06-06
+
+### 修复
+- 搜索框下拉结果被主内容区遮挡：`backdrop-filter` 创建独立层叠上下文导致下拉框 z-index 失效，为 `.topbar-root` 添加 `position: relative; z-index: 100` 确保顶栏始终在最上层
+
 ## [1.6.0] - 2026-06-06
 
 ### 新增

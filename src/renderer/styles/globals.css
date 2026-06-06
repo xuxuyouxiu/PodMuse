@@ -1916,6 +1916,8 @@ input {
   flex-shrink: 0;
   backdrop-filter: blur(20px);
   background: var(--bg-panel);
+  position: relative;
+  z-index: 100;
 }
 
 .topbar-logo {
