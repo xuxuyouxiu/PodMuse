@@ -1,5 +1,5 @@
 import { StepInfo } from '@shared/types'
-import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Pause } from 'lucide-react'
+import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Pause, Link, FileText, Bell } from 'lucide-react'
 
 interface Props {
   steps: StepInfo[]
@@ -22,6 +22,20 @@ export default function StepPanel({ steps, processing }: Props) {
           </div>
           <div className="step-panel-empty-text">
             输入小宇宙链接或等待飞书消息
+          </div>
+          <div className="onboarding-steps">
+            <div className="onboarding-step">
+              <Link size={14} className="onboarding-step-icon" />
+              <span>粘贴小宇宙播客链接</span>
+            </div>
+            <div className="onboarding-step">
+              <FileText size={14} className="onboarding-step-icon" />
+              <span>自动转写并生成笔记</span>
+            </div>
+            <div className="onboarding-step">
+              <Bell size={14} className="onboarding-step-icon" />
+              <span>结果推送至飞书群</span>
+            </div>
           </div>
         </div>
       </div>

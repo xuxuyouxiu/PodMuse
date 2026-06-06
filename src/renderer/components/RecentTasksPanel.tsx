@@ -19,7 +19,7 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
 
 export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, processing }: Props) {
   return (
-    <aside className="task-panel" style={{ flex: 1, minHeight: 0, marginTop: '16px' }}>
+    <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
         <div>
           <div className="task-panel-title">历史记录</div>

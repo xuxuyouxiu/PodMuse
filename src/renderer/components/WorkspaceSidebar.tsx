@@ -1,12 +1,23 @@
 import { motion } from 'motion/react'
-import { Settings, Info } from 'lucide-react'
+import { Settings, Info, Zap, Clock, CheckCircle2 } from 'lucide-react'
+import { RecentTaskState } from '@shared/types'
 
 interface Props {
   onSettings: () => void
   onAbout: () => void
+  activeTasks: RecentTaskState[]
+  recentTasks: RecentTaskState[]
 }
 
-export default function WorkspaceSidebar({ onSettings, onAbout }: Props) {
+export default function WorkspaceSidebar({ onSettings, onAbout, activeTasks, recentTasks }: Props) {
+  const runningCount = activeTasks.filter(t => t.status === 'running').length
+  const completedToday = recentTasks.filter(t => {
+    if (t.status !== 'completed') return false
+    const d = new Date(t.updatedAt)
+    const today = new Date()
+    return d.toDateString() === today.toDateString()
+  }).length
+
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar__brand">
@@ -27,6 +38,26 @@ export default function WorkspaceSidebar({ onSettings, onAbout }: Props) {
           工作台
         </motion.button>
       </nav>
+
+      {/* 快速统计 */}
+      <div className="sidebar-stats">
+        <div className="sidebar-stats__title">任务概览</div>
+        <div className="sidebar-stat">
+          <Zap size={13} className="sidebar-stat__icon sidebar-stat__icon--active" />
+          <span className="sidebar-stat__label">进行中</span>
+          <span className="sidebar-stat__value">{runningCount}</span>
+        </div>
+        <div className="sidebar-stat">
+          <Clock size={13} className="sidebar-stat__icon sidebar-stat__icon--queued" />
+          <span className="sidebar-stat__label">排队中</span>
+          <span className="sidebar-stat__value">{activeTasks.length - runningCount}</span>
+        </div>
+        <div className="sidebar-stat">
+          <CheckCircle2 size={13} className="sidebar-stat__icon sidebar-stat__icon--done" />
+          <span className="sidebar-stat__label">今日完成</span>
+          <span className="sidebar-stat__value">{completedToday}</span>
+        </div>
+      </div>
 
       <div className="workspace-sidebar__system-ops" style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <motion.button

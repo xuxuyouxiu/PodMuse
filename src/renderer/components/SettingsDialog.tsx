@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
+import { Link, FileText, Mic, Wrench, Settings, type LucideIcon } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { TabApi, TabTranscribe, TabWhisper, TabTools } from './settings'
 
 type TabKey = 'api' | 'transcribe' | 'whisper' | 'tools'
 
-const TABS: { key: TabKey; icon: string; label: string }[] = [
-  { key: 'api', icon: '🔗', label: '接口与通知' },
-  { key: 'transcribe', icon: '📝', label: '转写偏好' },
-  { key: 'whisper', icon: '🎙', label: '语音模型' },
-  { key: 'tools', icon: '🛠', label: '工具维护' },
+const TABS: { key: TabKey; icon: LucideIcon; label: string }[] = [
+  { key: 'api', icon: Link, label: '接口与通知' },
+  { key: 'transcribe', icon: FileText, label: '转写偏好' },
+  { key: 'whisper', icon: Mic, label: '语音模型' },
+  { key: 'tools', icon: Wrench, label: '工具维护' },
 ]
 
 interface Props {
@@ -225,7 +226,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
             borderBottom: '1px solid var(--border)',
             marginBottom: 8,
           }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>⚙ 设置</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><Settings size={16} />设置</div>
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
@@ -247,7 +248,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                   textAlign: 'left',
                 }}
               >
-                <span style={{ fontSize: 15 }}>{tab.icon}</span>
+                <tab.icon size={16} />
                 {tab.label}
               </button>
             ))}

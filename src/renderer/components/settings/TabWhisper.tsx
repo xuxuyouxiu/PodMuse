@@ -1,5 +1,6 @@
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
+import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown } from 'lucide-react'
 
 export default function TabWhisper({ form, update: _update, models, scanningModels, modelScanStatus, hardwareWarn, showAdvanced, setShowAdvanced, onScanModels, onModelChange, onBrowse }: {
   form: PodcastConfig
@@ -66,7 +67,7 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
                 if (!selected) return null
                 return selected.downloaded
                   ? <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 当前模型已就绪</span>
-                  : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⬇ 首次使用将自动下载 ~{selected.ramMinGB}GB</span>
+                  : <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><ArrowDown size={11} />首次使用将自动下载 ~{selected.ramMinGB}GB</span>
               })()}
             </div>
           )}
@@ -105,7 +106,7 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
               rel="noopener noreferrer"
               style={{ color: 'var(--accent)', textDecoration: 'none' }}
             >
-              🔗 GitHub 下载 faster-whisper-xxl 模型
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ExternalLink size={12} />GitHub 下载 faster-whisper-xxl 模型</span>
             </a>
           </div>
         </div>
@@ -119,7 +120,7 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
           border: `1px solid ${hardwareWarn.pass ? 'rgba(255,193,7,0.3)' : 'rgba(244,67,54,0.3)'}`,
           color: hardwareWarn.pass ? 'var(--text-secondary)' : 'var(--error)',
         }}>
-          {hardwareWarn.pass ? '⚠ ' : '✖ '}
+          {hardwareWarn.pass ? <AlertTriangle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> : <AlertCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />}
           {hardwareWarn.warning}
         </div>
       )}
