@@ -61,6 +61,7 @@ export class FeishuMonitor {
 
   async start(): Promise<void> {
     await this.poller.start()
+    this.emitStatus()
   }
 
   stop(): void {

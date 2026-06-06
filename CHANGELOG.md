@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.3] - 2026-06-06
+
+### 修复
+- 飞书监听器启动时无反馈：`MessagePoller.start()` 在 `ensureToken()` 失败时静默返回，用户无法知晓原因。现在会明确记录失败原因并通知 UI
+- 飞书 API 网络异常未捕获：`feishuApi()` 的 `fetch()` 调用缺少 try/catch，网络错误直接抛出未处理异常。现已捕获并返回友好错误码
+- 飞书鉴权失败缺少凭据检查：App ID 或 App Secret 为空时仍尝试请求，现提前校验并给出配置提示
+- `feishu:start` IPC 处理器缺少 try/catch：异常直接传播为未捕获的 Promise 拒绝，现已包装异常处理并返回安全默认状态
+
 ## [1.6.2] - 2026-06-06
 
 ### 修复

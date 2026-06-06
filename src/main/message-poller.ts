@@ -27,7 +27,11 @@ export class MessagePoller {
   }
 
   async start(): Promise<void> {
-    if (!await this.client.ensureToken()) return
+    if (!await this.client.ensureToken()) {
+      this.logFunc('⚠ 飞书连接失败，监听未启动。请检查设置中的飞书 App ID 和 App Secret 是否正确')
+      this.onStatusChange()
+      return
+    }
 
     this.logFunc('飞书监听器启动中...')
     this.logFunc('✓ 飞书连接正常，开始监听...')

@@ -98,7 +98,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    window.electronAPI.startFeishu().then(s => s && setFeishuStatus(s))
+    window.electronAPI.startFeishu()
+      .then(s => s && setFeishuStatus(s))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {

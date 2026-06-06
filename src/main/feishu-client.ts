@@ -23,8 +23,13 @@ interface FeishuApiResponse {
 async function feishuApi(method: string, url: string, token: string | null, body?: unknown): Promise<FeishuApiResponse> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
-  return resp.json() as Promise<FeishuApiResponse>
+  try {
+    const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
+    return await resp.json() as FeishuApiResponse
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { code: -1, msg: `网络请求失败: ${msg}` }
+  }
 }
 
 export class FeishuClient {
@@ -43,13 +48,17 @@ export class FeishuClient {
 
   async ensureToken(): Promise<boolean> {
     if (this.token && Date.now() < this.tokenExpires) return true
+    if (!this.appId || !this.appSecret) {
+      this.logFunc('⚠ 飞书连接失败: App ID 或 App Secret 未配置，请在设置中填写飞书凭据')
+      return false
+    }
     const result = await feishuApi('POST', FEISHU_AUTH_URL, null, { app_id: this.appId, app_secret: this.appSecret })
     if (result.code === 0) {
       this.token = result.tenant_access_token ?? null
       this.tokenExpires = Date.now() + TOKEN_TTL
       return true
     }
-    this.logFunc(`getToken 失败: code=${result.code} msg=${result.msg || '无'} ${JSON.stringify(result)}`)
+    this.logFunc(`⚠ 飞书鉴权失败: code=${result.code} msg=${result.msg || '无'}`)
     return false
   }
 
