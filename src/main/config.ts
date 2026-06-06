@@ -75,15 +75,24 @@ function decryptConfigFields(config: PodcastConfig): PodcastConfig {
   const result = { ...config }
   const configAny = config as unknown as Record<string, unknown>
   const resultAny = result as unknown as Record<string, unknown>
+  const failedFields: string[] = []
+
   try {
     if (!safeStorage.isEncryptionAvailable()) return result
+
     for (const field of SENSITIVE_FIELDS) {
       const encKey = `_${field}_enc`
       const encVal = configAny[encKey]
       if (typeof encVal === 'string' && encVal) {
-        resultAny[field] = decryptField(safeStorage, encVal)
+        try {
+          resultAny[field] = decryptField(safeStorage, encVal)
+        } catch {
+          resultAny[field] = ''
+          failedFields.push(field)
+        }
       }
     }
+
     // 解密 AI 供应商的 apiKey
     if (config.ai_providers) {
       const decryptedProviders = { ...config.ai_providers }
@@ -91,9 +100,17 @@ function decryptConfigFields(config: PodcastConfig): PodcastConfig {
         const providerAny = provider as unknown as Record<string, unknown>
         const encVal = providerAny['_apiKey_enc']
         if (typeof encVal === 'string' && encVal) {
-          decryptedProviders[id as keyof typeof decryptedProviders] = {
-            ...provider,
-            apiKey: decryptField(safeStorage, encVal),
+          try {
+            decryptedProviders[id as keyof typeof decryptedProviders] = {
+              ...provider,
+              apiKey: decryptField(safeStorage, encVal),
+            }
+          } catch {
+            decryptedProviders[id as keyof typeof decryptedProviders] = {
+              ...provider,
+              apiKey: '',
+            }
+            failedFields.push(`ai_providers.${id}.apiKey`)
           }
         }
       }
@@ -102,6 +119,12 @@ function decryptConfigFields(config: PodcastConfig): PodcastConfig {
   } catch (e) {
     console.warn('Config decryption warning:', e)
   }
+
+  // 将解密失败的字段列表附加到配置上，供 UI 层提示用户
+  if (failedFields.length > 0) {
+    (result as unknown as Record<string, unknown>)._decryptionFailedFields = failedFields
+  }
+
   return result
 }
 

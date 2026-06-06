@@ -106,15 +106,11 @@ export function encryptField(safeStorage: Electron.SafeStorage, plainText: strin
 /**
  * 使用 Electron safeStorage 解密字符串
  * 如果加密不可用（例如数据以明文存储），则直接返回原文
+ * 解密失败时抛出异常，由调用方决定如何处理
  */
 export function decryptField(safeStorage: Electron.SafeStorage, cipherText: string): string {
   if (!cipherText) return ''
   if (!safeStorage.isEncryptionAvailable()) return cipherText
-  try {
-    const buf = Buffer.from(cipherText, 'base64')
-    return safeStorage.decryptString(buf)
-  } catch {
-    // 解密失败（可能是旧版明文数据），返回原文
-    return cipherText
-  }
+  const buf = Buffer.from(cipherText, 'base64')
+  return safeStorage.decryptString(buf)
 }

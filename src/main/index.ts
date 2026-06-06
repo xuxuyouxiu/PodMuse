@@ -128,6 +128,14 @@ function setupIPC() {
     try {
       if (monitor) monitor.stop()
       const config = loadConfig()
+
+      // 检测敏感字段解密是否失败
+      const failedFields = (config as unknown as Record<string, unknown>)._decryptionFailedFields as string[] | undefined
+      if (failedFields?.length) {
+        const msg = `⚠ 凭据解密失败（${failedFields.join(', ')}），请在设置中重新输入飞书 App Secret 和 API Key`
+        try { mainWindow?.webContents.send('log', msg) } catch {}
+      }
+
       monitor = new FeishuMonitor(
         config,
         (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
