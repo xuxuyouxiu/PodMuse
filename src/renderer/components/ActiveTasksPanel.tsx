@@ -28,7 +28,7 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
   }
 
   return (
-    <aside className="task-panel" style={{ flex: 1, minHeight: 0 }}>
+    <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
         <div>
           <div className="task-panel-title">活跃任务</div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState } from '@shared/types'
+import { Zap, Clock } from 'lucide-react'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
 import FileDropArea from './components/FileDropArea'
@@ -12,6 +13,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import ContentTypeSelector from './components/ContentTypeSelector'
+import CommandPalette, { useAppCommands } from './components/CommandPalette'
 import './styles/globals.css'
 
 type ThemeMode = 'dark' | 'light'
@@ -41,6 +43,8 @@ export default function App() {
   const [recentTasks, setRecentTasks] = useState<RecentTaskState[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [rpTab, setRpTab] = useState<'active' | 'recent'>('active')
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [contentType, setContentType] = useState<string>(() => {
     return localStorage.getItem('podcast-content-type') || 'default'
   })
@@ -104,6 +108,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('podcast-content-type', contentType)
   }, [contentType])
+
+  // Ctrl+Shift+P 全局打开命令面板
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault()
+        setPaletteOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string, contentType?: string) => {
     cancelFlag.current = false
@@ -209,12 +225,58 @@ export default function App() {
     })
   }, [])
 
+  const commands = useAppCommands({
+    theme,
+    onToggleTheme: toggleTheme,
+    onOpenSettings: () => setSettingsOpen(true),
+    onOpenAbout: () => setAboutOpen(true),
+    processing,
+    onResumeLast: handleResume,
+    onCancel: handleCancel,
+  })
+
+  if (!config) {
+    return (
+      <div className="app-skeleton">
+        <div className="app-skeleton__sidebar">
+          <div className="skeleton" style={{ width: 120, height: 20 }} />
+          <div className="skeleton skeleton--text" />
+          <div className="skeleton skeleton--text" style={{ width: '80%' }} />
+          <div style={{ flex: 1 }} />
+          <div className="skeleton skeleton--text" style={{ width: '60%' }} />
+          <div className="skeleton skeleton--text" style={{ width: '60%' }} />
+        </div>
+        <div className="app-skeleton__main">
+          <div className="skeleton app-skeleton__topbar" />
+          <div className="skeleton app-skeleton__hero">
+            <div className="skeleton skeleton--text-sm" style={{ width: '25%' }} />
+            <div className="skeleton skeleton--title" />
+            <div className="skeleton skeleton--text" style={{ width: '70%' }} />
+          </div>
+          <div className="skeleton app-skeleton__card">
+            <div className="skeleton skeleton--text-sm" style={{ width: '20%' }} />
+            <div className="skeleton skeleton--text" />
+            <div className="skeleton skeleton--text" style={{ width: '80%' }} />
+          </div>
+          <div className="skeleton app-skeleton__card">
+            <div className="skeleton skeleton--title" style={{ width: '30%' }} />
+            <div className="skeleton skeleton--text" />
+            <div className="skeleton skeleton--text" style={{ width: '60%' }} />
+            <div className="skeleton skeleton--text" style={{ width: '90%' }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="workspace-shell">
         <WorkspaceSidebar 
           onSettings={() => setSettingsOpen(true)}
           onAbout={() => setAboutOpen(true)}
+          activeTasks={activeTasks}
+          recentTasks={recentTasks}
         />
         <div className="workspace-main">
           <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
@@ -270,20 +332,44 @@ export default function App() {
               </div>
             </div>
             <aside className="workspace-aside">
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-                <ActiveTasksPanel tasks={activeTasks} processing={processing} onCancel={async (taskId: string) => {
-                  if (taskId) {
-                    const result = await window.electronAPI.cancelProcessing()
-                    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
-                    setActiveTasks(aTasks)
-                    setRecentTasks(rTasks)
-                    if (!result) {
-                      cancelFlag.current = false
-                      setCancelling(false)
-                    }
-                  }
-                }} />
-                <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleTaskResume} onReplay={handleTaskReplay} onDelete={handleTaskDelete} />
+              <div className="rp-tabs">
+                <div className="rp-tabs__bar">
+                  <button
+                    className={`rp-tabs__tab ${rpTab === 'active' ? 'is-active' : ''}`}
+                    onClick={() => setRpTab('active')}
+                  >
+                    <Zap size={13} />
+                    活跃任务
+                    <span className="rp-tabs__count">{activeTasks.length}</span>
+                  </button>
+                  <button
+                    className={`rp-tabs__tab ${rpTab === 'recent' ? 'is-active' : ''}`}
+                    onClick={() => setRpTab('recent')}
+                  >
+                    <Clock size={13} />
+                    历史记录
+                    <span className="rp-tabs__count">{recentTasks.length}</span>
+                  </button>
+                </div>
+                <div className="rp-tabs__content">
+                  {rpTab === 'active' && (
+                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onCancel={async (taskId: string) => {
+                      if (taskId) {
+                        const result = await window.electronAPI.cancelProcessing()
+                        const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
+                        setActiveTasks(aTasks)
+                        setRecentTasks(rTasks)
+                        if (!result) {
+                          cancelFlag.current = false
+                          setCancelling(false)
+                        }
+                      }
+                    }} />
+                  )}
+                  {rpTab === 'recent' && (
+                    <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleTaskResume} onReplay={handleTaskReplay} onDelete={handleTaskDelete} />
+                  )}
+                </div>
               </div>
             </aside>
           </div>
@@ -321,6 +407,11 @@ export default function App() {
           onCancel={() => setDeleteConfirmId(null)}
         />
       )}
+      <CommandPalette
+        commands={commands}
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+      />
       <style>{`
         @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
       `}</style>

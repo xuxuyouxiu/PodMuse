@@ -2,20 +2,22 @@ import { useState } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
+import { Fish, Bot, Moon, Cpu, Cloud, Lightbulb, Waves, Settings, Plus, ExternalLink, Key, RotateCcw, type LucideIcon } from 'lucide-react'
 
 // 获取供应商图标
-function getProviderIcon(providerId: AIProviderId): string {
-  const icons: Record<AIProviderId, string> = {
-    deepseek: '🐋',
-    openai: '🤖',
-    moonshot: '🌙',
-    zhipu: '🧠',
-    qwen: '☁️',
-    yi: '💡',
-    minimax: '🐚',
-    custom: '⚙️',
+function getProviderIcon(providerId: AIProviderId): React.ReactNode {
+  const icons: Record<AIProviderId, LucideIcon> = {
+    deepseek: Fish,
+    openai: Bot,
+    moonshot: Moon,
+    zhipu: Cpu,
+    qwen: Cloud,
+    yi: Lightbulb,
+    minimax: Waves,
+    custom: Settings,
   }
-  return icons[providerId] || '🔗'
+  const Icon = icons[providerId] || ExternalLink
+  return <Icon size={14} />
 }
 
 export default function TabApi({ form, update, validationErrors }: {
@@ -136,7 +138,7 @@ export default function TabApi({ form, update, validationErrors }: {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-                  <span style={{ fontSize: 14 }}>{getProviderIcon(preset.id)}</span>
+                  {getProviderIcon(preset.id)}
                   <span>{preset.name}</span>
                 </div>
                 {hasKey && (
@@ -172,7 +174,7 @@ export default function TabApi({ form, update, validationErrors }: {
               gap: 6,
             }}
           >
-            <span style={{ fontSize: 14 }}>➕</span>
+            <Plus size={14} />
             <span>自定义</span>
           </button>
         </div>
@@ -212,7 +214,7 @@ export default function TabApi({ form, update, validationErrors }: {
                   className="settings-link-button"
                   style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
                 >
-                  🔗 官网
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ExternalLink size={11} />官网</span>
                 </a>
               )}
               {currentPreset?.apiKeyUrl && (
@@ -223,7 +225,7 @@ export default function TabApi({ form, update, validationErrors }: {
                   className="settings-link-button"
                   style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
                 >
-                  🔑 获取密钥
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Key size={11} />获取密钥</span>
                 </a>
               )}
               {currentPreset && (
@@ -238,7 +240,7 @@ export default function TabApi({ form, update, validationErrors }: {
                     padding: 0,
                   }}
                 >
-                  ↺ 重置默认
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><RotateCcw size={11} />重置默认</span>
                 </button>
               )}
             </div>

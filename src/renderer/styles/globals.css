@@ -224,6 +224,113 @@ body {
   line-height: 1.5;
 }
 
+/* --- Sidebar Stats --- */
+.sidebar-stats {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-stats__title {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.sidebar-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.sidebar-stat__icon {
+  flex-shrink: 0;
+}
+
+.sidebar-stat__icon--active { color: var(--accent); }
+.sidebar-stat__icon--queued { color: var(--warning); }
+.sidebar-stat__icon--done { color: var(--success); }
+
+.sidebar-stat__label { flex: 1; }
+
+.sidebar-stat__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* --- Right Panel Tabs --- */
+.rp-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.rp-tabs__bar {
+  display: flex;
+  gap: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.rp-tabs__tab {
+  padding: 10px 14px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rp-tabs__tab:hover {
+  color: var(--text-secondary);
+}
+
+.rp-tabs__tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.rp-tabs__count {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-tabs__tab.is-active .rp-tabs__count {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+}
+
+.rp-tabs__content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .workspace-main {
   min-width: 0;
   flex: 1;
@@ -1849,8 +1956,7 @@ input {
 }
 
 .topbar-search-box.is-open {
-  border-color: var(--accent, #6366f1);
-  box-shadow: 0 0 0 2px var(--accent-glow);
+  border-color: var(--border-light);
 }
 
 .topbar-search-icon {
@@ -2002,6 +2108,17 @@ input {
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
+  cursor: pointer;
+}
+
+.topbar-winctl-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.topbar-winctl-btn:last-child:hover {
+  background: var(--error);
+  color: #fff;
 }
 
 /* ============================================
@@ -2625,4 +2742,288 @@ input {
 
 .status-indicator.error::after {
   background: var(--error);
+}
+
+/* ============================================
+   全局 Focus-Visible 无障碍样式
+   ============================================ */
+
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ============================================
+   首次使用引导步骤
+   ============================================ */
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  width: 100%;
+  max-width: 260px;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-base);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.onboarding-step-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+/* ============================================
+   Skeleton 骨架屏
+   ============================================ */
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 25%,
+    var(--bg-card) 50%,
+    var(--bg-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton--text {
+  height: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.skeleton--text-sm {
+  height: 10px;
+  width: 60%;
+  margin-bottom: 6px;
+}
+
+.skeleton--title {
+  height: 16px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+.skeleton--circle {
+  border-radius: 50%;
+}
+
+.skeleton--card {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+/* App initial loading skeleton */
+.app-skeleton {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: var(--bg-base);
+}
+
+.app-skeleton__sidebar {
+  width: 200px;
+  min-width: 200px;
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-surface);
+}
+
+.app-skeleton__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 24px;
+}
+
+.app-skeleton__topbar {
+  height: 40px;
+  border-radius: var(--radius-sm);
+}
+
+.app-skeleton__hero {
+  padding: 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.app-skeleton__card {
+  padding: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex: 1;
+}
+
+/* Task panel skeleton */
+.task-skeleton-card {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+/* ============================================
+   Command Palette
+   ============================================ */
+
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: min(20vh, 160px);
+  animation: fadeIn 0.15s ease;
+}
+
+.cmd-modal {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: 380px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlide 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cmd-input-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.cmd-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: var(--fs-md);
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.cmd-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cmd-esc-hint {
+  font-size: var(--fs-xs);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  font-family: inherit;
+}
+
+.cmd-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cmd-item:hover,
+.cmd-item.is-selected {
+  background: var(--bg-surface);
+}
+
+.cmd-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+}
+
+.cmd-item-label {
+  flex: 1;
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.cmd-item-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.cmd-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }

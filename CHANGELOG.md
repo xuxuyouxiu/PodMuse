@@ -5,6 +5,34 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.0] - 2026-06-06
+
+### 新增
+- Command Palette 命令面板（Ctrl+Shift+P）：支持模糊搜索 8 个内置命令（切换主题、打开设置、搜索笔记等）
+- Skeleton 骨架屏：配置加载期间展示全屏骨架动画，替代空白闪烁
+- 侧边栏任务概览：实时显示进行中、排队中、今日完成三项统计
+- 首次使用引导：StepPanel 空状态新增 3 步快速上手提示（粘贴链接 → 自动转写 → 推送飞书）
+
+### 优化
+- 设计审计 P1 代码质量提升：
+  - Header、ConfirmDialog、StatusBar、StepPanel、AboutDialog 共 5 个组件的 inline style 全面迁移至 globals.css
+  - 新增 `topbar-*`、`confirm-dialog-*`、`statusbar-pill*`、`step-node-*`、`about-dialog-*` 等语义化 CSS 类
+  - 3 个组件中的重复 `@keyframes` 统一到 globals.css（fadeIn、modalSlide、step-node-pulse、step-connector-flow）
+  - 建立模块化字号变量体系（`--fs-xs` 到 `--fs-2xl`）
+- 设计审计 P2 体验提升：
+  - SettingsDialog tab 导航 emoji（🔗📝🎙🛠）替换为 lucide-react 图标组件（Link、FileText、Mic、Wrench）
+  - TabApi 供应商 emoji（🐋🤖🌙🧠☁️💡🐚⚙️）替换为 lucide-react 图标（Fish、Bot、Moon、Cpu 等）
+  - TabWhisper emoji（🔗⚠✖⬇）替换为 lucide-react 图标（ExternalLink、AlertTriangle 等）
+  - 窗口控制按钮添加 hover 状态：最小化/最大化悬停高亮，关闭按钮悬停变红
+  - 全局 focus-visible 无障碍样式：键盘导航焦点指示器，输入框聚焦边框高亮
+- 设计审计 P3 布局与交互优化：
+  - 右侧面板从上下堆叠改为 Tab 切换（活跃任务 / 历史记录），节省纵向空间
+  - 侧边栏新增任务统计卡片，带语义色图标（紫色/黄色/绿色）
+
+### 修复
+- 搜索框 `.is-open` 状态移除紫色边框和辉光，改为低调的 border-light 样式
+- 右侧面板 Tab 标签添加 `white-space: nowrap`，防止"历史记录"文字折行
+
 ## [1.5.0] - 2026-06-06
 
 ### 优化
