@@ -16,81 +16,49 @@ export default function AboutDialog({ onClose }: Props) {
     <div
       onClick={onClose}
       className="settings-dialog-overlay"
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000,
-        animation: 'fadeIn 0.2s',
-      }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="settings-dialog"
-        style={{
-          width: 420,
-          maxWidth: 'calc(100vw - 32px)',
-          background: 'var(--bg-elevated)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border)',
-          padding: 32,
-          boxShadow: 'var(--shadow-lg)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
-          animation: 'modalSlide 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
+        className="settings-dialog about-dialog-card"
       >
         {/* Logo */}
         <img
           src="./icon.png"
           alt="播客笔记助手"
-          style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover' }}
+          className="about-dialog-logo"
         />
 
         {/* 名称与版本 */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="about-dialog-name-block">
+          <div className="about-dialog-name">
             播客笔记助手
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div className="about-dialog-version">
             v{version || '...'}
           </div>
         </div>
 
         {/* 描述 */}
-        <div style={{
-          fontSize: 13, color: 'var(--text-secondary)',
-          textAlign: 'center', lineHeight: 1.7,
-        }}>
+        <div className="about-dialog-desc">
           小宇宙播客 → 下载音频 → Whisper 语音转写
           <br />
           → DeepSeek 修正专有名词 → AI 提炼笔记 → Obsidian
         </div>
 
         {/* 技术栈 */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6,
-        }}>
+        <div className="about-dialog-tags">
           {['Electron', 'React', 'TypeScript', 'DeepSeek AI', 'Whisper', '飞书', 'Obsidian'].map(tag => (
-            <span key={tag} style={{
-              fontSize: 11, padding: '3px 10px', borderRadius: 999,
-              background: 'var(--bg-card)', color: 'var(--text-muted)',
-              border: '1px solid var(--border-light)',
-            }}>
+            <span key={tag} className="about-dialog-tag">
               {tag}
             </span>
           ))}
         </div>
 
         {/* 分隔线 */}
-        <div style={{
-          width: '100%', height: 1,
-          background: 'var(--border-light)', margin: '4px 0',
-        }} />
+        <div className="about-dialog-divider" />
 
         {/* 链接 */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 10, width: '100%',
-        }}>
+        <div className="about-dialog-links">
           <InfoRow label="项目地址" value={
             <a
               href="#"
@@ -98,7 +66,7 @@ export default function AboutDialog({ onClose }: Props) {
                 e.preventDefault()
                 window.electronAPI.openExternal('https://github.com/xuxuyouxiu/Podcast_notes')
               }}
-              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
+              className="about-dialog-link"
             >
               GitHub 仓库 <ExternalLink size={12} />
             </a>
@@ -110,7 +78,7 @@ export default function AboutDialog({ onClose }: Props) {
                 e.preventDefault()
                 window.electronAPI.openExternal('https://github.com/xuxuyouxiu/Podcast_notes/issues')
               }}
-              style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
+              className="about-dialog-link about-dialog-link--inline"
             >
               提交 Issue <ExternalLink size={12} />
             </a>
@@ -121,29 +89,20 @@ export default function AboutDialog({ onClose }: Props) {
         {/* 关闭按钮 */}
         <button
           onClick={onClose}
-          className="settings-save-button"
-          style={{ marginTop: 8, minWidth: 100 }}
+          className="settings-save-button about-dialog-close-btn"
         >
           关闭
         </button>
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        @keyframes modalSlide { from { opacity:0; transform: translateY(20px) scale(0.96); } to { opacity:1; transform: translateY(0) scale(1); } }
-      `}</style>
     </div>
   )
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      fontSize: 13, padding: '0 4px',
-    }}>
-      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ color: 'var(--text-secondary)' }}>{value}</span>
+    <div className="about-dialog-info-row">
+      <span className="about-dialog-info-label">{label}</span>
+      <span className="about-dialog-info-value">{value}</span>
     </div>
   )
 }

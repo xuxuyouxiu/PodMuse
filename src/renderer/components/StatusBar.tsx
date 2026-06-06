@@ -7,52 +7,18 @@ interface Props {
 
 export default function StatusBar({ status }: Props) {
   return (
-    <div className="status-bar" style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      flexWrap: 'wrap',
-      minWidth: 0,
-    }}>
-      <div style={getPillStyle(status.connected, true)}>
+    <div className="status-bar">
+      <div className={`statusbar-pill ${status.connected ? 'statusbar-pill--active' : 'statusbar-pill--error'}`}>
         {status.connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         {status.connected ? '飞书已连接' : '飞书未连接'}
       </div>
-      <div style={getPillStyle(status.monitoring, false)}>
+      <div className={`statusbar-pill ${status.monitoring ? 'statusbar-pill--active' : 'statusbar-pill--muted'}`}>
         {status.monitoring ? <Radio size={12} /> : <RadioOff size={12} />}
         {status.monitoring ? '监听运行中' : '监听未启动'}
       </div>
-      <span className="status-bar__meta" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+      <span className="status-bar__meta statusbar-meta">
         30s 轮询 · Obsidian: 小宇宙播客
       </span>
-      <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }`}</style>
     </div>
   )
 }
-
-function getPillStyle(active: boolean, useErrorWhenInactive: boolean): React.CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 12px',
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 500,
-    background: active
-      ? 'rgba(0,210,160,0.1)'
-      : useErrorWhenInactive
-        ? 'rgba(248,64,96,0.08)'
-        : 'rgba(108,112,134,0.08)',
-    color: active
-      ? 'var(--success)'
-      : useErrorWhenInactive
-        ? 'var(--error)'
-        : 'var(--text-muted)',
-    boxShadow: active ? '0 0 16px var(--success-glow)' : 'none',
-    transition: 'all 0.4s',
-    whiteSpace: 'nowrap',
-  }
-}
-
-

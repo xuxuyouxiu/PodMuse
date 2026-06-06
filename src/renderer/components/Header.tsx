@@ -107,83 +107,35 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
     }
   }
 
-  const typeColors: Record<string, string> = {
-    '人物': 'var(--accent-purple, #a78bfa)',
-    '项目': 'var(--accent-blue, #60a5fa)',
-    '概念': 'var(--accent-green, #34d399)',
-    '术语': 'var(--accent-orange, #fbbf24)',
-    '笔记': 'var(--text-muted)',
+  const typeBadgeClass: Record<string, string> = {
+    '人物': 'type-person',
+    '项目': 'type-project',
+    '概念': 'type-concept',
+    '术语': 'type-term',
+    '笔记': 'type-note',
   }
 
   return (
-    <div className="workspace-topbar" style={{
-      display: 'flex',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      minHeight: 42,
-      padding: '8px 16px',
-      WebkitAppRegion: 'drag',
-      userSelect: 'none',
-      borderBottom: '1px solid var(--border)',
-      gap: 10,
-      flexShrink: 0,
-      backdropFilter: 'blur(20px)',
-      background: 'var(--bg-panel)',
-    } as React.CSSProperties}>
-      <div className="workspace-topbar__content" style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        minWidth: 0,
-        flex: 1,
-      }}>
+    <div className="workspace-topbar topbar-root" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+      <div className="workspace-topbar__content">
         <img
           src="./icon.png"
           alt="播客笔记助手"
-          style={{
-            width: 22, height: 22,
-            borderRadius: 6,
-            flexShrink: 0,
-            boxShadow: '0 0 12px var(--accent-glow)',
-          }}
+          className="topbar-logo"
         />
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>
+        <span className="topbar-title">
           播客笔记助手
           {version && (
-            <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>v{version}</span>
+            <span className="topbar-version">v{version}</span>
           )}
         </span>
         <div
           ref={wrapRef}
           className="workspace-topbar__search-wrap"
-          style={{
-            marginLeft: 18,
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            WebkitAppRegion: 'no-drag',
-            position: 'relative',
-          } as React.CSSProperties}
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <div className="workspace-topbar__search" style={{
-            width: 'min(460px, 100%)',
-            height: 34,
-            padding: '0 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            borderRadius: 12,
-            border: `1px solid ${open ? 'var(--accent, #6366f1)' : 'var(--border)'}`,
-            background: 'color-mix(in srgb, var(--bg-elevated) 86%, transparent)',
-            color: 'var(--text-muted)',
-            fontSize: 12,
-            transition: 'border-color 0.2s, box-shadow 0.2s',
-            boxShadow: open ? '0 0 0 2px var(--accent-glow)' : 'none',
-          }}>
-            <Search size={14} style={{ flexShrink: 0, opacity: 0.5 }} />
+          <div className={`workspace-topbar__search topbar-search-box${open ? ' is-open' : ''}`}>
+            <Search size={14} className="topbar-search-icon" />
             <input
               ref={inputRef}
               type="text"
@@ -192,27 +144,10 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
               onFocus={() => setOpen(true)}
               onKeyDown={handleKeyDown}
               placeholder="搜索笔记、播客、关键词..."
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-primary)',
-                fontSize: 12,
-                fontFamily: 'inherit',
-              }}
+              className="topbar-search-input"
             />
             {!query && (
-              <kbd style={{
-                padding: '2px 8px',
-                borderRadius: 999,
-                border: '1px solid var(--border-light)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-secondary)',
-                fontSize: 11,
-                fontFamily: 'inherit',
-                flexShrink: 0,
-              }}>
+              <kbd className="topbar-kbd">
                 Ctrl + K
               </kbd>
             )}
@@ -220,29 +155,14 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
 
           {/* 搜索结果下拉 */}
           {open && (query.trim() || results.length > 0) && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 'min(460px, 100%)',
-              marginTop: 6,
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              boxShadow: 'var(--shadow-lg)',
-              maxHeight: 360,
-              overflowY: 'auto',
-              zIndex: 10000,
-              animation: 'fadeIn 0.15s ease',
-            }}>
+            <div className="topbar-dropdown">
               {loading && (
-                <div style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+                <div className="topbar-status-msg">
                   搜索中...
                 </div>
               )}
               {!loading && query.trim() && results.length === 0 && (
-                <div style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+                <div className="topbar-status-msg">
                   未找到匹配结果
                 </div>
               )}
@@ -250,32 +170,19 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
                 <div
                   key={r.path}
                   onClick={() => handleOpen(r.path)}
-                  style={{
-                    padding: '10px 16px',
-                    cursor: 'pointer',
-                    background: i === selectedIndex ? 'var(--bg-card)' : 'transparent',
-                    borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
-                    transition: 'background 0.1s',
-                  }}
+                  className={`topbar-result-item${i === selectedIndex ? ' is-selected' : ''}`}
                   onMouseEnter={() => setSelectedIndex(i)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    <span style={{
-                      fontSize: 10,
-                      padding: '1px 6px',
-                      borderRadius: 4,
-                      background: `${typeColors[r.type] || 'var(--text-muted)'}20`,
-                      color: typeColors[r.type] || 'var(--text-muted)',
-                      fontWeight: 600,
-                    }}>
+                  <div className="topbar-result-head">
+                    <span className={`topbar-type-badge ${typeBadgeClass[r.type] || 'type-note'}`}>
                       {r.type}
                     </span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span className="topbar-result-name">
                       {r.name}
                     </span>
                   </div>
                   {r.excerpt && (
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="topbar-result-excerpt">
                       {r.excerpt}
                     </div>
                   )}
@@ -284,47 +191,19 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             </div>
           )}
         </div>
-        <div className="workspace-topbar__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div className="workspace-topbar__actions" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <StatusBar status={status} />
-          <button onClick={onToggleTheme} style={themeBtn}>
+          <button onClick={onToggleTheme} className="topbar-theme-btn">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             {theme === 'dark' ? '浅色' : '深色'}
           </button>
         </div>
       </div>
-      <div className="workspace-topbar__window-controls" style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <button onClick={handleMinimize} style={tbBtn}><Minus size={14} /></button>
-        <button onClick={handleMaximize} style={tbBtn}><Square size={14} /></button>
-        <button onClick={handleClose} style={tbBtn}><X size={14} /></button>
+      <div className="workspace-topbar__window-controls" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <button onClick={handleMinimize} className="topbar-winctl-btn"><Minus size={14} /></button>
+        <button onClick={handleMaximize} className="topbar-winctl-btn"><Square size={14} /></button>
+        <button onClick={handleClose} className="topbar-winctl-btn"><X size={14} /></button>
       </div>
     </div>
   )
-}
-
-const tbBtn: React.CSSProperties = {
-  width: 28, height: 28,
-  borderRadius: 6,
-  background: 'transparent',
-  color: 'var(--text-muted)',
-  fontSize: 14,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'all 0.15s',
-}
-
-const themeBtn: React.CSSProperties = {
-  height: 32,
-  padding: '0 14px',
-  borderRadius: 10,
-  border: '1px solid var(--border)',
-  background: 'var(--bg-elevated)',
-  color: 'var(--text-primary)',
-  fontSize: 12,
-  fontWeight: 600,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  transition: 'all 0.15s',
 }
