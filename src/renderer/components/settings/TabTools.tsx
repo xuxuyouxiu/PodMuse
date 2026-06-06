@@ -23,7 +23,7 @@ export default function TabTools({ cleaningTemp, tempCleanResult, onCleanTemp }:
             {tempCleanResult && (
               <span style={{
                 fontSize: 12,
-                color: tempCleanResult.includes('已清理') ? '#4caf50' : 'var(--error)'
+                color: tempCleanResult.includes('已清理') ? 'var(--success)' : 'var(--error)'
               }}>
                 {tempCleanResult}
               </span>

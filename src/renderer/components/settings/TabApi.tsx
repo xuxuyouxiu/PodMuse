@@ -147,7 +147,7 @@ export default function TabApi({ form, update, validationErrors }: {
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    background: '#4caf50',
+                    background: 'var(--success)',
                   }} />
                 )}
               </button>
@@ -325,7 +325,7 @@ export default function TabApi({ form, update, validationErrors }: {
                 <div style={{ 
                   marginTop: 6, 
                   fontSize: 11, 
-                  color: fetchModelsStatus.includes('已加载') ? '#4caf50' : 
+                  color: fetchModelsStatus.includes('已加载') ? 'var(--success)' : 
                          fetchModelsStatus.includes('失败') || fetchModelsStatus.includes('请先') ? 'var(--error)' : 
                          'var(--text-muted)' 
                 }}>

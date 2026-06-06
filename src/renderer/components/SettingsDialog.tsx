@@ -188,7 +188,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       className="settings-dialog-overlay"
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+        background: 'var(--overlay-bg)', backdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000,
         animation: 'fadeIn 0.2s',
@@ -316,7 +316,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• 未保存的更改</span>
               )}
               {saveSuccess && (
-                <span style={{ fontSize: 11, color: '#4caf50' }}>✓ 保存成功</span>
+                <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 保存成功</span>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>

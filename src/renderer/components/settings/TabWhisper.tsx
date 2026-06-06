@@ -65,7 +65,7 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
                 const selected = models.find(m => m.id === form.whisper_model)
                 if (!selected) return null
                 return selected.downloaded
-                  ? <span style={{ fontSize: 11, color: '#4caf50' }}>✓ 当前模型已就绪</span>
+                  ? <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 当前模型已就绪</span>
                   : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⬇ 首次使用将自动下载 ~{selected.ramMinGB}GB</span>
               })()}
             </div>
