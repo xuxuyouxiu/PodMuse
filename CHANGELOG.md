@@ -7,9 +7,6 @@
 
 ## [1.6.2] - 2026-06-06
 
-### 新增
-- 构建产物新增便携版 exe（`播客笔记助手-Portable-1.6.2.exe`），无需安装即可运行
-
 ### 修复
 - Hero 区域长标题截断内容类型选择器：为 `.workspace-hero__meta` 添加 `min-width: 0; flex: 1` 允许标题收缩省略，为 `.workspace-hero__type-selector` 添加 `flex-shrink: 0` 确保选择器始终可见
 

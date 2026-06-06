@@ -16,14 +16,10 @@ extraFiles:
   - from: node_modules/electron/dist/ffmpeg.dll
     to: ffmpeg.dll
 win:
-  target:
-    - nsis
-    - portable
+  target: nsis
   icon: build/icon.png
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   artifactName: 播客笔记助手-Setup-${version}.${ext}
-portable:
-  artifactName: 播客笔记助手-Portable-${version}.${ext}
