@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { app, safeStorage } from 'electron'
 import { PodcastConfig, FeishuState } from '@shared/types'
 import { getAllDefaultProviderConfigs } from './ai-providers'
-import { encryptField, decryptField } from './security'
+import { decryptField } from './security'
 
 /** 需要加密保护的敏感字段 */
 const SENSITIVE_FIELDS = ['api_key', 'feishu_app_secret'] as const
@@ -92,12 +92,14 @@ function loadShippedConfig(): PodcastConfig | null {
   return null
 }
 
-/** 解密配置中的敏感字段（自动兼容旧版明文配置） */
-function decryptConfigFields(config: PodcastConfig): PodcastConfig {
+/**
+ * 迁移旧版 safeStorage 加密字段（一次性操作）
+ * 尝试解密 _enc 字段，成功则还原为明文；失败则留空让用户重新输入
+ */
+function migrateEncryptedFields(config: PodcastConfig): PodcastConfig {
   const result = { ...config }
   const configAny = config as unknown as Record<string, unknown>
   const resultAny = result as unknown as Record<string, unknown>
-  const failedFields: string[] = []
 
   try {
     if (!safeStorage.isEncryptionAvailable()) return result
@@ -105,49 +107,63 @@ function decryptConfigFields(config: PodcastConfig): PodcastConfig {
     for (const field of SENSITIVE_FIELDS) {
       const encKey = `_${field}_enc`
       const encVal = configAny[encKey]
+      // 如果明文已有值，跳过（不再依赖加密值）
+      if (typeof resultAny[field] === 'string' && resultAny[field]) continue
+      // 尝试解密旧加密值
       if (typeof encVal === 'string' && encVal) {
         try {
           resultAny[field] = decryptField(safeStorage, encVal)
         } catch {
-          resultAny[field] = ''
-          failedFields.push(field)
+          // 解密失败，留空
         }
       }
     }
 
-    // 解密 AI 供应商的 apiKey
-    if (config.ai_providers) {
-      const decryptedProviders = { ...config.ai_providers }
-      for (const [id, provider] of Object.entries(decryptedProviders)) {
-        const providerAny = provider as unknown as Record<string, unknown>
-        const encVal = providerAny['_apiKey_enc']
+    // 迁移 AI 供应商的 apiKey
+    if (result.ai_providers) {
+      for (const [id, provider] of Object.entries(result.ai_providers)) {
+        const p = provider as unknown as Record<string, unknown>
+        if (p.apiKey) continue
+        const encVal = p['_apiKey_enc']
         if (typeof encVal === 'string' && encVal) {
           try {
-            decryptedProviders[id as keyof typeof decryptedProviders] = {
-              ...provider,
-              apiKey: decryptField(safeStorage, encVal),
-            }
+            p.apiKey = decryptField(safeStorage, encVal)
           } catch {
-            decryptedProviders[id as keyof typeof decryptedProviders] = {
-              ...provider,
-              apiKey: '',
-            }
-            failedFields.push(`ai_providers.${id}.apiKey`)
+            // 解密失败，留空
           }
         }
       }
-      result.ai_providers = decryptedProviders
     }
   } catch (e) {
-    console.warn('Config decryption warning:', e)
-  }
-
-  // 将解密失败的字段列表附加到配置上，供 UI 层提示用户
-  if (failedFields.length > 0) {
-    (result as unknown as Record<string, unknown>)._decryptionFailedFields = failedFields
+    console.warn('Config migration warning:', e)
   }
 
   return result
+}
+
+/**
+ * 清理保存时的加密遗留字段，凭据以明文存储
+ * 配置文件位于用户数据目录，已有操作系统权限保护
+ */
+function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
+  const toSave: Record<string, unknown> = { ...config }
+  // 移除旧的 _enc 字段
+  for (const field of SENSITIVE_FIELDS) {
+    delete toSave[`_${field}_enc`]
+  }
+  // 移除 AI 供应商的 _apiKey_enc 字段
+  if (toSave.ai_providers && typeof toSave.ai_providers === 'object') {
+    const providers = { ...(toSave.ai_providers as Record<string, Record<string, unknown>>) }
+    for (const [id, provider] of Object.entries(providers)) {
+      const p = { ...provider }
+      delete p['_apiKey_enc']
+      providers[id] = p
+    }
+    toSave.ai_providers = providers
+  }
+  // 移除运行时字段
+  delete toSave['_decryptionFailedFields']
+  return toSave
 }
 
 export function loadConfig(): PodcastConfig {
@@ -157,7 +173,7 @@ export function loadConfig(): PodcastConfig {
     if (fs.existsSync(userPath)) {
       const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       const merged = { ...DEFAULTS, ...data }
-      return decryptConfigFields(merged)
+      return migrateEncryptedFields(merged)
     }
   } catch {}
 
@@ -171,44 +187,18 @@ export function loadConfig(): PodcastConfig {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(userPath, JSON.stringify(shipped, null, 2), 'utf-8')
     } catch {}
-    return decryptConfigFields({ ...DEFAULTS, ...shipped })
+    return migrateEncryptedFields({ ...DEFAULTS, ...shipped })
   }
 
   return { ...DEFAULTS }
 }
 
 /**
- * 将敏感字段以加密形式存储到配置对象中
- * 加密结果写入 _${field}_enc 字段，同时清空明文字段避免磁盘泄露
+ * 保存配置到磁盘，凭据以明文存储
+ * 配置文件位于用户数据目录，已有操作系统权限保护
  */
-function encryptConfigForSave(config: PodcastConfig): Record<string, unknown> {
-  const toSave: Record<string, unknown> = { ...config }
-  const configAny = config as unknown as Record<string, unknown>
-  try {
-    if (!safeStorage.isEncryptionAvailable()) return toSave
-    for (const field of SENSITIVE_FIELDS) {
-      const value = configAny[field]
-      if (typeof value === 'string' && value) {
-        toSave[`_${field}_enc`] = encryptField(safeStorage, value)
-      }
-      toSave[field] = '' // 清空明文
-    }
-    // 加密 AI 供应商的 apiKey
-    if (config.ai_providers) {
-      const providersCopy: Record<string, unknown> = {}
-      for (const [id, provider] of Object.entries(config.ai_providers)) {
-        const pCopy = { ...provider, apiKey: '' } as Record<string, unknown>
-        if (provider.apiKey) {
-          pCopy['_apiKey_enc'] = encryptField(safeStorage, provider.apiKey)
-        }
-        providersCopy[id] = pCopy
-      }
-      toSave['ai_providers'] = providersCopy
-    }
-  } catch (e) {
-    console.warn('Config encryption warning:', e)
-  }
-  return toSave
+function prepareConfigForSave(config: PodcastConfig): Record<string, unknown> {
+  return cleanConfigForSave(config)
 }
 
 export function saveConfig(config: PodcastConfig) {
@@ -216,7 +206,7 @@ export function saveConfig(config: PodcastConfig) {
     const p = getUserConfigPath()
     const dir = path.dirname(p)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    const toSave = encryptConfigForSave(config)
+    const toSave = prepareConfigForSave(config)
     fs.writeFileSync(p, JSON.stringify(toSave, null, 2), 'utf-8')
   } catch (e) {
     console.error('Config save error:', e)
