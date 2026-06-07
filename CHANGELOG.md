@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.8] - 2026-06-07
+
+### 修复
+- 修复「加载模型」按钮使用脱敏值导致 API 调用失败：`loadSafeConfig()` 后端脱敏将 API Key 变为 `****xxxx`，UI state 持有该脱敏值并传递给 `ai:fetchModels`，导致模型列表获取失败。现移除后端脱敏，前端 `type="password"` 已提供足够的视觉保护
+- `ai:fetchModels` 增加脱敏值检测：即使收到 `****` 开头的脱敏 Key，也会自动从配置文件读取真实值进行 API 调用
+
+## [1.6.7] - 2026-06-07
+
+### 修复
+- 彻底移除 safeStorage (DPAPI) 加密机制，凭据改为明文存储。Windows DPAPI 熵值绑定 Electron 二进制身份，每次重建后旧加密值不可解密，导致重启后配置丢失
+
 ## [1.6.6] - 2026-06-07
 
 ### 修复

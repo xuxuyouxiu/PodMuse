@@ -214,38 +214,19 @@ export function saveConfig(config: PodcastConfig) {
 }
 
 /** 对 API Key 等敏感字段做脱敏处理（仅显示后 4 位） */
-function maskSecret(value: string): string {
+export function maskSecret(value: string): string {
   if (!value) return ''
   if (value.length <= 4) return '****'
   return '****' + value.slice(-4)
 }
 
 /**
- * 返回脱敏后的配置，用于通过 IPC 发送给渲染进程
- * 敏感字段仅显示后 4 位，防止前端泄露
+ * 返回配置，用于通过 IPC 发送给渲染进程
+ * 前端使用 type="password" 隐藏敏感字段的显示值，无需后端脱敏
+ * 后端脱敏会导致 UI state 持有 **** 值，进而导致 API 调用使用无效凭据
  */
 export function loadSafeConfig(): PodcastConfig {
-  const config = loadConfig()
-  const safe = { ...config }
-  // 脱敏顶层敏感字段
-  for (const field of SENSITIVE_FIELDS) {
-    const val = (safe as Record<string, unknown>)[field]
-    if (typeof val === 'string' && val) {
-      (safe as Record<string, unknown>)[field] = maskSecret(val)
-    }
-  }
-  // 脱敏 AI 供应商的 apiKey
-  if (safe.ai_providers) {
-    const maskedProviders = { ...safe.ai_providers }
-    for (const [id, provider] of Object.entries(maskedProviders)) {
-      maskedProviders[id as keyof typeof maskedProviders] = {
-        ...provider,
-        apiKey: provider.apiKey ? maskSecret(provider.apiKey) : '',
-      }
-    }
-    safe.ai_providers = maskedProviders
-  }
-  return safe
+  return loadConfig()
 }
 
 export function loadState(): FeishuState {
