@@ -3,6 +3,7 @@ import { join } from 'path'
 import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
 import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath } from '../security'
+import type { PodcastConfig } from '@shared/types'
 
 /**
  * 验证来自渲染进程的配置对象是否合法
@@ -68,14 +69,35 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
     try {
       // 合并默认值，防止缺失字段
       const currentConfig = loadConfig()
-      const merged = { ...currentConfig, ...config }
+
+      // 还原脱敏字段：如果前端传回的是脱敏值（以 **** 开头），保留已有的真实值
+      const incoming = { ...config } as Record<string, unknown>
+      const maskedPattern = /^\*{4}/
+      const currentAny = currentConfig as unknown as Record<string, unknown>
+      for (const field of ['api_key', 'feishu_app_secret']) {
+        if (typeof incoming[field] === 'string' && maskedPattern.test(incoming[field] as string)) {
+          incoming[field] = currentAny[field] || ''
+        }
+      }
+      // 还原 AI 供应商 apiKey 脱敏值
+      if (incoming.ai_providers && currentConfig.ai_providers) {
+        const incomingProviders = incoming.ai_providers as Record<string, Record<string, unknown>>
+        const currentProviders = currentConfig.ai_providers as unknown as Record<string, Record<string, unknown>>
+        for (const [id, provider] of Object.entries(incomingProviders)) {
+          if (typeof provider.apiKey === 'string' && maskedPattern.test(provider.apiKey)) {
+            provider.apiKey = currentProviders[id]?.apiKey || ''
+          }
+        }
+      }
+
+      const merged = { ...currentConfig, ...incoming }
       // schema 验证
-      const validationError = validateConfigInput(merged)
+      const validationError = validateConfigInput(merged as Record<string, unknown>)
       if (validationError) {
         console.warn('Config save rejected:', validationError)
         return false
       }
-      saveConfig(merged)
+      saveConfig(merged as PodcastConfig)
       return true
     } catch { return false }
   })

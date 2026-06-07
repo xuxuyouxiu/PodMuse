@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.6] - 2026-06-07
+
+### 修复
+- 设置保存后 API Key 和飞书 Secret 丢失：`config:save` 处理器在合并配置时，前端传回的脱敏值（`****xxxx`）覆盖了后端真实解密值。现在检测到脱敏值时自动保留已有的真实凭据
+
 ## [1.6.5] - 2026-06-06
 
 ### 新增
