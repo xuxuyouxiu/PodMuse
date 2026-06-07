@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
 import { join, basename, extname } from 'path'
-import { loadConfig, saveState, loadState } from './config'
+import { loadConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
 import { registerCoreIPC } from './ipc'
 import { FeishuMonitor } from './feishu'
@@ -285,6 +285,21 @@ function setupIPC() {
 
   ipcMain.handle('ai:fetchModels', async (_e, { baseUrl, apiKey }: { baseUrl: string; apiKey: string }) => {
     try {
+      // 如果 apiKey 是脱敏值（以 **** 开头），从配置文件读取真实值
+      if (apiKey && /^\*{4}/.test(apiKey)) {
+        const config = loadConfig()
+        const realKey = config.ai_providers
+          ? Object.values(config.ai_providers).find(p => p.apiKey && maskSecret(p.apiKey) === apiKey)?.apiKey
+          : undefined
+        if (realKey) {
+          apiKey = realKey
+        } else if (config.api_key && maskSecret(config.api_key) === apiKey) {
+          apiKey = config.api_key
+        } else {
+          return { success: false, error: 'API Key 是脱敏值，无法获取真实密钥。请在设置中重新输入 API Key', models: [] }
+        }
+      }
+
       if (!baseUrl || !apiKey) {
         return { success: false, error: '请先填写API地址和API Key', models: [] }
       }
