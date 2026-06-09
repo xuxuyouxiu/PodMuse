@@ -45,7 +45,6 @@ export class FeishuMonitor {
       config.obsidian_dir || '', config.audio_dir || '',
       logFunc, stepFunc, processingFunc, stateChangedFunc,
       config.notification_enabled !== false,
-      config.content_type || 'default',
     )
 
     this.poller = new MessagePoller(

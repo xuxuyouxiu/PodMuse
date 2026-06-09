@@ -135,7 +135,6 @@ export async function processPodcast(
   sendLog?: (msg: string) => void,
   signal?: AbortSignal,
   isLocalFile?: boolean,
-  contentType: string = 'default',
   force: boolean = false,
 ): Promise<string | null> {
   const log = (m: string) => { sendLog?.(m); console.log(m) }
@@ -402,7 +401,7 @@ export async function processPodcast(
   log('  [5/5] AI 提炼笔记 (DeepSeek)...')
   let notes: { content: string | null; cost: number }
   try {
-    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal, contentType)
+    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal)
   } catch (e: unknown) {
     step({ step: 5, title: 'AI 提炼笔记', subtitle: 'API 异常', status: 'error', detail: errMsg(e) })
     log(`  ❌ DeepSeek 生成异常: ${errMsg(e)}`)
@@ -437,7 +436,7 @@ export async function processPodcast(
   }
 
   if (finalEntities.people.length || finalEntities.projects.length || finalEntities.concepts.length || finalEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId, onProgress: (msg) => log(msg) }, signal)
+    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, providerConfig, providerId: providerId as AIProviderId, onProgress: (msg) => log(msg) }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)

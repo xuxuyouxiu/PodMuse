@@ -32,7 +32,6 @@ export class PodcastDispatchService {
     private processingFunc?: (p: boolean, url?: string) => void,
     private onStateChanged?: () => void,
     private notificationEnabled: boolean = true,
-    private contentType: string = 'default',
   ) {}
 
   async dispatch(url: string, episodeId: string | null): Promise<void> {
@@ -48,7 +47,7 @@ export class PodcastDispatchService {
     const signal = this.abortRef.signal
     try {
       await this.client.sendMessage(this.chatId, '收到！开始处理播客...')
-      const filename = await processPodcast(url, this.providerConfig, this.providerId, this.language, this.obsidianDir, this.audioDir, this.stepFunc, this.logFunc, signal, false, this.contentType)
+      const filename = await processPodcast(url, this.providerConfig, this.providerId, this.language, this.obsidianDir, this.audioDir, this.stepFunc, this.logFunc, signal, false)
       if (filename) {
         if (episodeId) this.store.markUrl(episodeId)
         this.updateRecentState(state => completeRecentTask(state, { filename }))
