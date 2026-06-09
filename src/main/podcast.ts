@@ -136,6 +136,7 @@ export async function processPodcast(
   signal?: AbortSignal,
   isLocalFile?: boolean,
   contentType: string = 'default',
+  force: boolean = false,
 ): Promise<string | null> {
   const log = (m: string) => { sendLog?.(m); console.log(m) }
   const step = (s: StepInfo) => {
@@ -244,34 +245,85 @@ export async function processPodcast(
     }
   }
 
+  // 转写缓存文件路径（与音频文件同目录，扩展名改为 .transcript.json）
+  const transcriptPath = audioPath.replace(/\.[^.]+$/, '') + '.transcript.json'
+
   check()
-  step({ step: 3, title: '语音转文字', subtitle: 'Whisper 准备中', status: 'running', detail: '正在加载模型' })
   log('  [3/5] 语音转文字 (Whisper)...')
-  if (!fs.existsSync(audioPath)) {
-    step({ step: 3, title: '语音转文字', subtitle: '文件丢失', status: 'error', detail: audioPath })
-    log(`  ❌ 音频文件不存在: ${audioPath}`)
-    return null
+
+  let transcript: string | null = null
+  let usedTranscriptCache = false
+
+  // 重处理时尝试复用历史转写缓存
+  if (force && fs.existsSync(transcriptPath)) {
+    try {
+      const stat = fs.statSync(transcriptPath)
+      if (stat.size < 100) {
+        log('  🔄 重处理：历史转写文件过小，需要重新转写')
+      } else {
+        const raw = fs.readFileSync(transcriptPath, 'utf-8')
+        const cached = JSON.parse(raw) as { text?: string; charCount?: number; timestamp?: string }
+        if (!cached.text || typeof cached.text !== 'string') {
+          log('  🔄 重处理：历史转写文件格式无效（text 字段缺失），重新转写')
+        } else if (cached.text.length < 50) {
+          log(`  🔄 重处理：历史转写文件内容过短（${cached.text.length} 字），重新转写`)
+        } else {
+          transcript = cached.text
+          usedTranscriptCache = true
+          log(`  🔄 重处理：复用历史转写结果（${transcript.length} 字，文件: ${path.basename(transcriptPath)}）`)
+          step({ step: 3, title: '语音转文字', subtitle: `复用缓存 ${transcript.length} 字`, status: 'done', progress: 100, detail: '使用历史转写结果，跳过 Whisper' })
+        }
+      }
+    } catch (e: unknown) {
+      log(`  🔄 重处理：历史转写文件读取失败（${errMsg(e)}），重新转写`)
+      // 清理损坏的缓存文件
+      try { fs.unlinkSync(transcriptPath) } catch {}
+    }
+  } else if (force) {
+    log('  🔄 重处理：未找到历史转写文件，执行全新转写')
   }
-  const transcript = await runWhisper(
-    audioPath, language, sendLog,
-    (status) => step({
-      step: 3,
-      title: '语音转文字',
-      subtitle: status.subtitle,
-      status: status.phase === 'finalizing' ? 'done' : 'running',
-      detail: status.detail,
-      progress: status.progress,
-    }),
-    signal,
-  )
+
+  // 未命中缓存时执行 Whisper 转写
   if (!transcript) {
-    if (signal?.aborted) throw Object.assign(new Error('已取消'), { name: 'AbortError' })
-    step({ step: 3, title: '语音转文字', subtitle: '转写失败', status: 'error', detail: '检查 Whisper 是否正常工作' })
-    log('  ❌ 语音转文字失败')
-    return null
+    step({ step: 3, title: '语音转文字', subtitle: 'Whisper 准备中', status: 'running', detail: '正在加载模型' })
+    if (!fs.existsSync(audioPath)) {
+      step({ step: 3, title: '语音转文字', subtitle: '文件丢失', status: 'error', detail: audioPath })
+      log(`  ❌ 音频文件不存在: ${audioPath}`)
+      return null
+    }
+    transcript = await runWhisper(
+      audioPath, language, sendLog,
+      (status) => step({
+        step: 3,
+        title: '语音转文字',
+        subtitle: status.subtitle,
+        status: status.phase === 'finalizing' ? 'done' : 'running',
+        detail: status.detail,
+        progress: status.progress,
+      }),
+      signal,
+    )
+    if (!transcript) {
+      if (signal?.aborted) throw Object.assign(new Error('已取消'), { name: 'AbortError' })
+      step({ step: 3, title: '语音转文字', subtitle: '转写失败', status: 'error', detail: '检查 Whisper 是否正常工作' })
+      log('  ❌ 语音转文字失败')
+      return null
+    }
+    step({ step: 3, title: '语音转文字', subtitle: `共 ${transcript.length} 字`, status: 'done' })
+    log(`  ✓ 转写完成，共 ${transcript.length} 字`)
+
+    // 转写成功后保存缓存（便于后续重处理复用）
+    try {
+      fs.writeFileSync(transcriptPath, JSON.stringify({
+        text: transcript,
+        charCount: transcript.length,
+        timestamp: new Date().toISOString(),
+      }, null, 2), 'utf-8')
+      log(`  💾 转写结果已缓存: ${path.basename(transcriptPath)}`)
+    } catch (e: unknown) {
+      log(`  ⚠ 转写缓存写入失败（不影响本次处理）: ${errMsg(e)}`)
+    }
   }
-  step({ step: 3, title: '语音转文字', subtitle: `共 ${transcript.length} 字`, status: 'done' })
-  log(`  ✓ 转写完成，共 ${transcript.length} 字`)
 
   check()
 

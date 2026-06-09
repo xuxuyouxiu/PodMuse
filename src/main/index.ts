@@ -201,6 +201,7 @@ function setupIPC() {
         signal,
         isLocalFile,
         contentType || config.content_type || 'default',
+        force || false,
       )
       if (result) {
         if (episodeId) {
