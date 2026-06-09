@@ -4,7 +4,7 @@ import { StepInfo, AIProviderId } from '@shared/types'
 import { cleanTitleForFilename } from '@shared/utils'
 import { runWhisper } from './whisper'
 import { correctTranscript, generateNotes } from './ai-client'
-import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards } from './entity-cards'
+import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards, extractBodyWikiLinks, fillMissingEntityCards } from './entity-cards'
 import { isSubPathOf } from './security'
 
 function errMsg(e: unknown): string {
@@ -422,6 +422,13 @@ export async function processPodcast(
     log(`  ⚠ 检测到 ${filledTerms} 个术语在词典中存在但缺少卡片，已自动补全`)
   }
 
+  // 为正文中有 wiki-link 但没有卡片的实体自动补上概念卡片
+  const bodyLinks = extractBodyWikiLinks(notes.content)
+  const { entities: finalEntities, filled: filledLinks } = fillMissingEntityCards(patchedEntities, bodyLinks)
+  if (filledLinks > 0) {
+    log(`  📎 为正文中 ${filledLinks} 个链接自动创建了概念卡片`)
+  }
+
   // 确保 Obsidian 笔记目录存在（在写入任何文件之前）
   const obsDir = obsidianDir.trim()
   if (!fs.existsSync(obsDir)) {
@@ -429,8 +436,8 @@ export async function processPodcast(
     log(`  📁 已创建笔记目录: ${obsDir}`)
   }
 
-  if (patchedEntities.people.length || patchedEntities.projects.length || patchedEntities.concepts.length || patchedEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: patchedEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId }, signal)
+  if (finalEntities.people.length || finalEntities.projects.length || finalEntities.concepts.length || finalEntities.terms.length) {
+    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
