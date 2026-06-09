@@ -169,7 +169,7 @@ function loadTemplate(name: string): string {
 function fillTemplate(tmpl: string, fields: Record<string, string>): string {
   let result = tmpl
   for (const [key, val] of Object.entries(fields)) {
-    const display = val || '（本期未提及）'
+    const display = val || '（暂无详细信息）'
     result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), display)
   }
   return result
@@ -319,11 +319,23 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     if (fs.existsSync(filePath)) {
       appendSourceLink(filePath, podcastFilename)
     } else {
+      // 如果解释为空，尝试从维基百科或 AI 获取真实定义
+      let explanation = concept.explanation || ''
+      if (!explanation) {
+        try {
+          const definition = await fetchConceptDefinition(concept.name, options.providerConfig, options.providerId, signal)
+          if (definition) {
+            explanation = definition
+          }
+        } catch {
+          // 获取失败，保持为空
+        }
+      }
       const tmpl = loadTemplate('Concept_Template.md')
       const content = fillTemplate(tmpl, {
         date: today,
         name: concept.name,
-        explanation: concept.explanation || '',
+        explanation,
         related: (concept.related || []).map(r => `- [[${r}]]`).join('\n'),
         source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
       })
