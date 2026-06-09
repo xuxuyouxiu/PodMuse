@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { Square, Play, Loader2 } from 'lucide-react'
+import { Play } from 'lucide-react'
 
 interface Props {
   processing: boolean
@@ -9,12 +9,10 @@ interface Props {
   onResume: () => void
 }
 
-export default function ControlBar({ processing, cancelling, paused, onCancel, onResume }: Props) {
-  const visible = processing || cancelling || paused
-
+export default function ControlBar({ paused, onResume }: Props) {
   return (
     <AnimatePresence>
-      {visible && (
+      {paused && (
         <motion.div
           className="control-bar"
           initial={{ opacity: 0, y: 8 }}
@@ -25,27 +23,12 @@ export default function ControlBar({ processing, cancelling, paused, onCancel, o
           <div className="control-bar-group">
             <motion.button
               className="control-bar-primary"
-              onClick={cancelling ? undefined : paused ? onResume : onCancel}
-              disabled={cancelling}
+              onClick={onResume}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {cancelling ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  停止中…
-                </>
-              ) : paused ? (
-                <>
-                  <Play size={14} />
-                  继续处理
-                </>
-              ) : (
-                <>
-                  <Square size={14} />
-                  停止处理
-                </>
-              )}
+              <Play size={14} />
+              继续处理
             </motion.button>
           </div>
         </motion.div>
