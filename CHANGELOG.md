@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.7.1] - 2026-06-09
+
+### 修复
+- 重处理时未兼容 Whisper 旧版 `.txt` 转写文件：缓存功能开发前处理的音频只有 Whisper 输出的 `.txt` 文件，没有 `.transcript.json`，导致缓存始终未命中仍会重新转写。现在回退查找同目录的 `.txt` 文件，有效则复用并自动迁移为 JSON 缓存格式
+
 ## [1.7.0] - 2026-06-09
 
 ### 新增
