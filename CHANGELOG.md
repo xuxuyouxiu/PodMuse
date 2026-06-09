@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.7.13] - 2026-06-09
+
+### 修复
+- 活跃任务面板"重新处理"按钮显示为纯文本：原来使用了不存在的 CSS 类名 `recent-task-action`，改为 `recent-task-primary`，现在有正确的渐变背景和圆角样式
+- "开始处理"和"浏览文件"按钮图标与文字上下堆叠：为 `.url-input-submit` 和 `.file-drop-browse` 添加 `display: inline-flex; align-items: center; gap: 6px`，图标和文字改为水平排列
+
 ## [1.7.12] - 2026-06-09
 
 ### 修复
