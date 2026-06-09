@@ -141,6 +141,7 @@ export interface WriteEntityOptions {
   contentType?: 'news' | 'article' | 'tutorial' | 'default'
   providerConfig?: { baseUrl: string; apiKey: string; model: string } | null
   providerId?: AIProviderId
+  onProgress?: (msg: string) => void
 }
 
 export interface WriteEntityResult {
@@ -175,11 +176,27 @@ function fillTemplate(tmpl: string, fields: Record<string, string>): string {
   return result
 }
 
+/** 带超时的 fetch，防止网络不通导致长时间挂起 */
+async function fetchWithTimeout(url: string, opts: RequestInit & { timeoutMs?: number }): Promise<Response> {
+  const { timeoutMs = 8000, ...fetchOpts } = opts
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  // 合并外部 signal
+  if (fetchOpts.signal) {
+    fetchOpts.signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+  try {
+    return await fetch(url, { ...fetchOpts, signal: controller.signal })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: string; apiKey: string; model: string } | null, providerId?: string, signal?: AbortSignal): Promise<string | null> {
   const sources = [
     async () => {
       const url = `https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
-      const resp = await fetch(url, { signal })
+      const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
       const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
       const pages = data?.query?.pages
@@ -190,7 +207,7 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
     },
     async () => {
       const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
-      const resp = await fetch(url, { signal })
+      const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
       const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
       const pages = data?.query?.pages
@@ -200,9 +217,10 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       return null
     },
     providerConfig ? async () => {
-      const resp = await fetch(buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId), {
+      const resp = await fetchWithTimeout(buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId), {
         method: 'POST',
         signal,
+        timeoutMs: 15000,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${providerConfig.apiKey}` },
         body: JSON.stringify({
           model: providerConfig.model,
@@ -312,6 +330,9 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     }
   }
 
+  const conceptsNeedingFetch = entities.concepts.filter(c => c.name && !c.explanation && !fs.existsSync(path.join(baseDir, '概念', `${sanitizeName(c.name)}.md`)))
+  let conceptFetchIndex = 0
+
   for (const concept of entities.concepts) {
     if (!concept.name) continue
     const dir = path.join(baseDir, '概念')
@@ -322,13 +343,18 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
       // 如果解释为空，尝试从维基百科或 AI 获取真实定义
       let explanation = concept.explanation || ''
       if (!explanation) {
+        conceptFetchIndex++
+        options.onProgress?.(`  🔍 正在查找「${concept.name}」的定义（${conceptFetchIndex}/${conceptsNeedingFetch.length}）...`)
         try {
           const definition = await fetchConceptDefinition(concept.name, options.providerConfig, options.providerId, signal)
           if (definition) {
             explanation = definition
+            options.onProgress?.(`  ✅ 「${concept.name}」定义已获取`)
+          } else {
+            options.onProgress?.(`  ⚠ 「${concept.name}」未找到定义`)
           }
         } catch {
-          // 获取失败，保持为空
+          options.onProgress?.(`  ⚠ 「${concept.name}」查找失败`)
         }
       }
       const tmpl = loadTemplate('Concept_Template.md')
