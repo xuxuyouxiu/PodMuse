@@ -1,5 +1,5 @@
 import { StepInfo } from '@shared/types'
-import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Pause, Link, FileText, Bell } from 'lucide-react'
+import { Search, Download, Mic, PenTool, Sparkles, Check, X, Loader2, Headphones, PartyPopper, Link, FileText, Bell } from 'lucide-react'
 
 interface Props {
   steps: StepInfo[]
@@ -120,14 +120,11 @@ export default function StepPanel({ steps, processing }: Props) {
 
         {showPaused && (
           <div className="step-panel-state">
-            <div className="step-panel-state-icon step-panel-state-icon--accent">
-              <Pause size={40} />
-            </div>
             <div className="step-panel-state-title accent">
               处理已停止
             </div>
             <div className="step-panel-state-text">
-              可以重新输入链接进行处理
+              可在右侧活跃任务中重新处理
             </div>
           </div>
         )}
