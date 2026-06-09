@@ -823,6 +823,10 @@ body {
 
 .url-input-submit,
 .control-bar-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 44px;
   padding: 0 20px;
   border-radius: var(--radius-md);
@@ -1719,6 +1723,10 @@ input {
 
 .file-drop-browse {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 44px;
   padding: 0 18px;
   border-radius: var(--radius-md);

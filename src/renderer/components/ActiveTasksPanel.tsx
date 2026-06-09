@@ -74,7 +74,7 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
                 {canResume && onResume && (
                   <button
                     onClick={() => onResume(task)}
-                    className="recent-task-action"
+                    className="recent-task-primary"
                   >
                     <Play size={12} /> 重新处理
                   </button>
