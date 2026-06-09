@@ -342,7 +342,7 @@ export default function App() {
                 </div>
                 <div className="rp-tabs__content">
                   {rpTab === 'active' && (
-                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onCancel={async (taskId: string) => {
+                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleTaskResume} onCancel={async (taskId: string) => {
                       if (taskId) {
                         const result = await window.electronAPI.cancelProcessing()
                         const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()

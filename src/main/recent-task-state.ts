@@ -29,7 +29,15 @@ export function startRecentTask(state: FeishuState, input: {
 }
 
 export function stopRecentTask(state: FeishuState): FeishuState {
-  return withRecentStatus(state, 'stopped')
+  // 停止/暂停的任务保留在活跃列表中，不移动到历史列表
+  const activeTask = state.activeTasks[0]
+  if (!activeTask) return state
+  return {
+    ...state,
+    activeTasks: state.activeTasks.map(task =>
+      task.id === activeTask.id ? { ...task, status: 'stopped' as const, updatedAt: Date.now() } : task
+    ),
+  }
 }
 
 export function failRecentTask(state: FeishuState): FeishuState {

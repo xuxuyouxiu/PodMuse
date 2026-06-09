@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Zap, Square, Loader2 } from 'lucide-react'
+import { Zap, Square, Loader2, Play } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
 interface Props {
   tasks: RecentTaskState[]
   processing: boolean
   onCancel: (taskId: string) => void
+  onResume?: (task: RecentTaskState) => void
 }
 
 const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
@@ -15,7 +16,7 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
   completed: { label: '已完成' },
 }
 
-export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel }: Props) {
+export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel, onResume }: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const handleStop = async (taskId: string) => {
@@ -49,6 +50,7 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
         {tasks.map(task => {
           const meta = STATUS_META[task.status] || { label: task.status }
           const canStop = task.status === 'running'
+          const canResume = task.status === 'stopped' || task.status === 'error'
           const isStopping = cancellingId === task.id
 
           return (
@@ -67,6 +69,14 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
                     className="recent-task-danger"
                   >
                     {isStopping ? <><Loader2 size={12} className="animate-spin" /> 停止中...</> : <><Square size={12} /> 停止</>}
+                  </button>
+                )}
+                {canResume && onResume && (
+                  <button
+                    onClick={() => onResume(task)}
+                    className="recent-task-action"
+                  >
+                    <Play size={12} /> 重新处理
                   </button>
                 )}
               </div>
