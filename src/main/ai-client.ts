@@ -55,7 +55,7 @@ category: [从以下4个类别中选择最匹配的一个：科技商业（AI/�
 
 ## 第二部分：内容模块（自主选择）
 
-以下是可用的内容模块。请根据播客的实际内容和上方指定的内容类型要求，**自主选择最合适的模块组合**。
+以下是可用的内容模块。请根据播客的实际内容，**自主选择最合适的模块组合**。
 
 选择原则：
 - **必须包含**：「主要内容概览」和「术语词典」
@@ -210,8 +210,8 @@ category: [从以下4个类别中选择最匹配的一个：科技商业（AI/�
 `
 
 // 根据内容类型生成完整的 prompt
-function getAIPrompt(contentType: string = 'default'): string {
-  const basePrompt = `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
+function getAIPrompt(): string {
+  return `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
 
 这段播客可能包含中文、英文或中英混合内容。
 
@@ -220,42 +220,11 @@ function getAIPrompt(contentType: string = 'default'): string {
 2. **最重要原则——内容完整性优先于一切：必须覆盖逐字稿中从头到尾的所有事件、话题和内容点，一个都不能少。** 宁可多写，也不要遗漏。每条新闻、每个话题都必须独立成段。同一事件不要重复出现两次。
 3. 语言使用简体中文（播客中的英文内容保留原文）。
 4. **正文内联链接**：在正文（事件详情、核心观点等章节）中首次出现的人物名、公司/品牌名、项目名、术语名时，都用 [[名称]] 格式包裹，使读者在正文中就能直接跳转到对应的卡片。例如写"[[英伟达]]CEO[[黄仁勋]]在首尔会见[[Krafton]]创始人"，而不是"英伟达CEO黄仁勋在首尔会见Krafton创始人"。
-5. **人物卡片硬性筛选（最高优先级）：** 绝对不要为没有公开知名度的人物生成 CARD-PEOPLE 卡片。如果不确定某人是否符合条件，跳过他。`
-
-  // 根据内容类型添加引导建议
-  let typeGuidance = ''
-
-  switch (contentType) {
-    case 'news':
-      typeGuidance = `
-
-内容类型引导——新闻资讯：
-- category 必须填「每日资讯」。
-- **必须选择的模块**：A（主要内容概览）、C（事件详情与深度分析）、G（术语词典）
-- **推荐选择**：B（核心观点，按事件提炼）、F（关联延伸，事件间的关联分析）、H（关联实体索引）
-- **不要选择**：D（关键对话还原），新闻不涉及对话场景
-- **信息密度要求**：每条新闻/事件必须包含事件摘要（50-100字，保留谁/做了什么/在哪里/什么时候）、影响分析、所有具体数字和日期、相关机构/人物及其立场
-- 多条新闻要独立详细展开，不要合并概括；重要引述用引用格式（>）保留原文`
-      break
-    case 'article':
-    case 'tutorial':
-      typeGuidance = `
-
-内容类型引导——长文章/演讲/教程：
-- **必须选择的模块**：A（主要内容概览）、B（核心观点）、G（术语词典）
-- **强烈推荐**：C（事件详情，用于展开案例和论证）、E（金句摘录）、F（关联延伸）、H（关联实体索引）
-- **按需选择**：D（关键对话还原），如果有对话/问答环节
-- **信息密度要求**：必须保留所有具体例子、案例和故事，用引用格式（>）标注；不要只写结论，要保留作者的论证过程和论据；保留从前提到结论的完整推理逻辑`
-      break
-    default:
-      typeGuidance = `
-
-内容类型引导——通用播客：
-- **必须选择的模块**：A（主要内容概览）、G（术语词典）
-- **根据内容自由选择**其他模块。一般来说，有嘉宾访谈选 B+D，有金句选 E，有延伸阅读选 F，有具体实体选 H。`
-  }
-
-  return basePrompt + typeGuidance + AI_PROMPT
+5. **人物卡片硬性筛选（最高优先级）：** 绝对不要为没有公开知名度的人物生成 CARD-PEOPLE 卡片。如果不确定某人是否符合条件，跳过他。
+6. **自动识别内容类型**：请先判断这段播客属于什么类型（新闻资讯、长文演讲/教程、还是通用访谈等），然后根据类型特点自主选择最合适的模块组合和信息密度：
+   - 新闻资讯类：每条新闻/事件必须独立展开详细分析（事件摘要、影响分析、关键数据），不要合并概括；不要使用"关键对话还原"模块
+   - 长文/演讲/教程类：保留所有具体例子、案例和论证过程，不要只写结论
+   - 通用访谈/对话类：按内容相关性自由选择模块` + AI_PROMPT
 }
 
 // 构建请求URL
@@ -433,10 +402,9 @@ export async function generateNotes(
   providerId: AIProviderId,
   transcript: string,
   signal?: AbortSignal,
-  contentType: string = 'default',
 ) {
   const date = new Date().toISOString().split('T')[0]
-  const prompt = getAIPrompt(contentType)
+  const prompt = getAIPrompt()
   return callAI(
     providerConfig,
     providerId,
@@ -457,12 +425,11 @@ export async function correctTranscriptLegacy(apiKey: string, transcript: string
   )
 }
 
-export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal, contentType: string = 'default') {
+export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
   return generateNotes(
     { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
     'deepseek',
     transcript,
     signal,
-    contentType,
   )
 }

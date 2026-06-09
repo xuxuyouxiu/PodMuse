@@ -46,7 +46,7 @@ declare global {
       startFeishu: () => Promise<FeishuStatus>
       stopFeishu: () => Promise<void>
       getFeishuStatus: () => Promise<FeishuStatus>
-      processPodcast: (url: string, force?: boolean, taskId?: string, isLocalFile?: boolean, contentType?: string) => Promise<{ success: boolean; filename?: string | null; error?: string }>
+      processPodcast: (url: string, force?: boolean, taskId?: string, isLocalFile?: boolean) => Promise<{ success: boolean; filename?: string | null; error?: string }>
       cancelProcessing: () => Promise<boolean>
       onStepUpdate: (callback: (step: StepInfo) => void) => () => void
       onLog: (callback: (msg: string) => void) => () => void

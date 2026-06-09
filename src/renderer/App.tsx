@@ -12,7 +12,6 @@ import SettingsDialog from './components/SettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
-import ContentTypeSelector from './components/ContentTypeSelector'
 import CommandPalette, { useAppCommands } from './components/CommandPalette'
 import './styles/globals.css'
 
@@ -45,9 +44,6 @@ export default function App() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [rpTab, setRpTab] = useState<'active' | 'recent'>('active')
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [contentType, setContentType] = useState<string>(() => {
-    return localStorage.getItem('podcast-content-type') || 'default'
-  })
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
@@ -107,10 +103,6 @@ export default function App() {
     document.body.dataset.theme = theme
   }, [theme])
 
-  useEffect(() => {
-    localStorage.setItem('podcast-content-type', contentType)
-  }, [contentType])
-
   // Ctrl+Shift+P 全局打开命令面板
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -123,12 +115,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string, contentType?: string) => {
+  const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string) => {
     cancelFlag.current = false
     setProcessing(true)
     setLastUrl(url)
     setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
-    const result = await window.electronAPI.processPodcast(url, force, taskId, false, contentType)
+    const result = await window.electronAPI.processPodcast(url, force, taskId, false)
     setProcessing(false)
     const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
     setActiveTasks(aTasks)
@@ -142,8 +134,8 @@ export default function App() {
     return result
   }, [])
 
-  const handleProcess = useCallback(async (url: string, contentType?: string) => {
-    return handleProcessWithMode(url, false, undefined, contentType)
+  const handleProcess = useCallback(async (url: string) => {
+    return handleProcessWithMode(url, false)
   }, [handleProcessWithMode])
 
   const handleProcessFile = useCallback(async (filePath: string) => {
@@ -151,7 +143,7 @@ export default function App() {
     setProcessing(true)
     setLastUrl(filePath)
     setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
-    const result = await window.electronAPI.processPodcast(filePath, false, undefined, true, contentType)
+    const result = await window.electronAPI.processPodcast(filePath, false, undefined, true)
     setProcessing(false)
     const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
     setActiveTasks(aTasks)
@@ -307,21 +299,12 @@ export default function App() {
                         <span className="workspace-hero__meta-value">{currentTitle}</span>
                       </div>
                     )}
-                    <div className="workspace-hero__type-selector">
-                      <span className="workspace-hero__type-label">内容类型：</span>
-                      <ContentTypeSelector
-                        contentType={contentType}
-                        onContentTypeChange={setContentType}
-                        disabled={processing || cancelling}
-                      />
-                    </div>
                   </div>
                 </section>
                 <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <UrlInput 
                     onProcess={handleProcess} 
                     disabled={processing || cancelling}
-                    contentType={contentType}
                   />
                   <FileDropArea onProcessFile={handleProcessFile} disabled={processing || cancelling} />
                 </section>

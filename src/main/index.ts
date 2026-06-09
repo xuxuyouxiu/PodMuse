@@ -17,7 +17,6 @@ import type { StepInfo, FeishuStatus } from '@shared/types'
 let mainWindow: BrowserWindow | null = null
 let monitor: FeishuMonitor | null = null
 const processedEpisodeIds = new Set<string>(loadState().processedUrls || [])
-const lastProcessedContentTypes = new Map<string, string>() // 记录每个episodeId上次使用的contentType
 let pendingAbort: AbortController | null = null
 let pendingProcessDone: (() => void) | null = null
 let tray: Tray | null = null
@@ -166,19 +165,13 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
-  ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile, contentType }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean; contentType?: string }) => {
+  ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean }) => {
     if (!isLocalFile) {
       const episodeMatch = url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)
       const episodeId = episodeMatch ? episodeMatch[1] : null
-      const config = loadConfig()
-      const effectiveContentType = contentType || config.content_type || 'default'
       if (!force && episodeId && processedEpisodeIds.has(episodeId)) {
-        const lastContentType = lastProcessedContentTypes.get(episodeId)
-        if (lastContentType === effectiveContentType) {
-          mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
-          return { success: false, error: '该播客已处理过' }
-        }
-        mainWindow?.webContents.send('log', `🔄 内容类型已更改，重新处理播客 (${episodeId})`)
+        mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
+        return { success: false, error: '该播客已处理过' }
       }
     }
     const initialTitle = isLocalFile ? basename(url, extname(url)) : await fetchPodcastTitle(url).catch(() => null)
@@ -200,13 +193,11 @@ function setupIPC() {
         (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
         signal,
         isLocalFile,
-        contentType || config.content_type || 'default',
         force || false,
       )
       if (result) {
         if (episodeId) {
           processedEpisodeIds.add(episodeId)
-          lastProcessedContentTypes.set(episodeId, contentType || config.content_type || 'default')
         }
         updateRecentState(state => completeRecentTask(state, { taskId, url, episodeId, filename: result }))
         if (config.notification_enabled !== false) {

@@ -138,7 +138,6 @@ export interface WriteEntityOptions {
   obsidianDir: string
   podcastFilename: string
   apiKey?: string
-  contentType?: 'news' | 'article' | 'tutorial' | 'default'
   providerConfig?: { baseUrl: string; apiKey: string; model: string } | null
   providerId?: AIProviderId
   onProgress?: (msg: string) => void

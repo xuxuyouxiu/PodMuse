@@ -13,7 +13,7 @@ try {
     stopFeishu: () => ipcRenderer.invoke('feishu:stop'),
     getFeishuStatus: () => ipcRenderer.invoke('feishu:status'),
 
-    processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false, contentType?: string) => ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile, contentType }),
+    processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) => ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),
     cancelProcessing: () => ipcRenderer.invoke('podcast:cancel'),
     getRecoveryLogs: () => ipcRenderer.invoke('task:getRecoveryLogs'),
 
