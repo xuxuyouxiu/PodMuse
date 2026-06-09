@@ -437,7 +437,7 @@ export async function processPodcast(
   }
 
   if (finalEntities.people.length || finalEntities.projects.length || finalEntities.concepts.length || finalEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId }, signal)
+    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, contentType: contentType as 'news' | 'article' | 'tutorial' | 'default', providerConfig, providerId: providerId as AIProviderId, onProgress: (msg) => log(msg) }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)
