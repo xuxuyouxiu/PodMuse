@@ -193,8 +193,14 @@ async function fetchWithTimeout(url: string, opts: RequestInit & { timeoutMs?: n
 }
 
 async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: string; apiKey: string; model: string } | null, providerId?: string, signal?: AbortSignal): Promise<string | null> {
-  const sources = [
-    async () => {
+  // 包装：返回 null 的源改为 throw，让 Promise.any 跳过它继续等
+  const race = (fn: () => Promise<string | null>): Promise<string> =>
+    fn().then(r => { if (r) return r; throw new Error('no result') })
+
+  // 所有数据源并行竞速，任一成功立即返回
+  const sources: Promise<string>[] = [
+    // 中文维基百科
+    race(async () => {
       const url = `https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
@@ -204,8 +210,9 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       const page = Object.values(pages)[0]
       if (page?.extract && !page.extract.includes('may refer to')) return page.extract.slice(0, 600)
       return null
-    },
-    async () => {
+    }),
+    // 英文维基百科
+    race(async () => {
       const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
@@ -215,8 +222,9 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       const page = Object.values(pages)[0]
       if (page?.extract && !page.extract.includes('may refer to')) return page.extract.slice(0, 600)
       return null
-    },
-    providerConfig ? async () => {
+    }),
+    // AI 解释
+    ...(providerConfig ? [race(async () => {
       const resp = await fetchWithTimeout(buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId), {
         method: 'POST',
         signal,
@@ -234,20 +242,15 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       if (!resp.ok) return null
       const result = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
       return result.choices?.[0]?.message?.content?.trim() || null
-    } : null,
+    })] : []),
   ]
 
-  for (const source of sources) {
-    if (!source) continue
-    try {
-      const result = await source()
-      if (result) return result
-    } catch {
-      continue
-    }
+  try {
+    // Promise.any: 第一个返回非 null 结果的成功；全部失败/返回 null 则返回 null
+    return await Promise.any(sources)
+  } catch {
+    return null
   }
-
-  return null
 }
 
 function hasRealContext(term: TermEntity): boolean {
@@ -330,9 +333,60 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     }
   }
 
-  const conceptsNeedingFetch = entities.concepts.filter(c => c.name && !c.explanation && !fs.existsSync(path.join(baseDir, '概念', `${sanitizeName(c.name)}.md`)))
-  let conceptFetchIndex = 0
+  // ===== 并行预获取所有需要查询的定义 =====
+  // 收集需要获取定义的概念
+  const conceptsToFetch = new Map<string, number>() // name -> index in concepts array
+  for (let i = 0; i < entities.concepts.length; i++) {
+    const c = entities.concepts[i]
+    if (!c.name || c.explanation) continue
+    const filePath = path.join(baseDir, '概念', `${sanitizeName(c.name)}.md`)
+    if (fs.existsSync(filePath)) continue
+    conceptsToFetch.set(c.name, i)
+  }
 
+  // 收集需要获取定义的术语（无真实上下文的，将转为概念卡片）
+  const termsToFetch = new Map<string, number>() // name -> index in terms array
+  for (let i = 0; i < entities.terms.length; i++) {
+    const t = entities.terms[i]
+    if (!t.name || hasRealContext(t)) continue
+    const filePath = path.join(baseDir, '概念', `${sanitizeName(t.name)}.md`)
+    if (fs.existsSync(filePath)) continue
+    termsToFetch.set(t.name, i)
+  }
+
+  // 合并所有需要查询的名称（去重）
+  const allNamesToFetch = new Set<string>([...conceptsToFetch.keys(), ...termsToFetch.keys()])
+  const namesArray = [...allNamesToFetch]
+  const definitionMap = new Map<string, string | null>() // name -> definition
+
+  if (namesArray.length > 0) {
+    options.onProgress?.(`  🔍 正在并行查找 ${namesArray.length} 个实体定义（全局超时 30 秒）...`)
+
+    const GLOBAL_TIMEOUT_MS = 30_000
+    const globalTimeoutPromise = new Promise<'timeout'>((resolve) =>
+      setTimeout(() => resolve('timeout'), GLOBAL_TIMEOUT_MS)
+    )
+
+    // 每个 fetch 完成后立即写入 definitionMap，超时后也能读取已完成的结果
+    const fetchAllPromise = Promise.allSettled(
+      namesArray.map(name =>
+        fetchConceptDefinition(name, options.providerConfig, options.providerId, signal)
+          .then(def => { definitionMap.set(name, def); return def })
+      )
+    )
+
+    const raceResult = await Promise.race([fetchAllPromise, globalTimeoutPromise])
+
+    if (raceResult === 'timeout') {
+      const fetched = [...definitionMap.values()].filter(Boolean).length
+      options.onProgress?.(`  ⏱ 全局超时（${GLOBAL_TIMEOUT_MS / 1000}s），${fetched}/${namesArray.length} 个已获取`)
+    } else {
+      const fetched = [...definitionMap.values()].filter(Boolean).length
+      options.onProgress?.(`  ✅ 定义查找完成：${fetched}/${namesArray.length} 成功`)
+    }
+  }
+
+  // ===== 写入概念卡片 =====
   for (const concept of entities.concepts) {
     if (!concept.name) continue
     const dir = path.join(baseDir, '概念')
@@ -340,22 +394,10 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     if (fs.existsSync(filePath)) {
       appendSourceLink(filePath, podcastFilename)
     } else {
-      // 如果解释为空，尝试从维基百科或 AI 获取真实定义
+      // 使用预获取的定义，或原始解释，或空
       let explanation = concept.explanation || ''
-      if (!explanation) {
-        conceptFetchIndex++
-        options.onProgress?.(`  🔍 正在查找「${concept.name}」的定义（${conceptFetchIndex}/${conceptsNeedingFetch.length}）...`)
-        try {
-          const definition = await fetchConceptDefinition(concept.name, options.providerConfig, options.providerId, signal)
-          if (definition) {
-            explanation = definition
-            options.onProgress?.(`  ✅ 「${concept.name}」定义已获取`)
-          } else {
-            options.onProgress?.(`  ⚠ 「${concept.name}」未找到定义`)
-          }
-        } catch {
-          options.onProgress?.(`  ⚠ 「${concept.name}」查找失败`)
-        }
+      if (!explanation && definitionMap.has(concept.name)) {
+        explanation = definitionMap.get(concept.name) || ''
       }
       const tmpl = loadTemplate('Concept_Template.md')
       const content = fillTemplate(tmpl, {
@@ -371,6 +413,7 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     }
   }
 
+  // ===== 写入术语卡片 =====
   for (const term of entities.terms) {
     if (!term.name) continue
 
@@ -397,13 +440,9 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     } else {
       result.termToConcept++
 
-      let definition: string | null = null
-      try {
-        definition = await fetchConceptDefinition(term.name, options.providerConfig, options.providerId, signal)
-        if (definition) result.conceptSearched++
-      } catch {
-        definition = null
-      }
+      // 使用预获取的定义
+      const definition = definitionMap.get(term.name) || null
+      if (definition) result.conceptSearched++
 
       const dir = path.join(baseDir, '概念')
       const filePath = path.join(dir, `${sanitizeName(term.name)}.md`)
