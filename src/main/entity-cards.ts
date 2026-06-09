@@ -449,3 +449,47 @@ export function fillMissingTermCards(markdown: string, entities: EntityResult): 
     filled: filled.length,
   }
 }
+
+/**
+ * 提取正文中所有 [[wiki-link]]（不含 CARD 块部分）
+ */
+export function extractBodyWikiLinks(markdown: string): string[] {
+  // 截取 CARD 块之前的部分（即正文）
+  const cardStart = markdown.indexOf('---CARD-')
+  const body = cardStart >= 0 ? markdown.substring(0, cardStart) : markdown
+
+  const links: string[] = []
+  const re = /\[\[([^\]]+)\]\]/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(body)) !== null) {
+    links.push(match[1].trim())
+  }
+  return [...new Set(links)]
+}
+
+/**
+ * 为正文中引用但没有卡片的 wiki-link 自动补上概念卡片，确保每个链接都有落地页
+ */
+export function fillMissingEntityCards(entities: EntityResult, bodyLinks: string[]): { entities: EntityResult; filled: number } {
+  // 收集所有已有卡片的实体名
+  const existingNames = new Set<string>()
+  for (const p of entities.people) if (p.name) existingNames.add(p.name)
+  for (const p of entities.projects) if (p.name) existingNames.add(p.name)
+  for (const c of entities.concepts) if (c.name) existingNames.add(c.name)
+  for (const t of entities.terms) if (t.name) existingNames.add(t.name)
+
+  const missing = bodyLinks.filter(name => name && !existingNames.has(name))
+  if (!missing.length) return { entities, filled: 0 }
+
+  // 为缺卡片的链接创建概念卡片（最通用的实体类型）
+  const stubs = missing.map(name => ({
+    name,
+    explanation: '',
+    related: [],
+  } as ConceptEntity))
+
+  return {
+    entities: { ...entities, concepts: [...entities.concepts, ...stubs] },
+    filled: stubs.length,
+  }
+}
