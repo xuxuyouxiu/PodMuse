@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.7.14] - 2026-06-10
+
+### 修复
+- 拖入本地文件时不复用已有转写缓存：原逻辑仅在 `force=true`（重新处理）时检查 `.transcript.json` 缓存，导致每次拖入同一文件都会重新跑 Whisper 转写。现在改为默认检查缓存，`force=true` 时强制跳过缓存重新转写
+- 任务"重新处理"时复用缓存：`handleTaskResume` 改为 `force=false`，恢复任务时优先使用已有转写结果
+
 ## [1.7.13] - 2026-06-09
 
 ### 修复

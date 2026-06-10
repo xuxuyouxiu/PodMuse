@@ -253,33 +253,33 @@ export async function processPodcast(
   let transcript: string | null = null
   let usedTranscriptCache = false
 
-  // 重处理时尝试复用历史转写缓存
-  if (force && fs.existsSync(transcriptPath)) {
+  // 非强制模式下尝试复用历史转写缓存（强制模式跳过缓存，重新转写）
+  if (!force && fs.existsSync(transcriptPath)) {
     try {
       const stat = fs.statSync(transcriptPath)
       if (stat.size < 100) {
-        log('  🔄 重处理：历史转写文件过小，需要重新转写')
+        log('  🔄 历史转写文件过小，需要重新转写')
       } else {
         const raw = fs.readFileSync(transcriptPath, 'utf-8')
         const cached = JSON.parse(raw) as { text?: string; charCount?: number; timestamp?: string }
         if (!cached.text || typeof cached.text !== 'string') {
-          log('  🔄 重处理：历史转写文件格式无效（text 字段缺失），重新转写')
+          log('  🔄 历史转写文件格式无效（text 字段缺失），重新转写')
         } else if (cached.text.length < 50) {
-          log(`  🔄 重处理：历史转写文件内容过短（${cached.text.length} 字），重新转写`)
+          log(`  🔄 历史转写文件内容过短（${cached.text.length} 字），重新转写`)
         } else {
           transcript = cached.text
           usedTranscriptCache = true
-          log(`  🔄 重处理：复用历史转写结果（${transcript.length} 字，文件: ${path.basename(transcriptPath)}）`)
+          log(`  ✅ 复用历史转写结果（${transcript.length} 字，文件: ${path.basename(transcriptPath)}）`)
           step({ step: 3, title: '语音转文字', subtitle: `复用缓存 ${transcript.length} 字`, status: 'done', progress: 100, detail: '使用历史转写结果，跳过 Whisper' })
         }
       }
     } catch (e: unknown) {
-      log(`  🔄 重处理：历史转写文件读取失败（${errMsg(e)}），重新转写`)
+      log(`  🔄 历史转写文件读取失败（${errMsg(e)}），重新转写`)
       // 清理损坏的缓存文件
       try { fs.unlinkSync(transcriptPath) } catch {}
     }
-  } else if (force) {
-    log('  🔄 重处理：未找到 JSON 转写缓存，检查 Whisper 原始输出...')
+  } else if (!force) {
+    log('  🔄 未找到 JSON 转写缓存，检查 Whisper 原始输出...')
 
     // 回退查找 Whisper 生成的 .txt 文件（兼容缓存功能开发前的历史转写结果）
     const txtPath = audioPath.replace(/\.[^.]+$/, '') + '.txt'
@@ -287,18 +287,18 @@ export async function processPodcast(
       try {
         const stat = fs.statSync(txtPath)
         if (stat.size < 100) {
-          log('  🔄 重处理：Whisper .txt 文件过小，需要重新转写')
+          log('  🔄 Whisper .txt 文件过小，需要重新转写')
         } else {
           const txtContent = fs.readFileSync(txtPath, 'utf-8').trim()
           if (txtContent.length < 50) {
-            log(`  🔄 重处理：Whisper .txt 内容过短（${txtContent.length} 字），重新转写`)
+            log(`  🔄 Whisper .txt 内容过短（${txtContent.length} 字），重新转写`)
           } else {
             transcript = txtContent
             usedTranscriptCache = true
-            log(`  🔄 重处理：复用 Whisper 原始转写结果（${transcript.length} 字，文件: ${path.basename(txtPath)}）`)
+            log(`  ✅ 复用 Whisper 原始转写结果（${transcript.length} 字，文件: ${path.basename(txtPath)}）`)
             step({ step: 3, title: '语音转文字', subtitle: `复用缓存 ${transcript.length} 字`, status: 'done', progress: 100, detail: '使用 Whisper 历史转写结果，跳过 Whisper' })
 
-            // 顺便生成 JSON 缓存，下次重处理直接命中 JSON 缓存
+            // 顺便生成 JSON 缓存，下次处理直接命中 JSON 缓存
             try {
               fs.writeFileSync(transcriptPath, JSON.stringify({
                 text: transcript,
@@ -313,11 +313,13 @@ export async function processPodcast(
           }
         }
       } catch (e: unknown) {
-        log(`  🔄 重处理：Whisper .txt 文件读取失败（${errMsg(e)}），重新转写`)
+        log(`  🔄 Whisper .txt 文件读取失败（${errMsg(e)}），重新转写`)
       }
     } else {
-      log('  🔄 重处理：未找到任何历史转写文件，执行全新转写')
+      log('  🔄 未找到任何历史转写文件，执行全新转写')
     }
+  } else {
+    log('  🔄 强制重新转写模式，跳过缓存检查')
   }
 
   // 未命中缓存时执行 Whisper 转写
