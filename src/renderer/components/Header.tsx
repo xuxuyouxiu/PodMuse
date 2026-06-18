@@ -23,6 +23,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
   const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [version, setVersion] = useState<string>('')
+  const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,18 +135,31 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           className="workspace-topbar__search-wrap"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <div className={`workspace-topbar__search topbar-search-box${open ? ' is-open' : ''}`}>
+          <div
+            className={`topbar-search-box${focused ? ' is-focused' : ''}`}
+            onClick={() => inputRef.current?.focus()}
+          >
             <Search size={14} className="topbar-search-icon" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={e => handleChange(e.target.value)}
-              onFocus={() => setOpen(true)}
+              onFocus={() => { setFocused(true); setOpen(true) }}
+              onBlur={() => setFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder="搜索笔记、播客、关键词..."
               className="topbar-search-input"
             />
+            {query && (
+              <button
+                className="topbar-search-clear"
+                onClick={(e) => { e.stopPropagation(); setQuery(''); setResults([]); inputRef.current?.focus() }}
+                aria-label="清除搜索"
+              >
+                <X size={11} />
+              </button>
+            )}
             {!query && (
               <kbd className="topbar-kbd">
                 Ctrl + K

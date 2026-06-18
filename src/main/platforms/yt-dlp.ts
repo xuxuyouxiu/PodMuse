@@ -29,7 +29,25 @@ function findYtDlpPath(): string | null {
     }
   } catch {}
 
-  // 3) 系统 PATH
+  // 3) 用户级工具目录（跨平台）
+  try {
+    const home = process.env.USERPROFILE || process.env.HOME || ''
+    if (home) {
+      const userDirs = [
+        path.join(home, 'tools'),
+        path.join(home, '.local', 'bin'),
+      ]
+      const candidates = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
+      for (const dir of userDirs) {
+        for (const name of candidates) {
+          const p = path.join(dir, name)
+          if (fs.existsSync(p)) return p
+        }
+      }
+    }
+  } catch {}
+
+  // 4) 系统 PATH
   try {
     const isWin = process.platform === 'win32'
     const cmd = isWin ? 'where yt-dlp' : 'which yt-dlp'

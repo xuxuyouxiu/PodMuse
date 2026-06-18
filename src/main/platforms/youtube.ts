@@ -1,6 +1,7 @@
 /** YouTube 平台适配器（支持字幕优先策略） */
 
 import type { PlatformAdapter, AudioExtractResult } from './types'
+import { fetchOgTitle } from './xiaoyuzhou'
 
 export class YouTubeAdapter implements PlatformAdapter {
   id = 'youtube'
@@ -11,16 +12,27 @@ export class YouTubeAdapter implements PlatformAdapter {
     return this.urlPattern.test(url)
   }
 
-  async extractAudio(url: string): Promise<AudioExtractResult> {
+  async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
     const videoId = this.extractVideoId(url)
     if (!videoId) throw new Error('无法识别 YouTube 视频链接')
 
     // 标准化为完整 URL，便于 yt-dlp 处理
     const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
 
+    // 获取视频标题（og:title）
+    let title: string | undefined
+    if (!signal?.aborted) {
+      title = await fetchOgTitle(canonicalUrl).catch(() => undefined) || undefined
+      // 清理 YouTube 标题常见后缀
+      if (title) {
+        title = title.replace(/\s*[-–—|]\s*YouTube\s*$/i, '').trim() || title
+      }
+    }
+
     return {
       type: 'yt_dlp',
       audioUrl: canonicalUrl,
+      title,
       videoId,
       metadata: { platform: 'youtube' },
     }

@@ -17,6 +17,8 @@ extraFiles:
     to: ffmpeg.dll
   - from: build/portable
     to: portable
+  - from: build/yt-dlp.exe
+    to: yt-dlp.exe
 win:
   target: nsis
   icon: build/icon.png

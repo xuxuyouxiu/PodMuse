@@ -287,7 +287,7 @@ export default function App() {
                     <div>
                       <h1 className="workspace-hero__title">欢迎回来</h1>
                       <p className="workspace-hero__description">
-                        粘贴小宇宙链接后，应用会依次完成提取、下载、转写、校对和笔记整理。
+                        粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。
                       </p>
                     </div>
                     <div className="workspace-hero__badge">{workflowStateLabel}</div>

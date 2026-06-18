@@ -17,6 +17,8 @@ export interface AudioExtractResult {
   transcript?: string
   /** pre_transcribed 模式下的字幕语言 */
   subtitleLang?: string
+  /** direct_url 模式下的自定义请求头（如 B 站需要 Referer） */
+  headers?: Record<string, string>
 }
 
 export interface PlatformAdapter {

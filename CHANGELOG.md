@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.2] - 2026-06-18
+
+### 修复
+- YouTube 适配器缺少标题：通过 og:title 获取视频标题，清理 `- YouTube` 后缀，笔记文件名不再降级为"未命名播客"
+
+## [1.8.1] - 2026-06-18
+
+### 修复
+- B 站链接处理失败：yt-dlp 被 B 站 412 反爬拦截，改为直接调用 B 站 API 获取 DASH 音频流，不再依赖 yt-dlp 处理 B 站链接
+- B 站适配器缺少标题：通过 B 站 view API 获取视频标题，文件名不再降级为 BV 号
+- 清理 B 站标题常见后缀（如 `_哔哩哔哩_bilibili`）
+- 音频下载支持自定义请求头（B 站 CDN 需要 Referer），新增 m4s 格式支持
+- yt-dlp 搜索路径新增用户级工具目录（`~/tools`、`~/.local/bin`），构建时自动打包 yt-dlp.exe
+
 ## [1.8.0] - 2026-06-18
 
 ### 新增

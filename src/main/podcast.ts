@@ -222,7 +222,7 @@ export async function processPodcast(
         log('  [2/5] 下载音频...')
         const tmp = getTempDir(audioDir)
         let ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3'
-        if (!['mp3', 'm4a', 'ogg', 'aac', 'wav'].includes(ext)) ext = 'mp3'
+        if (!['mp3', 'm4a', 'm4s', 'ogg', 'aac', 'wav'].includes(ext)) ext = 'mp3'
         const audioName = cleanTitleForFilename(title || 'episode')
         audioPath = path.join(tmp, `${audioName}.${ext}`)
 
@@ -231,7 +231,8 @@ export async function processPodcast(
           step({ step: 2, title: '下载音频', subtitle: `${(fs.statSync(audioPath).size / 1048576).toFixed(1)} MB (已缓存)`, status: 'done', progress: 100 })
         } else {
           try {
-            const audioResp = await fetch(audioUrl, { headers: { 'User-Agent': HEADERS_UA }, signal })
+            const fetchHeaders: Record<string, string> = { 'User-Agent': HEADERS_UA, ...result.headers }
+            const audioResp = await fetch(audioUrl, { headers: fetchHeaders, signal })
             if (!audioResp.ok || !audioResp.body) {
               step({ step: 2, title: '下载音频', subtitle: `HTTP ${audioResp.status}`, status: 'error' })
               log(`  ❌ 下载失败 HTTP ${audioResp.status}`)
