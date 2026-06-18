@@ -6,7 +6,7 @@ import { runWhisper } from './whisper'
 import { correctTranscript, generateNotes } from './ai-client'
 import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards, extractBodyWikiLinks, fillMissingEntityCards } from './entity-cards'
 import { isSubPathOf } from './security'
-import { platformRegistry, fetchOgTitle, extractAudioWithYtDlp, extractSubtitles, parseSubtitleToText, detectYtDlp } from './platforms'
+import { platformRegistry, fetchOgTitle, extractAudioWithYtDlp, extractSubtitles, parseSubtitleToText, detectYtDlp, autoDownloadYtDlp } from './platforms'
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
@@ -127,11 +127,32 @@ export async function processPodcast(
       } else if (result.type === 'yt_dlp') {
         // yt-dlp 提取音频（B 站、YouTube 等）
         title = result.title || null
-        const ytDlp = detectYtDlp()
+        let ytDlp = detectYtDlp()
         if (!ytDlp.available) {
-          step({ step: 1, title: '解析页面', subtitle: '需要 yt-dlp', status: 'error', detail: '请先安装 yt-dlp，可在设置页查看安装指南' })
-          log('  ❌ yt-dlp 未安装')
-          return null
+          // 自动下载 yt-dlp
+          step({ step: 1, title: '解析页面', subtitle: '正在下载 yt-dlp', status: 'running', detail: '首次使用 YouTube 需要下载 yt-dlp 组件...' })
+          log('  ⬇ yt-dlp 未安装，正在自动下载...')
+          try {
+            const downloadedPath = await autoDownloadYtDlp(
+              (msg) => {
+                step({ step: 1, title: '解析页面', subtitle: '正在下载 yt-dlp', status: 'running', detail: msg })
+                log(`  [yt-dlp] ${msg}`)
+              },
+              signal,
+            )
+            ytDlp = detectYtDlp()
+            if (!ytDlp.available) {
+              step({ step: 1, title: '解析页面', subtitle: 'yt-dlp 下载失败', status: 'error', detail: '下载完成但无法检测到 yt-dlp，请检查网络连接' })
+              log('  ❌ yt-dlp 下载后仍无法检测到')
+              return null
+            }
+            log(`  ✅ yt-dlp 已安装: ${downloadedPath}`)
+          } catch (e: unknown) {
+            if (signal?.aborted) throw e
+            step({ step: 1, title: '解析页面', subtitle: 'yt-dlp 下载失败', status: 'error', detail: errMsg(e) })
+            log(`  ❌ yt-dlp 下载失败: ${errMsg(e)}`)
+            return null
+          }
         }
         if (ytDlp.outdated) {
           log(`  ⚠ yt-dlp 版本过低 (${ytDlp.version})，建议更新`)

@@ -81,6 +81,80 @@ export function detectYtDlp(): YtDlpStatus {
   }
 }
 
+/** 自动从 GitHub 下载 yt-dlp 到本地 */
+export async function autoDownloadYtDlp(
+  onProgress?: (msg: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  const isWin = process.platform === 'win32'
+  const binaryName = isWin ? 'yt-dlp.exe' : 'yt-dlp'
+
+  // 1) 查询最新版本
+  onProgress?.('查询最新版本...')
+  const apiResp = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest', {
+    headers: { Accept: 'application/vnd.github.v3+json' },
+    signal,
+  })
+  if (!apiResp.ok) throw new Error(`GitHub API 请求失败: ${apiResp.status}`)
+  const release = await apiResp.json() as { tag_name: string; assets: { name: string; browser_download_url: string; size: number }[] }
+  const asset = release.assets.find((a: { name: string }) => a.name === binaryName)
+  if (!asset) throw new Error(`未找到 ${binaryName} 下载资源`)
+
+  // 2) 确定保存目录（portable data > userData）
+  let saveDir: string
+  try {
+    const { app } = require('electron')
+    const userDataDir = app.getPath('userData')
+    saveDir = path.join(path.dirname(path.dirname(userDataDir)), 'data')
+    if (!fs.existsSync(saveDir)) {
+      saveDir = app.getPath('userData')
+    }
+  } catch {
+    // 非 Electron 环境，存到用户工具目录
+    const home = process.env.USERPROFILE || process.env.HOME || '.'
+    saveDir = path.join(home, 'tools')
+  }
+  fs.mkdirSync(saveDir, { recursive: true })
+
+  // 3) 下载
+  onProgress?.(`下载 yt-dlp ${release.tag_name}...`)
+  const dlResp = await fetch(asset.browser_download_url, { signal })
+  if (!dlResp.ok) throw new Error(`下载失败: ${dlResp.status}`)
+  if (!dlResp.body) throw new Error('下载响应为空')
+
+  const totalSize = asset.size || Number(dlResp.headers.get('content-length')) || 0
+  const savePath = path.join(saveDir, binaryName)
+  const tmpPath = savePath + '.downloading'
+  const writer = fs.createWriteStream(tmpPath)
+  const reader = dlResp.body.getReader()
+  let downloaded = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (signal?.aborted) { writer.close(); fs.unlinkSync(tmpPath); throw new Error('已取消') }
+    writer.write(value)
+    downloaded += value.length
+    if (totalSize > 0) {
+      const pct = Math.round((downloaded / totalSize) * 100)
+      onProgress?.(`下载中 ${pct}% (${(downloaded / 1048576).toFixed(1)}/${(totalSize / 1048576).toFixed(1)} MB)`)
+    }
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    writer.end((err?: Error) => err ? reject(err) : resolve())
+  })
+
+  // 4) 替换旧文件
+  if (fs.existsSync(savePath)) fs.unlinkSync(savePath)
+  fs.renameSync(tmpPath, savePath)
+  // 非 Windows 加执行权限
+  if (!isWin) fs.chmodSync(savePath, 0o755)
+
+  onProgress?.(`下载完成: ${savePath}`)
+  return savePath
+}
+
 /** 使用 yt-dlp 提取音频到指定目录 */
 export function extractAudioWithYtDlp(
   ytDlpPath: string,

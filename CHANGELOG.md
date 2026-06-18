@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.3] - 2026-06-18
+
+### 新增
+- yt-dlp 自动下载：首次使用 YouTube 链接时若未检测到 yt-dlp，自动从 GitHub Releases 下载最新版，用户无需手动安装
+- 下载进度实时显示在步骤面板（百分比 + 已下载/总大小）
+
+### 改进
+- 顶栏搜索框 UI 统一为与 URL 输入框一致的风格（focus glow、图标变色、清除按钮）
+- 输入框与搜索框均消除浏览器默认 focus outline，修复紫色双边框问题
+
 ## [1.8.2] - 2026-06-18
 
 ### 修复
