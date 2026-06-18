@@ -29,6 +29,10 @@ feishu_state.json
 
 # 内部开发笔记（不适宜公开）
 .trae/
+.codegraph/
+docs/superpowers/
+docs/douyin.png
+docs/抖音封面.png
 
 # 操作系统无关文件
 .DS_Store
