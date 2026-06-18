@@ -27,7 +27,7 @@ export default function UrlInput({ onProcess, disabled }: Props) {
       <div className="url-input-copy">
         <div className="url-input-eyebrow">开始新任务</div>
         <h2 className="url-input-title">粘贴链接开始处理</h2>
-        <p className="url-input-hint">支持小宇宙单集链接，按 Enter 也可以直接发起处理。</p>
+        <p className="url-input-hint">支持小宇宙、B 站、YouTube、直接音视频链接，按 Enter 发起处理。</p>
       </div>
       <div className="url-input-actions">
         <motion.div
@@ -53,7 +53,7 @@ export default function UrlInput({ onProcess, disabled }: Props) {
           <input
             className="url-input-field"
             type="text"
-            placeholder="粘贴小宇宙播客链接..."
+            placeholder="粘贴播客/视频/音频链接..."
             value={url}
             onChange={e => setUrl(e.target.value)}
             onFocus={() => setFocused(true)}

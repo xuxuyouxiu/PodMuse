@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.0] - 2026-06-18
+
+### 新增
+- 多平台支持：新增 B 站、YouTube、直接音视频 URL 三种平台适配器，粘贴链接即可自动识别并处理
+- yt-dlp 集成：B 站和 YouTube 视频通过 yt-dlp 提取音频，支持自动检测、版本检查和安装引导
+- YouTube 字幕优先策略：有 CC 字幕时直接使用字幕文本跳过 Whisper 转写，精度更高速度更快
+- 平台适配器架构（PlatformAdapter）：统一的接口定义 + 注册表路由，新增平台只需实现适配器并注册
+- 直接音视频 URL 支持：任意 `.mp3/.mp4/.m4a` 等直链可直接粘贴处理
+- 飞书消息多平台解析：飞书群中分享 B 站、YouTube 等链接也能自动触发处理
+
+### 重构
+- `podcast.ts`：URL 验证从硬编码小宇宙正则改为平台注册表路由，音频提取逻辑迁移到各平台适配器
+- `message-parser.ts`：飞书消息 URL 匹配从单平台扩展为多平台正则列表
+- `index.ts`：episode ID 提取使用平台适配器的 `getDedupKey()` 方法，支持所有平台去重
+
+### 修复
+- UI 输入框提示文案更新为多平台描述
+
 ## [1.7.14] - 2026-06-10
 
 ### 修复

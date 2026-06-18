@@ -7,6 +7,7 @@ import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
 import { getActiveProviderConfig } from './ai-providers'
 import { fetchPodcastTitle } from './podcast'
+import { platformRegistry } from './platforms'
 import { scanLocalModels, checkHardware } from './whisper-model-manager'
 import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
@@ -167,15 +168,17 @@ function setupIPC() {
 
   ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean }) => {
     if (!isLocalFile) {
-      const episodeMatch = url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)
-      const episodeId = episodeMatch ? episodeMatch[1] : null
+      // 使用平台注册表获取去重 key（通用，支持所有平台）
+      const platformInfo = platformRegistry.findAdapter(url)
+      const episodeId = platformInfo?.adapter.getDedupKey(url) || null
       if (!force && episodeId && processedEpisodeIds.has(episodeId)) {
         mainWindow?.webContents.send('log', `⏭ 该播客已处理过 (${episodeId})，跳过`)
         return { success: false, error: '该播客已处理过' }
       }
     }
     const initialTitle = isLocalFile ? basename(url, extname(url)) : await fetchPodcastTitle(url).catch(() => null)
-    const episodeId = isLocalFile ? null : (url.match(/xiaoyuzhoufm\.com\/episode\/([a-zA-Z0-9]+)/)?.[1] || null)
+    const platformInfoForId = !isLocalFile ? platformRegistry.findAdapter(url) : null
+    const episodeId = platformInfoForId?.adapter.getDedupKey(url) || null
     updateRecentState(state => startRecentTask(state, { id: taskId, url, episodeId, title: initialTitle }))
     pendingAbort = new AbortController()
     const signal = pendingAbort.signal
