@@ -29,7 +29,18 @@ export default function TabPlatforms() {
   const [ytDlp, setYtDlp] = useState<YtDlpStatus | null>(null)
   const [checking, setChecking] = useState(false)
 
-  async function checkYtDlp() {
+  // 组件挂载时获取 yt-dlp 状态
+  useEffect(() => {
+    let cancelled = false
+    window.electronAPI.detectYtDlp().then(status => {
+      if (!cancelled) setYtDlp(status)
+    }).catch(() => {
+      if (!cancelled) setYtDlp({ available: false, path: null, version: null, outdated: false })
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  async function recheckYtDlp() {
     setChecking(true)
     try {
       const status = await window.electronAPI.detectYtDlp()
@@ -40,8 +51,6 @@ export default function TabPlatforms() {
       setChecking(false)
     }
   }
-
-  useEffect(() => { checkYtDlp() }, [])
 
   function getStatusBadge(row: PlatformRow) {
     if (row.depType === 'coming') {
@@ -170,7 +179,7 @@ export default function TabPlatforms() {
       {/* 重新检测按钮 */}
       <div style={{ marginTop: 16 }}>
         <button
-          onClick={checkYtDlp}
+          onClick={recheckYtDlp}
           disabled={checking}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,

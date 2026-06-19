@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link, Play, HelpCircle, X, Radio, MonitorPlay, PlayCircle, Headphones, Podcast, Music } from 'lucide-react'
 
@@ -45,27 +45,16 @@ export default function UrlInput({ onProcess, disabled }: Props) {
   const [url, setUrl] = useState('')
   const [focused, setFocused] = useState(false)
   const [showTip, setShowTip] = useState(false)
-  const [detected, setDetected] = useState<DetectedPlatform | null>(null)
-  const [unsupported, setUnsupported] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 实时检测平台（debounce on URL change）
-  useEffect(() => {
+  // 实时检测平台（派生状态，无需 useEffect）
+  const { detected, unsupported } = useMemo(() => {
     const trimmed = url.trim()
-    if (!trimmed || trimmed.length < 8) {
-      setDetected(null)
-      setUnsupported(false)
-      return
-    }
-    // 仅在看起来像 URL 时检测
-    if (!/^https?:\/\//i.test(trimmed)) {
-      setDetected(null)
-      setUnsupported(false)
-      return
+    if (!trimmed || trimmed.length < 8 || !/^https?:\/\//i.test(trimmed)) {
+      return { detected: null, unsupported: false }
     }
     const result = detectPlatform(trimmed)
-    setDetected(result)
-    setUnsupported(!result)
+    return { detected: result, unsupported: !result }
   }, [url])
 
   const handleSubmit = () => {
