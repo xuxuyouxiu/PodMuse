@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
-import { Link, FileText, Mic, Wrench, Settings, type LucideIcon } from 'lucide-react'
+import { Link, FileText, Mic, Wrench, Settings, Layers, type LucideIcon } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
-import { TabApi, TabTranscribe, TabWhisper, TabTools } from './settings'
+import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms } from './settings'
 
-type TabKey = 'api' | 'transcribe' | 'whisper' | 'tools'
+type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools'
 
 const TABS: { key: TabKey; icon: LucideIcon; label: string }[] = [
   { key: 'api', icon: Link, label: '接口与通知' },
   { key: 'transcribe', icon: FileText, label: '转写偏好' },
   { key: 'whisper', icon: Mic, label: '语音模型' },
+  { key: 'platforms', icon: Layers, label: '支持平台' },
   { key: 'tools', icon: Wrench, label: '工具维护' },
 ]
 
@@ -296,6 +297,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 onBrowse={handleBrowse}
               />
             )}
+            {activeTab === 'platforms' && <TabPlatforms />}
             {activeTab === 'tools' && (
               <TabTools
                 cleaningTemp={cleaningTemp}

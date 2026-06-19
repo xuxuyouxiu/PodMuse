@@ -694,6 +694,31 @@ body {
   color: var(--bg-card);
 }
 
+/* Platform badge & icon */
+.url-input-badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.url-input-platform-icon {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.url-input-unsupported {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 2px;
+}
+
 /* Tip button (question mark) */
 .url-input-tip-btn {
   display: inline-flex;

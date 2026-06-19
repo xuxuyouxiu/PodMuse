@@ -52,6 +52,7 @@ try {
     scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
     fetchAIModels: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
+    detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
 
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),

@@ -77,6 +77,7 @@ export async function processPodcast(
   let title: string | null = null
   let audioPath: string
   let preTranscript: string | null = null
+  let platformMetadata: Record<string, string> = {}
 
   if (isLocalFile) {
     log(`开始处理本地文件: ${podcastUrl}`)
@@ -112,6 +113,15 @@ export async function processPodcast(
     step({ step: 1, title: '解析页面', subtitle: `解析 ${platformInfo.name}...`, status: 'running', detail: `正在提取 ${platformInfo.name} 内容...` })
     try {
       const result = await platformInfo.adapter.extractAudio(podcastUrl, signal)
+
+      // 捕获平台元数据（UP主、频道名等），后续注入 AI prompt
+      if (result.metadata) {
+        platformMetadata = result.metadata
+        const metaParts: string[] = []
+        if (result.metadata.owner) metaParts.push(`UP主: ${result.metadata.owner}`)
+        if (result.metadata.channel) metaParts.push(`频道: ${result.metadata.channel}`)
+        if (metaParts.length) log(`  📋 元数据: ${metaParts.join(', ')}`)
+      }
 
       if (result.type === 'pre_transcribed' && result.transcript) {
         // 已有转写文本（如 YouTube 字幕），跳过下载和 Whisper
@@ -460,7 +470,7 @@ export async function processPodcast(
   log('  [5/5] AI 提炼笔记 (DeepSeek)...')
   let notes: { content: string | null; cost: number }
   try {
-    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal)
+    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal, platformMetadata)
   } catch (e: unknown) {
     step({ step: 5, title: 'AI 提炼笔记', subtitle: 'API 异常', status: 'error', detail: errMsg(e) })
     log(`  ❌ DeepSeek 生成异常: ${errMsg(e)}`)

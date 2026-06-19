@@ -19,13 +19,19 @@ export class YouTubeAdapter implements PlatformAdapter {
     // 标准化为完整 URL，便于 yt-dlp 处理
     const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
 
-    // 获取视频标题（og:title）
+    // 并行获取标题和频道名
     let title: string | undefined
+    let channelName: string | undefined
     if (!signal?.aborted) {
-      title = await fetchOgTitle(canonicalUrl).catch(() => undefined) || undefined
-      // 清理 YouTube 标题常见后缀
-      if (title) {
-        title = title.replace(/\s*[-–—|]\s*YouTube\s*$/i, '').trim() || title
+      const [fetchedTitle, fetchedChannel] = await Promise.allSettled([
+        fetchOgTitle(canonicalUrl),
+        this.fetchChannelName(canonicalUrl, signal),
+      ])
+      if (fetchedTitle.status === 'fulfilled' && fetchedTitle.value) {
+        title = fetchedTitle.value.replace(/\s*[-–—|]\s*YouTube\s*$/i, '').trim() || undefined
+      }
+      if (fetchedChannel.status === 'fulfilled') {
+        channelName = fetchedChannel.value
       }
     }
 
@@ -34,7 +40,10 @@ export class YouTubeAdapter implements PlatformAdapter {
       audioUrl: canonicalUrl,
       title,
       videoId,
-      metadata: { platform: 'youtube' },
+      metadata: {
+        platform: 'youtube',
+        ...(channelName ? { channel: channelName } : {}),
+      },
     }
   }
 
@@ -56,5 +65,18 @@ export class YouTubeAdapter implements PlatformAdapter {
     m = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/)
     if (m) return m[1]
     return null
+  }
+
+  /** 通过 oEmbed API 获取频道/作者名称 */
+  private async fetchChannelName(url: string, signal?: AbortSignal): Promise<string | undefined> {
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+      const resp = await fetch(oembedUrl, { signal: signal || AbortSignal.timeout(5000) })
+      if (!resp.ok) return undefined
+      const data = await resp.json() as { author_name?: string }
+      return data.author_name || undefined
+    } catch {
+      return undefined
+    }
   }
 }

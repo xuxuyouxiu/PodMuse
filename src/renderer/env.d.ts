@@ -36,6 +36,13 @@ interface AIModelListResult {
 }
 
 declare global {
+  interface YtDlpStatus {
+    available: boolean
+    path: string | null
+    version: string | null
+    outdated: boolean
+  }
+
   interface Window {
     electronAPI: {
       getConfig: () => Promise<PodcastConfig | null>
@@ -63,6 +70,7 @@ declare global {
       scanWhisperModels: () => Promise<WhisperModelInfo[]>
       checkWhisperHardware: (modelId: string) => Promise<HardwareCheckResult>
       fetchAIModels: (baseUrl: string, apiKey: string) => Promise<AIModelListResult>
+      detectYtDlp: () => Promise<YtDlpStatus>
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>

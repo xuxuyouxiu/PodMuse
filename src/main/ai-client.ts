@@ -405,14 +405,31 @@ export async function generateNotes(
   providerId: AIProviderId,
   transcript: string,
   signal?: AbortSignal,
+  metadata?: Record<string, string>,
 ) {
   const date = new Date().toISOString().split('T')[0]
   const prompt = getAIPrompt()
+
+  // 构建平台元数据上下文，注入到 transcript 之前
+  let transcriptWithContext = transcript
+  if (metadata && Object.keys(metadata).length > 1) {
+    const parts: string[] = []
+    if (metadata.owner) parts.push(`内容创作者/UP主：${metadata.owner}`)
+    if (metadata.channel) parts.push(`频道/作者：${metadata.channel}`)
+    if (metadata.description && metadata.description.length > 100) {
+      parts.push(`内容简介：${metadata.description.slice(0, 300)}`)
+    }
+    if (parts.length > 0) {
+      const platform = metadata.platform || '未知平台'
+      transcriptWithContext = `[来源平台：${platform}]\n${parts.join('\n')}\n---\n\n${transcript}`
+    }
+  }
+
   return callAI(
     providerConfig,
     providerId,
     '知识管理助手',
-    prompt.replace('{date}', date).replace('{transcript}', transcript),
+    prompt.replace('{date}', date).replace('{transcript}', transcriptWithContext),
     8192, // 增加输出token限制到8192，确保长音频内容完整
     signal
   )

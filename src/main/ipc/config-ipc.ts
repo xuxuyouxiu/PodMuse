@@ -3,6 +3,7 @@ import { join } from 'path'
 import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
 import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath } from '../security'
+import { detectYtDlp } from '../platforms/yt-dlp'
 import type { PodcastConfig } from '@shared/types'
 
 /**
@@ -154,5 +155,9 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
     } catch {}
     return true
+  })
+
+  ipcMain.handle('platform:detectYtDlp', () => {
+    return detectYtDlp()
   })
 }

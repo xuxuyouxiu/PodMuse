@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Link, Play, HelpCircle, X } from 'lucide-react'
+import { Link, Play, HelpCircle, X, Radio, MonitorPlay, PlayCircle, Headphones, Podcast, Music } from 'lucide-react'
 
 interface Props {
   onProcess: (url: string) => Promise<{ success: boolean; error?: string }>
@@ -11,20 +11,70 @@ const PLATFORMS = [
   { label: '小宇宙', desc: 'xiaoyuzhoufm.com 单集链接' },
   { label: 'B 站', desc: 'bilibili.com 视频或 b23.tv 短链' },
   { label: 'YouTube', desc: 'youtube.com 视频或 youtu.be 短链' },
+  { label: '喜马拉雅', desc: 'ximalaya.com 单集音频' },
+  { label: 'Apple Podcasts', desc: 'podcasts.apple.com 单集链接' },
   { label: '直链', desc: '任意 .mp3 / .mp4 / .m4a 等公开音频视频 URL' },
 ]
+
+/** 客户端平台检测（与 main process 的 registry 模式保持一致） */
+interface DetectedPlatform {
+  id: string
+  name: string
+  icon: typeof Link
+}
+
+const PLATFORM_DETECTORS: Array<{ id: string; name: string; pattern: RegExp; icon: typeof Link }> = [
+  { id: 'xiaoyuzhou', name: '小宇宙', pattern: /^https?:\/\/[^\s]*xiaoyuzhoufm\.com\//i, icon: Radio },
+  { id: 'bilibili', name: 'B 站', pattern: /^https?:\/\/(www\.|m\.)?(bilibili\.com\/video\/|b23\.tv\/)/i, icon: MonitorPlay },
+  { id: 'youtube', name: 'YouTube', pattern: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)/i, icon: PlayCircle },
+  { id: 'ximalaya', name: '喜马拉雅', pattern: /^https?:\/\/(www\.|m\.)?ximalaya\.com\/sound\//i, icon: Headphones },
+  { id: 'apple-podcasts', name: 'Apple Podcasts', pattern: /^https?:\/\/podcasts\.apple\.com\/[a-z]{2}\/podcast\//i, icon: Podcast },
+  { id: 'direct-url', name: '直链', pattern: /^https?:\/\/[^\s]+\.(mp3|mp4|m4a|wav|aac|ogg)(\?[^\s]*)?/i, icon: Music },
+]
+
+function detectPlatform(url: string): DetectedPlatform | null {
+  const trimmed = url.trim()
+  if (!trimmed || trimmed.length < 8) return null
+  for (const p of PLATFORM_DETECTORS) {
+    if (p.pattern.test(trimmed)) return { id: p.id, name: p.name, icon: p.icon }
+  }
+  return null
+}
 
 export default function UrlInput({ onProcess, disabled }: Props) {
   const [url, setUrl] = useState('')
   const [focused, setFocused] = useState(false)
   const [showTip, setShowTip] = useState(false)
+  const [detected, setDetected] = useState<DetectedPlatform | null>(null)
+  const [unsupported, setUnsupported] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // 实时检测平台（debounce on URL change）
+  useEffect(() => {
+    const trimmed = url.trim()
+    if (!trimmed || trimmed.length < 8) {
+      setDetected(null)
+      setUnsupported(false)
+      return
+    }
+    // 仅在看起来像 URL 时检测
+    if (!/^https?:\/\//i.test(trimmed)) {
+      setDetected(null)
+      setUnsupported(false)
+      return
+    }
+    const result = detectPlatform(trimmed)
+    setDetected(result)
+    setUnsupported(!result)
+  }, [url])
 
   const handleSubmit = () => {
     const trimmed = url.trim()
     if (!trimmed) return
     onProcess(trimmed)
   }
+
+  const PlatformIcon = detected?.icon
 
   return (
     <motion.div
@@ -37,7 +87,7 @@ export default function UrlInput({ onProcess, disabled }: Props) {
         <div className="url-input-eyebrow">开始新任务</div>
         <h2 className="url-input-title">粘贴链接开始处理</h2>
         <p className="url-input-hint">
-          支持小宇宙、B 站、YouTube 和音视频直链，按 Enter 发起。
+          支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接，按 Enter 发起。
           <button
             className="url-input-tip-btn"
             onClick={() => setShowTip(v => !v)}
@@ -83,12 +133,16 @@ export default function UrlInput({ onProcess, disabled }: Props) {
           className={`url-input-field-wrap ${focused ? 'is-focused' : ''}`}
           onClick={() => inputRef.current?.focus()}
         >
-          <Link size={14} className="url-input-icon" />
+          {PlatformIcon ? (
+            <PlatformIcon size={14} className="url-input-icon url-input-platform-icon" />
+          ) : (
+            <Link size={14} className="url-input-icon" />
+          )}
           <input
             ref={inputRef}
             className="url-input-field"
             type="text"
-            placeholder="粘贴播客、视频或音频链接..."
+            placeholder="支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接"
             value={url}
             onChange={e => setUrl(e.target.value)}
             onFocus={() => setFocused(true)}
@@ -96,6 +150,9 @@ export default function UrlInput({ onProcess, disabled }: Props) {
             onKeyDown={e => e.key === 'Enter' && !disabled && handleSubmit()}
             disabled={disabled}
           />
+          {detected && (
+            <span className="url-input-badge" title={detected.name}>{detected.name}</span>
+          )}
           {url && !disabled && (
             <button className="url-input-clear" onClick={() => setUrl('')} title="清空">
               <X size={13} />
@@ -113,6 +170,17 @@ export default function UrlInput({ onProcess, disabled }: Props) {
           开始处理
         </motion.button>
       </div>
+
+      {unsupported && focused && (
+        <motion.p
+          className="url-input-unsupported"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+        >
+          暂不支持该平台，请使用本地文件方式
+        </motion.p>
+      )}
     </motion.div>
   )
 }

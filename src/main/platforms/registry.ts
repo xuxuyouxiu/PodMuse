@@ -40,10 +40,14 @@ export const platformRegistry = new PlatformRegistry()
 import { XiaoyuzhouAdapter } from './xiaoyuzhou'
 import { BilibiliAdapter } from './bilibili'
 import { YouTubeAdapter } from './youtube'
+import { XimalayaAdapter } from './ximalaya'
+import { ApplePodcastsAdapter } from './apple-podcasts'
 import { DirectUrlAdapter } from './direct-url'
 
 platformRegistry.register(new XiaoyuzhouAdapter())
 platformRegistry.register(new BilibiliAdapter())
 platformRegistry.register(new YouTubeAdapter())
+platformRegistry.register(new XimalayaAdapter())
+platformRegistry.register(new ApplePodcastsAdapter())
 // DirectUrlAdapter 放在最后作为兜底（仅匹配有媒体扩展名的 URL）
 platformRegistry.register(new DirectUrlAdapter())

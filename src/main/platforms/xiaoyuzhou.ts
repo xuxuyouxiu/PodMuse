@@ -89,10 +89,11 @@ export class XiaoyuzhouAdapter implements PlatformAdapter {
 }
 
 /** 从任意 URL 提取 og:title（通用兜底） */
-export async function fetchOgTitle(url: string): Promise<string | null> {
+export async function fetchOgTitle(url: string, signal?: AbortSignal): Promise<string | null> {
   try {
     const resp = await fetch(url, {
       headers: { 'User-Agent': HEADERS_UA, 'Accept-Language': 'zh-CN,zh;q=0.9' },
+      signal,
     })
     if (!resp.ok) return null
     const html = await resp.text()

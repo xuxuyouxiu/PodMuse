@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.9.0] - 2026-06-19
+
+### 新增
+- 喜马拉雅适配器：支持 ximalaya.com 单集音频，通过移动端 baseInfo API 获取标题、音频流、主播名，支持付费内容检测
+- Apple Podcasts 适配器：支持 podcasts.apple.com 单集链接，通过 iTunes Lookup API 获取 RSS → 解析 XML → 匹配单集
+- 元数据管道：各平台适配器提取的元数据（UP主、频道名、内容简介）注入 AI 提示词上下文，提升实体卡片质量
+- 输入框平台标识：粘贴链接后实时识别平台，显示对应图标和平台名 badge，不支持的平台显示提示
+- 设置页"支持平台"Tab：展示所有已支持平台列表及状态，yt-dlp 检测状态和版本号，可一键重新检测
+
+### 改进
+- B 站适配器：新增 UP 主名称和视频描述元数据
+- YouTube 适配器：通过 oEmbed API 获取频道名称，并行获取标题和频道信息
+- 小宇宙 fetchOgTitle：支持 AbortSignal 超时控制
+
 ## [1.8.3] - 2026-06-18
 
 ### 新增

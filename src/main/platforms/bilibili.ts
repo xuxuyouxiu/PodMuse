@@ -9,6 +9,8 @@ interface BiliViewData {
   title: string
   duration: number
   cid: number
+  ownerName?: string
+  desc?: string
 }
 
 interface BiliAudioStream {
@@ -47,6 +49,8 @@ export class BilibiliAdapter implements PlatformAdapter {
         platform: 'bilibili',
         duration: String(viewData.duration),
         bandwidth: String(audioStream.bandwidth),
+        ...(viewData.ownerName ? { owner: viewData.ownerName } : {}),
+        ...(viewData.desc ? { description: viewData.desc.slice(0, 500) } : {}),
       },
       headers: {
         'Referer': 'https://www.bilibili.com',
@@ -70,7 +74,7 @@ export class BilibiliAdapter implements PlatformAdapter {
       { headers: { 'User-Agent': UA, 'Referer': 'https://www.bilibili.com' }, signal },
     )
     if (!resp.ok) throw new Error(`B 站 API 请求失败: HTTP ${resp.status}`)
-    const json = await resp.json() as { code: number; message: string; data: { bvid: string; title: string; duration: number; pages: { cid: number }[] } }
+    const json = await resp.json() as { code: number; message: string; data: { bvid: string; title: string; duration: number; pages: { cid: number }[]; owner?: { name: string }; desc?: string } }
     if (json.code !== 0) throw new Error(`B 站 API 错误: ${json.message} (code=${json.code})`)
 
     const d = json.data
@@ -80,7 +84,7 @@ export class BilibiliAdapter implements PlatformAdapter {
     let title = d.title || bvId
     title = title.replace(/[_\-|]\s*(哔哩哔哩|bilibili|B站).*$/i, '').trim() || title
 
-    return { bvid: d.bvid, title, duration: d.duration, cid: d.pages[0].cid }
+    return { bvid: d.bvid, title, duration: d.duration, cid: d.pages[0].cid, ownerName: d.owner?.name, desc: d.desc }
   }
 
   private async fetchDashAudio(bvId: string, cid: number, signal?: AbortSignal): Promise<BiliAudioStream> {
