@@ -36,6 +36,20 @@ interface AIModelListResult {
 }
 
 declare global {
+  interface PodcastRef {
+    path: string
+    title: string
+    date?: string
+    category?: string
+    show?: string
+  }
+
+  interface BacklinkEntry {
+    entityName: string
+    entityType: 'people' | 'projects' | 'concepts' | 'terms'
+    podcastRefs: PodcastRef[]
+  }
+
   interface YtDlpStatus {
     available: boolean
     path: string | null
@@ -71,6 +85,8 @@ declare global {
       checkWhisperHardware: (modelId: string) => Promise<HardwareCheckResult>
       fetchAIModels: (baseUrl: string, apiKey: string) => Promise<AIModelListResult>
       detectYtDlp: () => Promise<YtDlpStatus>
+      getBacklinkIndex: () => Promise<BacklinkEntry[]>
+      showInFolder: (filePath: string) => Promise<boolean>
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>

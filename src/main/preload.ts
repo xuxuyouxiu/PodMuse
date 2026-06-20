@@ -53,6 +53,8 @@ try {
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
     fetchAIModels: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
     detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
+    getBacklinkIndex: () => ipcRenderer.invoke('backlinks:index'),
+    showInFolder: (filePath: string) => ipcRenderer.invoke('shell:showInFolder', filePath),
 
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),

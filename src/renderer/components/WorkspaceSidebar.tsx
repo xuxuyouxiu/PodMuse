@@ -1,15 +1,19 @@
 import { motion } from 'motion/react'
-import { Settings, Info, Zap, Clock, CheckCircle2 } from 'lucide-react'
+import { Settings, Info, Zap, Clock, CheckCircle2, Link2, LayoutDashboard } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
+export type SidebarView = 'workspace' | 'backlinks'
+
 interface Props {
+  activeView: SidebarView
+  onViewChange: (view: SidebarView) => void
   onSettings: () => void
   onAbout: () => void
   activeTasks: RecentTaskState[]
   recentTasks: RecentTaskState[]
 }
 
-export default function WorkspaceSidebar({ onSettings, onAbout, activeTasks, recentTasks }: Props) {
+export default function WorkspaceSidebar({ activeView, onViewChange, onSettings, onAbout, activeTasks, recentTasks }: Props) {
   const runningCount = activeTasks.filter(t => t.status === 'running').length
   const completedToday = recentTasks.filter(t => {
     if (t.status !== 'completed') return false
@@ -31,15 +35,29 @@ export default function WorkspaceSidebar({ onSettings, onAbout, activeTasks, rec
       <nav className="workspace-sidebar__nav" aria-label="工作台导航">
         <motion.button
           type="button"
-          className="workspace-sidebar__nav-item is-active"
+          className={`workspace-sidebar__nav-item ${activeView === 'workspace' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('workspace')}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
+          <LayoutDashboard size={16} />
           工作台
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'backlinks' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('backlinks')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Link2 size={16} />
+          知识关联
         </motion.button>
       </nav>
 
-      {/* 快速统计 */}
+      <div style={{ flex: 1 }} />
+
+      {/* 快速统计 - 放在底部操作区上方 */}
       <div className="sidebar-stats">
         <div className="sidebar-stats__title">任务概览</div>
         <div className="sidebar-stat">
@@ -59,7 +77,7 @@ export default function WorkspaceSidebar({ onSettings, onAbout, activeTasks, rec
         </div>
       </div>
 
-      <div className="workspace-sidebar__system-ops" style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="workspace-sidebar__system-ops" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"

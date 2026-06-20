@@ -12,6 +12,8 @@ import SettingsDialog from './components/SettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
+import type { SidebarView } from './components/WorkspaceSidebar'
+import BacklinkPanel from './components/BacklinkPanel'
 import CommandPalette, { useAppCommands } from './components/CommandPalette'
 import './styles/globals.css'
 
@@ -44,6 +46,7 @@ export default function App() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [rpTab, setRpTab] = useState<'active' | 'recent'>('active')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [activeView, setActiveView] = useState<SidebarView>('workspace')
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
@@ -270,7 +273,9 @@ export default function App() {
   return (
     <>
       <div className="workspace-shell">
-        <WorkspaceSidebar 
+        <WorkspaceSidebar
+          activeView={activeView}
+          onViewChange={setActiveView}
           onSettings={() => setSettingsOpen(true)}
           onAbout={() => setAboutOpen(true)}
           activeTasks={activeTasks}
@@ -278,6 +283,7 @@ export default function App() {
         />
         <div className="workspace-main">
           <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
+          {activeView === 'workspace' && (
           <div className="workspace-body">
             <div className="workspace-main-column">
               <div className="workspace-content">
@@ -302,8 +308,8 @@ export default function App() {
                   </div>
                 </section>
                 <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  <UrlInput 
-                    onProcess={handleProcess} 
+                  <UrlInput
+                    onProcess={handleProcess}
                     disabled={processing || cancelling}
                   />
                   <FileDropArea onProcessFile={handleProcessFile} disabled={processing || cancelling} />
@@ -362,6 +368,16 @@ export default function App() {
               </div>
             </aside>
           </div>
+          )}
+          {activeView === 'backlinks' && (
+            <div className="workspace-body">
+              <div className="workspace-main-column">
+                <div className="workspace-content">
+                  <BacklinkPanel />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {settingsOpen && config && (
