@@ -213,7 +213,7 @@ export default function App() {
     cancelFlag.current = false
     setCancelling(false)
     setLastUrl(task.url)
-    handleProcessWithMode(task.url, false, task.id)
+    handleProcessWithMode(task.url, true, task.id)
   }, [handleProcessWithMode])
 
   const handleTaskReplay = useCallback((task: RecentTaskState) => {
