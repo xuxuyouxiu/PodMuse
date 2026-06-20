@@ -265,6 +265,12 @@ function setupIPC() {
     }
   })
 
+  ipcMain.handle('podcast:checkProcessed', (_e, url: string) => {
+    const platformInfo = platformRegistry.findAdapter(url)
+    const episodeId = platformInfo?.adapter.getDedupKey(url) || null
+    return episodeId ? processedEpisodeIds.has(episodeId) : false
+  })
+
   ipcMain.handle('podcast:cancel', async () => {
     let cancelled = false
 

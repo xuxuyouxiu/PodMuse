@@ -169,6 +169,13 @@ export default function App() {
   }, [])
 
   const handleProcess = useCallback(async (url: string) => {
+    // Pre-check: has this URL been processed before?
+    const wasProcessed = await window.electronAPI.checkProcessed(url).catch(() => false)
+    if (wasProcessed) {
+      setToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"')
+      setTimeout(() => setToast(null), 3000)
+      return { success: false, error: '该播客已处理过' }
+    }
     return handleProcessWithMode(url, false)
   }, [handleProcessWithMode])
 
@@ -209,14 +216,9 @@ export default function App() {
     if (lastUrl) handleProcess(lastUrl)
   }, [lastUrl, handleProcess])
 
-  const handleTaskResume = useCallback((task: RecentTaskState) => {
+  const handleReprocess = useCallback((task: RecentTaskState) => {
     cancelFlag.current = false
     setCancelling(false)
-    setLastUrl(task.url)
-    handleProcessWithMode(task.url, true, task.id)
-  }, [handleProcessWithMode])
-
-  const handleTaskReplay = useCallback((task: RecentTaskState) => {
     setLastUrl(task.url)
     handleProcessWithMode(task.url, true, task.id)
   }, [handleProcessWithMode])
@@ -482,7 +484,7 @@ export default function App() {
                 </div>
                 <div className="rp-tabs__content">
                   {rpTab === 'active' && (
-                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleTaskResume} onCancel={async (taskId: string) => {
+                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleReprocess} onCancel={async (taskId: string) => {
                       if (taskId) {
                         const result = await window.electronAPI.cancelProcessing()
                         const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
@@ -496,7 +498,7 @@ export default function App() {
                     }} />
                   )}
                   {rpTab === 'recent' && (
-                    <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleTaskResume} onReplay={handleTaskReplay} onDelete={handleTaskDelete} />
+                    <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleReprocess} onReplay={handleReprocess} onDelete={handleTaskDelete} />
                   )}
                 </div>
               </div>

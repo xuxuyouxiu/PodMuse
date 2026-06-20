@@ -14,6 +14,7 @@ try {
     getFeishuStatus: () => ipcRenderer.invoke('feishu:status'),
 
     processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) => ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),
+    checkProcessed: (url: string) => ipcRenderer.invoke('podcast:checkProcessed', url),
     cancelProcessing: () => ipcRenderer.invoke('podcast:cancel'),
     getRecoveryLogs: () => ipcRenderer.invoke('task:getRecoveryLogs'),
 
