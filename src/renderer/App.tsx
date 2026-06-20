@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState } from '@shared/types'
+import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState, BatchInput, BatchQueueSnapshot, BatchCompletionSummary, BatchTask } from '@shared/types'
 import { Zap, Clock } from 'lucide-react'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
@@ -14,6 +14,8 @@ import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import type { SidebarView } from './components/WorkspaceSidebar'
 import BacklinkPanel from './components/BacklinkPanel'
+import BatchConfirmPanel from './components/BatchConfirmPanel'
+import BatchQueuePanel from './components/BatchQueuePanel'
 import CommandPalette, { useAppCommands } from './components/CommandPalette'
 import './styles/globals.css'
 
@@ -47,10 +49,16 @@ export default function App() {
   const [rpTab, setRpTab] = useState<'active' | 'recent'>('active')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [activeView, setActiveView] = useState<SidebarView>('workspace')
+  const [batchConfirmItems, setBatchConfirmItems] = useState<BatchInput[] | null>(null)
+  const [batchQueueState, setBatchQueueState] = useState<BatchQueueSnapshot | null>(null)
+  const [batchCompletion, setBatchCompletion] = useState<BatchCompletionSummary | null>(null)
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
-  const workflowStateLabel = processing ? '处理中' : cancelling ? '停止中' : paused ? '已暂停' : '待命中'
+  const isBatchActive = batchQueueState && (batchQueueState.status === 'running' || batchQueueState.status === 'paused')
+  const workflowStateLabel = isBatchActive
+    ? (batchQueueState!.status === 'paused' ? '批量已暂停' : '批量处理中')
+    : processing ? '处理中' : cancelling ? '停止中' : paused ? '已暂停' : '待命中'
 
   const step1 = steps[0]
   const PLACEHOLDER_TITLES = new Set(['提取音频链接', '提取音频'])
@@ -91,6 +99,29 @@ export default function App() {
         }
       }).catch(() => {})
     }))
+
+    // Batch queue events
+    cleanups.push(window.electronAPI.onBatchQueueState((state: BatchQueueSnapshot) => {
+      setBatchQueueState(state)
+    }))
+    cleanups.push(window.electronAPI.onBatchTaskUpdate((index: number, task: BatchTask) => {
+      setBatchQueueState(prev => {
+        if (!prev) return prev
+        const tasks = [...prev.tasks]
+        if (index >= 0 && index < tasks.length) {
+          tasks[index] = task
+        }
+        return { ...prev, tasks }
+      })
+    }))
+    cleanups.push(window.electronAPI.onBatchQueueComplete((summary: BatchCompletionSummary) => {
+      setBatchCompletion(summary)
+    }))
+
+    // Load initial batch state
+    window.electronAPI.batchGetState().then((state: BatchQueueSnapshot) => {
+      if (state.tasks.length > 0) setBatchQueueState(state)
+    }).catch(() => {})
 
     return () => { cleanups.forEach(fn => fn?.()) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,6 +257,82 @@ export default function App() {
     })
   }, [])
 
+  // ---- Batch handlers ----
+
+  const handleBatchFiles = useCallback((filePaths: string[]) => {
+    const items: BatchInput[] = filePaths.map(p => ({ source: p, type: 'file' as const }))
+    setBatchConfirmItems(items)
+  }, [])
+
+  const handleBatchUrls = useCallback((urls: string[]) => {
+    const items: BatchInput[] = urls.map(u => ({ source: u, type: 'url' as const }))
+    setBatchConfirmItems(items)
+  }, [])
+
+  const handleBatchConfirm = useCallback(async () => {
+    if (!batchConfirmItems) return
+    const items = batchConfirmItems
+    setBatchConfirmItems(null)
+    setBatchCompletion(null)
+    await window.electronAPI.batchAdd(items)
+    await window.electronAPI.batchStart()
+  }, [batchConfirmItems])
+
+  const handleBatchCancel = useCallback(() => {
+    setBatchConfirmItems(null)
+  }, [])
+
+  const handleBatchRemoveItem = useCallback((index: number) => {
+    setBatchConfirmItems(prev => prev ? prev.filter((_, i) => i !== index) : null)
+  }, [])
+
+  const handleBatchReorder = useCallback((from: number, to: number) => {
+    setBatchConfirmItems(prev => {
+      if (!prev) return prev
+      const items = [...prev]
+      const [moved] = items.splice(from, 1)
+      items.splice(to, 0, moved)
+      return items
+    })
+  }, [])
+
+  const handleBatchPause = useCallback(() => {
+    window.electronAPI.batchPause()
+  }, [])
+
+  const handleBatchResume = useCallback(() => {
+    window.electronAPI.batchResume()
+  }, [])
+
+  const handleBatchSkip = useCallback((index: number) => {
+    window.electronAPI.batchSkip(index)
+  }, [])
+
+  const handleBatchClear = useCallback(() => {
+    window.electronAPI.batchClear()
+    setBatchCompletion(null)
+  }, [])
+
+  const handleBatchRetry = useCallback((index: number) => {
+    window.electronAPI.batchRetry(index)
+  }, [])
+
+  const handleBatchRetryAllFailed = useCallback(() => {
+    if (!batchQueueState) return
+    const failedIndices = batchQueueState.tasks
+      .map((t, i) => t.status === 'failed' ? i : -1)
+      .filter(i => i >= 0)
+    failedIndices.forEach(i => window.electronAPI.batchRetry(i))
+    window.electronAPI.batchStart()
+    setBatchCompletion(null)
+  }, [batchQueueState])
+
+  const handleBatchDismiss = useCallback(() => {
+    setBatchQueueState(null)
+    setBatchCompletion(null)
+    window.electronAPI.batchClear()
+  }, [])
+
   const commands = useAppCommands({
     theme,
     onToggleTheme: toggleTheme,
@@ -310,10 +417,37 @@ export default function App() {
                 <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <UrlInput
                     onProcess={handleProcess}
-                    disabled={processing || cancelling}
+                    onBatchUrls={handleBatchUrls}
+                    disabled={processing || cancelling || !!isBatchActive}
                   />
-                  <FileDropArea onProcessFile={handleProcessFile} disabled={processing || cancelling} />
+                  <FileDropArea
+                    onProcessFile={handleProcessFile}
+                    onBatchFiles={handleBatchFiles}
+                    disabled={processing || cancelling || !!isBatchActive}
+                  />
                 </section>
+                {batchConfirmItems && (
+                  <BatchConfirmPanel
+                    items={batchConfirmItems}
+                    onConfirm={handleBatchConfirm}
+                    onCancel={handleBatchCancel}
+                    onRemoveItem={handleBatchRemoveItem}
+                    onReorder={handleBatchReorder}
+                  />
+                )}
+                {batchQueueState && batchQueueState.tasks.length > 0 && (
+                  <BatchQueuePanel
+                    queueState={batchQueueState}
+                    completionSummary={batchCompletion}
+                    onPause={handleBatchPause}
+                    onResume={handleBatchResume}
+                    onSkip={handleBatchSkip}
+                    onClear={handleBatchClear}
+                    onRetry={handleBatchRetry}
+                    onRetryAllFailed={handleBatchRetryAllFailed}
+                    onDismiss={handleBatchDismiss}
+                  />
+                )}
                 <section className="workspace-process-card">
                   <StepPanel steps={steps} processing={processing} />
                   <ControlBar

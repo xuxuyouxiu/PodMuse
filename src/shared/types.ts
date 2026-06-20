@@ -102,3 +102,47 @@ export interface RecoveryLogEntry {
   url: string
   detail: string
 }
+
+// ===== 批量处理 =====
+
+export type BatchTaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'skipped'
+
+export type BatchQueueStatus = 'idle' | 'running' | 'paused' | 'completed'
+
+export interface BatchInput {
+  source: string
+  type: 'file' | 'url'
+}
+
+export interface BatchTask {
+  id: string
+  source: string
+  type: 'file' | 'url'
+  status: BatchTaskStatus
+  title?: string | null
+  platform?: string | null
+  failureReason?: string
+  addedAt: number
+  completedAt?: number
+  filename?: string | null
+  steps?: StepInfo[]
+}
+
+export interface BatchQueueSnapshot {
+  tasks: BatchTask[]
+  status: BatchQueueStatus
+  currentIndex: number
+  total: number
+  completed: number
+  failed: number
+  skipped: number
+  startedAt?: number
+}
+
+export interface BatchCompletionSummary {
+  total: number
+  succeeded: number
+  failed: number
+  skipped: number
+  duration: number
+}

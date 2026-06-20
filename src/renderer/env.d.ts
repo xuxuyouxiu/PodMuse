@@ -5,6 +5,10 @@ import type {
   StepInfo,
   FeishuStatus,
   RecoveryLogEntry,
+  BatchTask,
+  BatchQueueSnapshot,
+  BatchCompletionSummary,
+  BatchInput,
 } from '../shared/types'
 
 interface NoteSearchResult {
@@ -87,6 +91,22 @@ declare global {
       detectYtDlp: () => Promise<YtDlpStatus>
       getBacklinkIndex: () => Promise<BacklinkEntry[]>
       showInFolder: (filePath: string) => Promise<boolean>
+
+      // 批量处理
+      batchAdd: (items: BatchInput[]) => Promise<BatchQueueSnapshot>
+      batchStart: () => Promise<BatchQueueSnapshot>
+      batchPause: () => Promise<BatchQueueSnapshot>
+      batchResume: () => Promise<BatchQueueSnapshot>
+      batchSkip: (index: number) => Promise<BatchQueueSnapshot>
+      batchClear: () => Promise<BatchQueueSnapshot>
+      batchRetry: (index: number) => Promise<BatchQueueSnapshot>
+      batchRemove: (index: number) => Promise<BatchQueueSnapshot>
+      batchReorder: (from: number, to: number) => Promise<BatchQueueSnapshot>
+      batchGetState: () => Promise<BatchQueueSnapshot>
+      onBatchTaskUpdate: (callback: (index: number, task: BatchTask) => void) => () => void
+      onBatchQueueState: (callback: (state: BatchQueueSnapshot) => void) => () => void
+      onBatchQueueComplete: (callback: (summary: BatchCompletionSummary) => void) => () => void
+
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>

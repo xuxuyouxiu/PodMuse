@@ -10,7 +10,11 @@ const STEP_TITLES = ['解析页面', '下载音频', '语音转文字', '修正�
 
 export class PodcastDispatchService {
   private processing = false
+  private _batchMode = false
   abortRef: AbortController | null = null
+
+  get batchMode(): boolean { return this._batchMode }
+  set batchMode(v: boolean) { this._batchMode = v }
 
   private updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>) {
     const current = loadState()
@@ -35,6 +39,10 @@ export class PodcastDispatchService {
   ) {}
 
   async dispatch(url: string, episodeId: string | null): Promise<void> {
+    if (this._batchMode) {
+      this.logFunc('⏳ 批量处理中，飞书消息稍后处理')
+      return
+    }
     if (this.processing) {
       this.logFunc('⏳ 上一个播客还在处理中，本条稍后轮询时处理')
       return

@@ -56,6 +56,33 @@ try {
     getBacklinkIndex: () => ipcRenderer.invoke('backlinks:index'),
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:showInFolder', filePath),
 
+    // 批量处理
+    batchAdd: (items: unknown[]) => ipcRenderer.invoke('batch:add', items),
+    batchStart: () => ipcRenderer.invoke('batch:start'),
+    batchPause: () => ipcRenderer.invoke('batch:pause'),
+    batchResume: () => ipcRenderer.invoke('batch:resume'),
+    batchSkip: (index: number) => ipcRenderer.invoke('batch:skip', index),
+    batchClear: () => ipcRenderer.invoke('batch:clear'),
+    batchRetry: (index: number) => ipcRenderer.invoke('batch:retry', index),
+    batchRemove: (index: number) => ipcRenderer.invoke('batch:remove', index),
+    batchReorder: (from: number, to: number) => ipcRenderer.invoke('batch:reorder', from, to),
+    batchGetState: () => ipcRenderer.invoke('batch:getState'),
+    onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
+      ipcRenderer.on('batch:task-update', handler)
+      return () => { ipcRenderer.removeListener('batch:task-update', handler) }
+    },
+    onBatchQueueState: (callback: (state: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, state: unknown) => callback(state)
+      ipcRenderer.on('batch:queue-state', handler)
+      return () => { ipcRenderer.removeListener('batch:queue-state', handler) }
+    },
+    onBatchQueueComplete: (callback: (summary: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, summary: unknown) => callback(summary)
+      ipcRenderer.on('batch:queue-complete', handler)
+      return () => { ipcRenderer.removeListener('batch:queue-complete', handler) }
+    },
+
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
     closeWindow: () => ipcRenderer.invoke('window:close'),

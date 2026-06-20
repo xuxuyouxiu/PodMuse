@@ -13,6 +13,8 @@ import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
 import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, runConsistencyCheck } from './task-recovery'
 import { sendNotification, setupNotificationAppId } from './notify'
+import { BatchQueueService } from './batch-queue'
+import { registerBatchIPC } from './ipc/batch-ipc'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -22,6 +24,7 @@ let pendingAbort: AbortController | null = null
 let pendingProcessDone: (() => void) | null = null
 let tray: Tray | null = null
 let isQuitting = false
+let batchQueueService: BatchQueueService | null = null
 
 function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true
@@ -121,6 +124,32 @@ function createWindow() {
 function setupIPC() {
   // 注册无状态/轻量级 IPC handler（配置、任务、搜索、窗口、对话框等）
   registerCoreIPC(mainWindow)
+
+  // 初始化批量处理队列引擎
+  batchQueueService = new BatchQueueService({
+    onTaskUpdate: (index, task) => {
+      try { mainWindow?.webContents.send('batch:task-update', index, task) } catch {}
+    },
+    onQueueStateChange: () => {
+      try {
+        const state = batchQueueService?.getState()
+        mainWindow?.webContents.send('batch:queue-state', state)
+        // Sync batch mode to Feishu dispatcher
+        const isBatchActive = state && (state.status === 'running' || state.status === 'paused')
+        monitor?.setBatchMode(!!isBatchActive)
+      } catch {}
+    },
+    onQueueComplete: (summary) => {
+      try { mainWindow?.webContents.send('batch:queue-complete', summary) } catch {}
+    },
+    sendStep: (step) => {
+      try { mainWindow?.webContents.send('podcast:step', step) } catch {}
+    },
+    sendLog: (msg) => {
+      try { mainWindow?.webContents.send('log', msg) } catch {}
+    },
+  })
+  registerBatchIPC(mainWindow, batchQueueService)
 
   // ---- 以下为涉及模块级状态的 handler，保留在 index.ts 中 ----
 
@@ -420,6 +449,9 @@ app.on('before-quit', () => {
   stopConsistencyChecker()
   if (pendingAbort && !pendingAbort.signal.aborted) {
     pendingAbort.abort()
+  }
+  if (batchQueueService?.isRunning) {
+    batchQueueService.pause()
   }
   monitor?.cancelProcessing()
   monitor?.stop()

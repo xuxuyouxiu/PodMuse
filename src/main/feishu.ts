@@ -75,6 +75,10 @@ export class FeishuMonitor {
     return false
   }
 
+  setBatchMode(v: boolean): void {
+    if (this.dispatcher) this.dispatcher.batchMode = v
+  }
+
   hasActiveProcess(): boolean {
     return !!(this.dispatcher?.abortRef && !this.dispatcher.abortRef.signal.aborted)
   }

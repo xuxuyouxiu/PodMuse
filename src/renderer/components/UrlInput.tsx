@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link, Play, HelpCircle, X, Radio, MonitorPlay, PlayCircle, Headphones, Podcast, Music } from 'lucide-react'
 
 interface Props {
   onProcess: (url: string) => Promise<{ success: boolean; error?: string }>
+  onBatchUrls?: (urls: string[]) => void
   disabled: boolean
 }
 
@@ -41,11 +42,25 @@ function detectPlatform(url: string): DetectedPlatform | null {
   return null
 }
 
-export default function UrlInput({ onProcess, disabled }: Props) {
+export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
   const [url, setUrl] = useState('')
   const [focused, setFocused] = useState(false)
   const [showTip, setShowTip] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // 检测多行粘贴
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData('text')
+    if (!pasted.includes('\n') || !onBatchUrls) return
+
+    e.preventDefault()
+    const urls = pasted.split('\n').map(u => u.trim()).filter(u => /^https?:\/\//i.test(u))
+    if (urls.length > 1) {
+      onBatchUrls(urls)
+    } else if (urls.length === 1) {
+      setUrl(urls[0])
+    }
+  }, [onBatchUrls])
 
   // 实时检测平台（派生状态，无需 useEffect）
   const { detected, unsupported } = useMemo(() => {
@@ -134,6 +149,7 @@ export default function UrlInput({ onProcess, disabled }: Props) {
             placeholder="支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接"
             value={url}
             onChange={e => setUrl(e.target.value)}
+            onPaste={handlePaste}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             onKeyDown={e => e.key === 'Enter' && !disabled && handleSubmit()}

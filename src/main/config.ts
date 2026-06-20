@@ -38,7 +38,7 @@ function isPortableMode(): boolean {
   }
 }
 
-function getUserDataDir(): string {
+export function getUserDataDir(): string {
   if (!_userDataDir) {
     if (isPortableMode()) {
       const exeDir = path.dirname(process.execPath)
