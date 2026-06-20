@@ -28,6 +28,12 @@ const ENTITY_DIRS: { dir: string; type: BacklinkEntry['entityType'] }[] = [
   { dir: '术语', type: 'terms' },
 ]
 
+// ── Normalize link names for fuzzy matching ──
+// Handles edge cases like trailing dots mismatch (filename has 4 dots, wiki-link has 3)
+function normalizeLinkName(name: string): string {
+  return name.replace(/[\s.…·]+$/g, '').replace(/\.+$/, '').trim()
+}
+
 // ── Wiki-link regex (matches [[name]] but not [[name|alias]]) ──
 const WIKILINK_RE = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g
 
@@ -103,8 +109,9 @@ function extractPodcastLinks(entityFilePath: string): string[] {
 
 // ── Build podcast file map (filename -> full path) ──
 
-function buildPodcastFileMap(obsidianDir: string): Map<string, string> {
-  const map = new Map<string, string>()
+function buildPodcastFileMap(obsidianDir: string): { exact: Map<string, string>; normalized: Map<string, string> } {
+  const exact = new Map<string, string>()
+  const normalized = new Map<string, string>()
   try {
     const entries = fs.readdirSync(obsidianDir, { withFileTypes: true })
     for (const entry of entries) {
@@ -118,18 +125,22 @@ function buildPodcastFileMap(obsidianDir: string): Map<string, string> {
           for (const sub of subEntries) {
             if (sub.isFile() && sub.name.endsWith('.md')) {
               const nameWithoutExt = sub.name.replace(/\.md$/i, '')
-              map.set(nameWithoutExt, path.join(subDir, sub.name))
+              const fullPath = path.join(subDir, sub.name)
+              exact.set(nameWithoutExt, fullPath)
+              normalized.set(normalizeLinkName(nameWithoutExt), fullPath)
             }
           }
         } catch { /* skip unreadable dirs */ }
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         // Root-level .md files
         const nameWithoutExt = entry.name.replace(/\.md$/i, '')
-        map.set(nameWithoutExt, path.join(obsidianDir, entry.name))
+        const fullPath = path.join(obsidianDir, entry.name)
+        exact.set(nameWithoutExt, fullPath)
+        normalized.set(normalizeLinkName(nameWithoutExt), fullPath)
       }
     }
   } catch { /* obsidianDir unreadable */ }
-  return map
+  return { exact, normalized }
 }
 
 // ── Public API ──
@@ -141,7 +152,7 @@ export function buildBacklinkIndex(obsidianDir: string): BacklinkIndex {
   }
 
   // 1. Build podcast file map for path resolution
-  const podcastMap = buildPodcastFileMap(obsidianDir)
+  const { exact: podcastMap, normalized: normalizedMap } = buildPodcastFileMap(obsidianDir)
 
   // 2. Cache frontmatter metadata for quick lookup
   const metaCache = new Map<string, FrontmatterMeta>()
@@ -176,10 +187,14 @@ export function buildBacklinkIndex(obsidianDir: string): BacklinkIndex {
         if (seen.has(linkName)) continue
         seen.add(linkName)
 
-        const podcastPath = podcastMap.get(linkName)
+        // Try exact match first, then normalized fuzzy match
+        let podcastPath = podcastMap.get(linkName)
+        if (!podcastPath) {
+          podcastPath = normalizedMap.get(normalizeLinkName(linkName))
+        }
         if (!podcastPath) continue
 
-        const meta = metaCache.get(linkName) || {}
+        const meta = metaCache.get(linkName) || metaCache.get(normalizeLinkName(linkName)) || {}
         podcastRefs.push({
           path: podcastPath,
           title: linkName,
