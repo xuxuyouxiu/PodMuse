@@ -29,11 +29,19 @@ export function isPathWithinBase(targetPath: string, baseDirs: string[]): boolea
 }
 
 /**
+ * 检查路径是否包含目录穿越段（..），仅匹配路径分隔符之间的 ".." 段
+ * 不会误杀文件名中的省略号（如 "颜色..."）
+ */
+function hasPathTraversal(p: string): boolean {
+  return p.split(/[\\/]/).some(seg => seg === '..')
+}
+
+/**
  * 检查文件路径是否安全（在允许目录内 + 扩展名白名单）
  */
 export function isSafeFilePath(filePath: string, allowedBaseDirs: string[], allowedExtensions: string[]): boolean {
   if (!filePath || typeof filePath !== 'string') return false
-  if (filePath.includes('..')) return false
+  if (hasPathTraversal(filePath)) return false
   const ext = extname(filePath).toLowerCase()
   if (!allowedExtensions.includes(ext)) return false
   return isPathWithinBase(filePath, allowedBaseDirs)
@@ -45,7 +53,7 @@ export function isSafeFilePath(filePath: string, allowedBaseDirs: string[], allo
  */
 export function isSafeExecutablePath(exePath: string): boolean {
   if (!exePath || typeof exePath !== 'string') return false
-  if (exePath.includes('..')) return false
+  if (hasPathTraversal(exePath)) return false
 
   // 允许空路径（用户尚未配置）
   const trimmed = exePath.trim()
@@ -71,7 +79,7 @@ export function isSafeDirectoryPath(dirPath: string): boolean {
   const trimmed = dirPath.trim()
   if (!trimmed) return true // 允许空路径
 
-  if (trimmed.includes('..')) return false
+  if (hasPathTraversal(trimmed)) return false
 
   const pathLower = trimmed.toLowerCase()
   for (const dir of DANGEROUS_DIRS_LOWER) {
