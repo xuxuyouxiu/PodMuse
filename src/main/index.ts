@@ -37,10 +37,12 @@ function hasActiveProcess(): boolean {
   return false
 }
 
-function updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>) {
+function updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>): ReturnType<typeof loadState> {
   const current = loadState()
-  saveState(updater(current))
+  const updated = updater(current)
+  saveState(updated)
   try { mainWindow?.webContents.send('task:state-changed') } catch {}
+  return updated
 }
 
 function getResourcePath(...segments: string[]) {
