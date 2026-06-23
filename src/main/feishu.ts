@@ -79,6 +79,11 @@ export class FeishuMonitor {
     if (this.dispatcher) this.dispatcher.batchMode = v
   }
 
+  /** Sync an episodeId into the processed-url store (e.g. when deleting a task) */
+  addProcessedUrl(episodeId: string): void {
+    this.store.addUrlId(episodeId)
+  }
+
   hasActiveProcess(): boolean {
     return !!(this.dispatcher?.abortRef && !this.dispatcher.abortRef.signal.aborted)
   }

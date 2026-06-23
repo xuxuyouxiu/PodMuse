@@ -46,6 +46,8 @@ declare global {
     date?: string
     category?: string
     show?: string
+    episode?: string
+    context?: string
   }
 
   interface BacklinkEntry {
@@ -104,6 +106,7 @@ declare global {
       batchRemove: (index: number) => Promise<BatchQueueSnapshot>
       batchReorder: (from: number, to: number) => Promise<BatchQueueSnapshot>
       batchGetState: () => Promise<BatchQueueSnapshot>
+      batchCheckRecovery: () => Promise<{ pending: number; failed: number; total: number; allFailed: boolean } | null>
       onBatchTaskUpdate: (callback: (index: number, task: BatchTask) => void) => () => void
       onBatchQueueState: (callback: (state: BatchQueueSnapshot) => void) => () => void
       onBatchQueueComplete: (callback: (summary: BatchCompletionSummary) => void) => () => void

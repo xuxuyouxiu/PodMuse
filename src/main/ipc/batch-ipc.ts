@@ -52,6 +52,10 @@ export function registerBatchIPC(mainWindow: BrowserWindow | null, service: Batc
     return service.getState()
   })
 
+  ipcMain.handle('batch:checkRecovery', () => {
+    return service.getRecoveryInfo()
+  })
+
   // Keep reference to mainWindow for event sending (used by callbacks)
   void mainWindow
 }

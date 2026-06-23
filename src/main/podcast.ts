@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { StepInfo, AIProviderId } from '@shared/types'
 import { cleanTitleForFilename } from '@shared/utils'
 import { runWhisper } from './whisper'
-import { correctTranscript, generateNotes } from './ai-client'
+import { correctTranscript, generateNotes, evaluateQuality } from './ai-client'
 import { parseEntityBlocks, writeEntityNotes, fillMissingTermCards, extractBodyWikiLinks, fillMissingEntityCards } from './entity-cards'
 import { isSubPathOf } from './security'
 import { platformRegistry, fetchOgTitle, extractAudioWithYtDlp, extractSubtitles, parseSubtitleToText, detectYtDlp, autoDownloadYtDlp } from './platforms'
@@ -470,7 +470,12 @@ export async function processPodcast(
   log('  [5/5] AI 提炼笔记 (DeepSeek)...')
   let notes: { content: string | null; cost: number }
   try {
-    notes = await generateNotes(providerConfig, providerId as AIProviderId, finalTranscript, signal, platformMetadata)
+    notes = await generateNotes(
+      providerConfig, providerId as AIProviderId, finalTranscript, signal, platformMetadata,
+      (current, total) => {
+        step({ step: 5, title: 'AI 提炼笔记', subtitle: `分段处理 (${current}/${total})...`, status: 'running' })
+      }
+    )
   } catch (e: unknown) {
     step({ step: 5, title: 'AI 提炼笔记', subtitle: 'API 异常', status: 'error', detail: errMsg(e) })
     log(`  ❌ DeepSeek 生成异常: ${errMsg(e)}`)
@@ -483,6 +488,15 @@ export async function processPodcast(
   }
   step({ step: 5, title: 'AI 提炼笔记', subtitle: `≈¥${notes.cost.toFixed(4)}`, status: 'done' })
   log(`  ✓ 提炼完成 (≈¥${notes.cost.toFixed(4)})`)
+
+  // 质量评估
+  const qScore = evaluateQuality(finalTranscript, notes.content)
+  const scoreLabel = qScore.overall >= 60 ? `质量 ${qScore.overall}/100` : `⚠ 质量 ${qScore.overall}/100（建议复核）`
+  step({ step: 5, title: 'AI 提炼笔记', subtitle: `≈¥${notes.cost.toFixed(4)} | ${scoreLabel}`, status: 'done' })
+  log(`  📊 质量评分: ${qScore.overall}/100（覆盖 ${qScore.contentCoverage}% | 实体 ${qScore.entityCompleteness}% | 链接 ${qScore.wikiLinkCoverage}% | 格式 ${qScore.formatCompliance}%）`)
+  if (qScore.details.length > 0) {
+    for (const d of qScore.details) log(`     ${d}`)
+  }
 
   const entities = parseEntityBlocks(notes.content)
   const { entities: patchedEntities, filled: filledTerms } = fillMissingTermCards(notes.content, entities)
@@ -505,7 +519,17 @@ export async function processPodcast(
   }
 
   if (finalEntities.people.length || finalEntities.projects.length || finalEntities.concepts.length || finalEntities.terms.length) {
-    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, apiKey: providerConfig?.apiKey, providerConfig, providerId: providerId as AIProviderId, onProgress: (msg) => log(msg) }, signal)
+    // 从笔记 frontmatter 中提取 date 和 episode 用于"近期提及"
+    let podcastDate = ''
+    let podcastEpisode = ''
+    const fmMatch = (notes.content || '').match(/^---\s*\n([\s\S]*?)\n---/)
+    if (fmMatch) {
+      const dateM = fmMatch[1].match(/^date:\s*(.+)$/m)
+      const epM = fmMatch[1].match(/^episode:\s*(.+)$/m)
+      if (dateM) podcastDate = dateM[1].trim()
+      if (epM) podcastEpisode = epM[1].trim()
+    }
+    const cardResult = await writeEntityNotes({ entities: finalEntities, obsidianDir: obsDir, podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`, podcastTitle: title || '未命名播客', podcastDate, podcastEpisode, apiKey: providerConfig?.apiKey, providerConfig, providerId: providerId as AIProviderId, onProgress: (msg) => log(msg) }, signal)
     const parts: string[] = []
     if (cardResult.peopleWritten) parts.push(`${cardResult.peopleWritten} 人物`)
     if (cardResult.projectsWritten) parts.push(`${cardResult.projectsWritten} 项目`)

@@ -93,10 +93,17 @@ export function getRecentTasks(state: FeishuState): RecentTaskState[] {
 }
 
 export function removeRecentTask(state: FeishuState, taskId: string): FeishuState {
+  // Find the task being deleted to preserve its episodeId in dedup tracking
+  const task = state.activeTasks.find(t => t.id === taskId) || state.recentTasks.find(t => t.id === taskId)
+  const processedUrls = task?.episodeId && !state.processedUrls.includes(task.episodeId)
+    ? [...state.processedUrls, task.episodeId]
+    : state.processedUrls
+
   return {
     ...state,
-    activeTasks: state.activeTasks.filter(task => task.id !== taskId),
-    recentTasks: state.recentTasks.filter(task => task.id !== taskId),
+    processedUrls,
+    activeTasks: state.activeTasks.filter(t => t.id !== taskId),
+    recentTasks: state.recentTasks.filter(t => t.id !== taskId),
   }
 }
 
@@ -134,7 +141,7 @@ function findTaskByIdentityInActive(state: FeishuState, input: {
     (input.taskId && task.id === input.taskId)
     || (input.episodeId && task.episodeId === input.episodeId)
     || (input.url && task.url === input.url),
-  ) || state.activeTasks[0]
+  ) // No fallback — return undefined if no match found
 }
 
 function createTaskId() {

@@ -9,17 +9,18 @@ import { getActiveProviderConfig } from './ai-providers'
 import { fetchPodcastTitle } from './podcast'
 import { platformRegistry } from './platforms'
 import { scanLocalModels, checkHardware } from './whisper-model-manager'
+import { setPromptDir, exportBuiltInTemplates } from './ai-client'
 import * as fs from 'fs'
 import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
 import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, runConsistencyCheck } from './task-recovery'
 import { sendNotification, setupNotificationAppId } from './notify'
 import { BatchQueueService } from './batch-queue'
 import { registerBatchIPC } from './ipc/batch-ipc'
+import { processedEpisodeIds } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let monitor: FeishuMonitor | null = null
-const processedEpisodeIds = new Set<string>(loadState().processedUrls || [])
 let pendingAbort: AbortController | null = null
 let pendingProcessDone: (() => void) | null = null
 let tray: Tray | null = null
@@ -123,7 +124,7 @@ function createWindow() {
 
 function setupIPC() {
   // 注册无状态/轻量级 IPC handler（配置、任务、搜索、窗口、对话框等）
-  registerCoreIPC(mainWindow)
+  registerCoreIPC(mainWindow, monitor)
 
   // 初始化批量处理队列引擎
   batchQueueService = new BatchQueueService({
@@ -147,6 +148,9 @@ function setupIPC() {
     },
     sendLog: (msg) => {
       try { mainWindow?.webContents.send('log', msg) } catch {}
+    },
+    updateRecentState: (updater) => {
+      updateRecentState(updater)
     },
   })
   registerBatchIPC(mainWindow, batchQueueService)
@@ -208,7 +212,9 @@ function setupIPC() {
     const initialTitle = isLocalFile ? basename(url, extname(url)) : await fetchPodcastTitle(url).catch(() => null)
     const platformInfoForId = !isLocalFile ? platformRegistry.findAdapter(url) : null
     const episodeId = platformInfoForId?.adapter.getDedupKey(url) || null
-    updateRecentState(state => startRecentTask(state, { id: taskId, url, episodeId, title: initialTitle }))
+    // Capture the actual taskId (auto-generated if none provided) so completeRecentTask can find it
+    const stateAfterStart = updateRecentState(state => startRecentTask(state, { id: taskId, url, episodeId, title: initialTitle }))
+    const actualTaskId = stateAfterStart.activeTasks.find(t => t.url === url && t.status === 'running')?.id || taskId
     pendingAbort = new AbortController()
     const signal = pendingAbort.signal
     const config = loadConfig()
@@ -231,7 +237,7 @@ function setupIPC() {
         if (episodeId) {
           processedEpisodeIds.add(episodeId)
         }
-        updateRecentState(state => completeRecentTask(state, { taskId, url, episodeId, filename: result }))
+        updateRecentState(state => completeRecentTask(state, { taskId: actualTaskId, url, episodeId, filename: result }))
         if (config.notification_enabled !== false) {
           sendNotification('播客笔记助手', `笔记已生成：${result}`)
         }
@@ -425,6 +431,11 @@ function createTray() {
 app.whenReady().then(() => {
   // 设置 AppUserModelID 以支持 Windows 通知
   setupNotificationAppId()
+
+  // 初始化 prompt 模板目录并导出内置模板
+  const promptsDir = join(app.getPath('userData'), 'prompts')
+  setPromptDir(promptsDir)
+  exportBuiltInTemplates()
   
   runStartupRecovery((msg: string) => {
     console.log(msg)

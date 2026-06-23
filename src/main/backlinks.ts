@@ -9,6 +9,8 @@ export interface PodcastRef {
   date?: string
   category?: string
   show?: string
+  episode?: string
+  context?: string
 }
 
 export interface BacklinkEntry {
@@ -44,6 +46,7 @@ interface FrontmatterMeta {
   category?: string
   show?: string
   type?: string
+  episode?: string
 }
 
 function parseFrontmatter(filePath: string): FrontmatterMeta {
@@ -76,6 +79,7 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
       else if (key === 'category') meta.category = value
       else if (key === 'show') meta.show = value
       else if (key === 'type') meta.type = value
+      else if (key === 'episode') meta.episode = value
     }
 
     return meta
@@ -143,6 +147,35 @@ function buildPodcastFileMap(obsidianDir: string): { exact: Map<string, string>;
   return { exact, normalized }
 }
 
+// ── Extract context summary from a podcast note around an entity mention ──
+
+function extractContextSummary(notePath: string, entityName: string): string | undefined {
+  try {
+    const content = fs.readFileSync(notePath, 'utf-8')
+    // Search for the entity name in the content (after frontmatter)
+    const frontmatterEnd = content.indexOf('\n---', 3)
+    const body = frontmatterEnd >= 0 ? content.substring(frontmatterEnd + 4) : content
+    const pos = body.indexOf(entityName)
+    if (pos === -1) return undefined
+
+    const start = Math.max(0, pos - 100)
+    const end = Math.min(body.length, pos + entityName.length + 100)
+    let snippet = body.substring(start, end)
+    // Clean up markdown syntax for readability
+    snippet = snippet
+      .replace(/^#+\s*/gm, '')
+      .replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, '$1')
+      .replace(/[*_`~]/g, '')
+      .replace(/\n+/g, ' ')
+      .trim()
+    if (start > 0) snippet = '…' + snippet
+    if (end < body.length) snippet = snippet + '…'
+    return snippet
+  } catch {
+    return undefined
+  }
+}
+
 // ── Public API ──
 
 export function buildBacklinkIndex(obsidianDir: string): BacklinkIndex {
@@ -201,6 +234,8 @@ export function buildBacklinkIndex(obsidianDir: string): BacklinkIndex {
           date: meta.date,
           category: meta.category,
           show: meta.show,
+          episode: meta.episode,
+          context: extractContextSummary(podcastPath, entityName),
         })
       }
 

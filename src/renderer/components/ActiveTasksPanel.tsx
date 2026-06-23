@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { Zap, Square, Loader2, Play } from 'lucide-react'
-import { RecentTaskState } from '@shared/types'
+import { Zap, Square, Loader2, Play, Trash2, ListOrdered } from 'lucide-react'
+import type { RecentTaskState, BatchTask, BatchQueueStatus } from '@shared/types'
 
 interface Props {
   tasks: RecentTaskState[]
   processing: boolean
   onCancel: (taskId: string) => void
   onResume?: (task: RecentTaskState) => void
+  onDelete?: (taskId: string) => void
+  batchTasks?: BatchTask[]
+  batchStatus?: BatchQueueStatus
 }
 
 const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
@@ -16,8 +19,20 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
   completed: { label: '已完成' },
 }
 
-export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel, onResume }: Props) {
+const BATCH_STATUS_META: Record<BatchTask['status'], { label: string; className: string }> = {
+  pending: { label: '排队中', className: 'pending' },
+  processing: { label: '处理中', className: 'running' },
+  completed: { label: '已完成', className: 'completed' },
+  failed: { label: '失败', className: 'error' },
+  skipped: { label: '已跳过', className: 'stopped' },
+}
+
+export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel, onResume, onDelete, batchTasks, batchStatus }: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const hasBatch = batchTasks && batchTasks.length > 0
+  const batchPending = hasBatch ? batchTasks.filter(t => t.status === 'pending').length : 0
+  const totalVisible = tasks.length + (hasBatch ? batchTasks.length : 0)
+  const isActive = batchStatus === 'running' || batchStatus === 'paused'
 
   const handleStop = async (taskId: string) => {
     setCancellingId(taskId)
@@ -33,13 +48,17 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
       <div className="task-panel-header">
         <div>
           <div className="task-panel-title">活跃任务</div>
-          <div className="task-panel-subtitle">正在处理或排队中的任务</div>
+          <div className="task-panel-subtitle">
+            {isActive
+              ? `批量处理中 — 剩余 ${batchPending} 项`
+              : '正在处理或排队中的任务'}
+          </div>
         </div>
-        <div className="task-panel-count">{tasks.length}</div>
+        <div className="task-panel-count">{totalVisible}</div>
       </div>
 
       <div className="task-panel-list">
-        {tasks.length === 0 && (
+        {totalVisible === 0 && (
           <div className="task-panel-empty">
             <div className="task-panel-empty-icon"><Zap size={24} /></div>
             <div className="task-panel-empty-title">暂无活跃任务</div>
@@ -47,10 +66,12 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
           </div>
         )}
 
+        {/* Regular active tasks */}
         {tasks.map(task => {
           const meta = STATUS_META[task.status] || { label: task.status }
           const canStop = task.status === 'running'
           const canResume = task.status === 'stopped' || task.status === 'error'
+          const canDelete = task.status !== 'running'
           const isStopping = cancellingId === task.id
 
           return (
@@ -79,10 +100,67 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
                     <Play size={12} /> 重新处理
                   </button>
                 )}
+                {canDelete && onDelete && (
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="recent-task-danger"
+                  >
+                    <Trash2 size={12} /> 删除
+                  </button>
+                )}
               </div>
             </article>
           )
         })}
+
+        {/* Batch queue tasks */}
+        {hasBatch && (
+          <>
+            <div className="batch-section-header">
+              <ListOrdered size={13} />
+              <span>批量队列</span>
+              {batchStatus === 'paused' && <span className="batch-section-badge">已暂停</span>}
+            </div>
+            {batchTasks.map((task, i) => {
+              const meta = BATCH_STATUS_META[task.status] || { label: task.status, className: '' }
+              const isProcessing = task.status === 'processing'
+              const isPending = task.status === 'pending'
+              const isFailed = task.status === 'failed'
+
+              return (
+                <article key={task.id} className={`task-card task-card--batch ${isProcessing ? 'task-card--active' : ''}`}>
+                  <div className="task-card-header">
+                    <div className="task-card-copy">
+                      <span className="batch-task-index">{i + 1}</span>
+                      <div className="task-card-title">{task.title || task.source}</div>
+                    </div>
+                    <span className={`task-status-badge ${meta.className}`}>
+                      {isProcessing && <Loader2 size={10} className="animate-spin" />}
+                      {meta.label}
+                    </span>
+                  </div>
+                  {isFailed && task.failureReason && (
+                    <div className="batch-task-error">{task.failureReason}</div>
+                  )}
+                  {isProcessing && task.steps && task.steps.length > 0 && (
+                    <div className="batch-task-steps">
+                      {task.steps.map((step, si) => (
+                        <span key={si} className={`batch-step-dot batch-step-dot--${step.status}`} title={step.title}>
+                          {step.status === 'done' ? '✓' : step.status === 'running' ? '◉' : step.status === 'error' ? '✗' : '○'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {(isPending || isProcessing) && (
+                    <div className="task-card-meta">
+                      {task.type === 'file' ? '本地文件' : task.platform || 'URL'}
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </>
+        )}
       </div>
     </aside>
   )

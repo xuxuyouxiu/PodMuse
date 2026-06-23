@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Pause, Play, SkipForward, Trash2, RotateCcw, Check, X, AlertCircle,
-  Loader2, FileAudio, Link, ChevronDown, ChevronUp,
+  Loader2, FileAudio, Link, ChevronDown, ChevronUp, ExternalLink,
+  CheckCheck, ClipboardCheck, FileText,
 } from 'lucide-react'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
@@ -16,6 +17,7 @@ interface Props {
   onRetryAllFailed: () => void
   onDismiss: () => void
   completionSummary?: BatchCompletionSummary | null
+  obsidianDir?: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -70,63 +72,146 @@ function CompactSteps({ steps }: { steps: StepInfo[] }) {
   )
 }
 
-function SummaryView({ summary, failedTasks, onRetryAllFailed, onDismiss }: {
+function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry, onRetryAllFailed, onDismiss }: {
   summary: BatchCompletionSummary
   failedTasks: BatchTask[]
+  successTasks: BatchTask[]
+  obsidianDir?: string
+  onRetry: (index: number) => void
   onRetryAllFailed: () => void
   onDismiss: () => void
 }) {
   const minutes = Math.round(summary.duration / 60000)
+  const allTasks = [...successTasks, ...failedTasks]
+  const total = summary.succeeded + summary.failed + summary.skipped
+  const rate = total > 0 ? Math.round((summary.succeeded / total) * 100) : 0
+  const allSuccess = summary.failed === 0 && summary.skipped === 0
+
   return (
-    <div className="batch-queue-summary">
-      <div className="batch-queue-summary-header">
-        <div className="batch-queue-summary-eyebrow">批量处理完成</div>
-        <h3 className="batch-queue-summary-title">处理报告</h3>
+    <div className="bq-report">
+      {/* Header */}
+      <div className="bq-report__header">
+        <div className="bq-report__eyebrow">处理报告</div>
+        <div className="bq-report__title">{allSuccess ? '全部处理完成' : '处理完成'}</div>
+        <div className="bq-report__sub">共 {total} 个任务 · 耗时 {minutes} 分钟</div>
       </div>
-      <div className="batch-queue-summary-stats">
-        <div className="batch-queue-stat batch-queue-stat--success">
-          <div className="batch-queue-stat-value">{summary.succeeded}</div>
-          <div className="batch-queue-stat-label">成功</div>
+
+      {/* Stats pills */}
+      <div className="bq-report__stats">
+        <div className="bq-report__pill bq-report__pill--ok">
+          <span className="bq-report__pill-dot bq-report__pill-dot--ok" />
+          {summary.succeeded} 成功
         </div>
-        <div className="batch-queue-stat batch-queue-stat--error">
-          <div className="batch-queue-stat-value">{summary.failed}</div>
-          <div className="batch-queue-stat-label">失败</div>
-        </div>
-        <div className="batch-queue-stat batch-queue-stat--skip">
-          <div className="batch-queue-stat-value">{summary.skipped}</div>
-          <div className="batch-queue-stat-label">跳过</div>
-        </div>
-        <div className="batch-queue-stat">
-          <div className="batch-queue-stat-value">{minutes}m</div>
-          <div className="batch-queue-stat-label">总耗时</div>
-        </div>
-      </div>
-      {failedTasks.length > 0 && (
-        <div className="batch-queue-summary-failed">
-          <div className="batch-queue-summary-failed-title">
-            <AlertCircle size={13} />
-            失败详情
+        {summary.failed > 0 && (
+          <div className="bq-report__pill bq-report__pill--err">
+            <span className="bq-report__pill-dot bq-report__pill-dot--err" />
+            {summary.failed} 失败
           </div>
-          {failedTasks.map((t, i) => (
-            <div key={i} className="batch-queue-failed-item">
-              <span>{t.title || t.source}</span>
-              <span className="batch-queue-failed-reason">{t.failureReason}</span>
-            </div>
-          ))}
+        )}
+        {summary.skipped > 0 && (
+          <div className="bq-report__pill">
+            <span className="bq-report__pill-dot" />
+            {summary.skipped} 跳过
+          </div>
+        )}
+        <div className="bq-report__pill">
+          {rate}% 成功率
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="bq-report__bar-track">
+        <motion.div
+          className="bq-report__bar-fill"
+          initial={{ width: 0 }}
+          animate={{ width: `${rate}%` }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        />
+      </div>
+
+      {/* Task table */}
+      <div className="bq-report__table-wrap">
+        <table className="bq-report__table">
+          <thead>
+            <tr>
+              <th className="bq-report__th bq-report__th--status">状态</th>
+              <th className="bq-report__th">标题</th>
+              <th className="bq-report__th bq-report__th--action">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {successTasks.map((t) => (
+              <tr key={t.id} className="bq-report__row">
+                <td className="bq-report__td bq-report__td--status">
+                  <span className="bq-report__dot bq-report__dot--ok" />
+                  <span className="bq-report__stext bq-report__stext--ok">完成</span>
+                </td>
+                <td className="bq-report__td bq-report__td--title">
+                  <span title={t.title || t.source}>{t.title || t.source}</span>
+                </td>
+                <td className="bq-report__td bq-report__td--action">
+                  {t.filename && obsidianDir && (
+                    <motion.button
+                      className="bq-report__btn bq-report__btn--open"
+                      onClick={() => {
+                        const p = obsidianDir.replace(/[/\\]$/, '') + '/' + t.filename
+                        window.electronAPI.openPath(p)
+                      }}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      <ExternalLink size={11} />
+                      打开
+                    </motion.button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {failedTasks.map((t) => (
+              <tr key={t.id} className="bq-report__row bq-report__row--err">
+                <td className="bq-report__td bq-report__td--status">
+                  <span className="bq-report__dot bq-report__dot--err" />
+                  <span className="bq-report__stext bq-report__stext--err">失败</span>
+                </td>
+                <td className="bq-report__td bq-report__td--title">
+                  <span title={t.title || t.source}>{t.title || t.source}</span>
+                  {t.failureReason && <span className="bq-report__reason">{t.failureReason}</span>}
+                </td>
+                <td className="bq-report__td bq-report__td--action">
+                  <motion.button
+                    className="bq-report__btn bq-report__btn--retry"
+                    onClick={() => {
+                      const idx = allTasks.findIndex(x => x.id === t.id)
+                      if (idx >= 0) onRetry(idx)
+                    }}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    <RotateCcw size={11} />
+                    重试
+                  </motion.button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer */}
+      <div className="bq-report__footer">
+        {failedTasks.length > 1 && (
           <motion.button
-            className="batch-queue-retry-all"
+            className="bq-report__btn bq-report__btn--retry-all"
             onClick={onRetryAllFailed}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
             重试全部失败
           </motion.button>
-        </div>
-      )}
-      <div className="batch-queue-summary-actions">
+        )}
         <motion.button
-          className="batch-queue-dismiss"
+          className="bq-report__btn bq-report__btn--close"
           onClick={onDismiss}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -139,7 +224,7 @@ function SummaryView({ summary, failedTasks, onRetryAllFailed, onDismiss }: {
 }
 
 export default function BatchQueuePanel({
-  queueState, onPause, onResume, onSkip, onClear, onRetry, onRetryAllFailed, onDismiss, completionSummary,
+  queueState, onPause, onResume, onSkip, onClear, onRetry, onRetryAllFailed, onDismiss, completionSummary, obsidianDir,
 }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const { tasks, status, completed, failed, skipped, total } = queueState
@@ -147,6 +232,7 @@ export default function BatchQueuePanel({
   const isRunning = status === 'running'
   const isCompleted = status === 'completed'
   const failedTasks = tasks.filter(t => t.status === 'failed')
+  const successTasks = tasks.filter(t => t.status === 'completed')
 
   if (isCompleted && completionSummary) {
     return (
@@ -158,9 +244,238 @@ export default function BatchQueuePanel({
         <SummaryView
           summary={completionSummary}
           failedTasks={failedTasks}
+          successTasks={successTasks}
+          obsidianDir={obsidianDir}
+          onRetry={(taskListIndex) => {
+            // Find the actual index in the full tasks array
+            const task = [...successTasks, ...failedTasks][taskListIndex]
+            if (task) {
+              const realIndex = tasks.findIndex(t => t.id === task.id)
+              if (realIndex >= 0) onRetry(realIndex)
+            }
+          }}
           onRetryAllFailed={onRetryAllFailed}
           onDismiss={onDismiss}
         />
+        <style>{`
+          /* ── Report Card (matches app glass-card style) ── */
+          .bq-report {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--panel-shadow);
+          }
+
+          /* Header */
+          .bq-report__header {
+            padding: 20px 24px 16px;
+            position: relative;
+            z-index: 1;
+          }
+          .bq-report__eyebrow {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+          }
+          .bq-report__title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+          }
+          .bq-report__sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+          }
+
+          /* Stat pills */
+          .bq-report__stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 24px 12px;
+          }
+          .bq-report__pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+          }
+          .bq-report__pill--ok { color: var(--success); }
+          .bq-report__pill--err { color: var(--error); }
+          .bq-report__pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+          }
+          .bq-report__pill-dot--ok { background: var(--success); }
+          .bq-report__pill-dot--err { background: var(--error); }
+
+          /* Progress bar */
+          .bq-report__bar-track {
+            margin: 0 24px 16px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border);
+            overflow: hidden;
+          }
+          .bq-report__bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+          }
+
+          /* Table */
+          .bq-report__table-wrap {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 300px;
+            border-top: 1px solid var(--border);
+          }
+          .bq-report__table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+          .bq-report__th {
+            padding: 8px 16px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-elevated);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+          }
+          .bq-report__th--status { width: 64px; }
+          .bq-report__th--action { width: 80px; text-align: center; }
+
+          .bq-report__row { transition: background .12s ease; }
+          .bq-report__row:hover { background: var(--bg-elevated); }
+          .bq-report__row--err { background: rgba(239,68,68,.03); }
+          .bq-report__row--err:hover { background: rgba(239,68,68,.06); }
+          .bq-report__row + .bq-report__row td { border-top: 1px solid var(--border); }
+
+          .bq-report__td {
+            padding: 10px 16px;
+            font-size: 12px;
+            vertical-align: middle;
+          }
+          .bq-report__td--status { white-space: nowrap; }
+          .bq-report__td--title { overflow: hidden; }
+          .bq-report__td--title > span:first-child {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+            line-height: 1.4;
+          }
+          .bq-report__td--action { text-align: center; white-space: nowrap; }
+
+          .bq-report__dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+          }
+          .bq-report__dot--ok { background: var(--success); }
+          .bq-report__dot--err { background: var(--error); }
+          .bq-report__stext {
+            font-size: 11px;
+            font-weight: 600;
+            vertical-align: middle;
+          }
+          .bq-report__stext--ok { color: var(--success); }
+          .bq-report__stext--err { color: var(--error); }
+
+          .bq-report__reason {
+            display: block;
+            font-size: 10px;
+            color: var(--error);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: .85;
+          }
+
+          /* Buttons */
+          .bq-report__btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            background: none;
+            transition: all .12s ease;
+          }
+          .bq-report__btn--open { color: var(--accent); }
+          .bq-report__btn--open:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+          }
+          .bq-report__btn--retry { color: var(--warning); }
+          .bq-report__btn--retry:hover {
+            background: rgba(245,158,11,.08);
+            border-color: var(--warning);
+          }
+
+          /* Footer */
+          .bq-report__footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 24px;
+            border-top: 1px solid var(--border);
+          }
+          .bq-report__btn--retry-all {
+            color: var(--accent);
+            padding: 5px 14px;
+            font-size: 12px;
+          }
+          .bq-report__btn--retry-all:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+          }
+          .bq-report__btn--close {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            padding: 6px 22px;
+            font-size: 12px;
+          }
+          .bq-report__btn--close:hover { opacity: .9; }
+        `}</style>
       </motion.div>
     )
   }
@@ -525,131 +840,222 @@ export default function BatchQueuePanel({
           to { transform: rotate(360deg); }
         }
 
-        /* Summary view */
-        .batch-queue-summary {
+        /* ── Report Card (matches app glass-card style) ── */
+        .bq-report {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          position: relative;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
+          background: var(--bg-card);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          box-shadow: var(--panel-shadow);
+          overflow: hidden;
         }
 
-        .batch-queue-summary-header {
-          text-align: center;
+        /* Header */
+        .bq-report__header {
+          padding: 20px 24px 16px;
+          position: relative;
+          z-index: 1;
         }
-
-        .batch-queue-summary-eyebrow {
-          font-size: 11px;
+        .bq-report__eyebrow {
+          font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: var(--accent);
-          margin-bottom: 4px;
+          letter-spacing: 0.1em;
+          color: var(--text-muted);
+          margin-bottom: 6px;
         }
-
-        .batch-queue-summary-title {
+        .bq-report__title {
           font-size: 18px;
           font-weight: 700;
           color: var(--text-primary);
-          margin: 0;
+          letter-spacing: -0.02em;
         }
-
-        .batch-queue-summary-stats {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-        }
-
-        .batch-queue-stat {
-          text-align: center;
-          padding: 12px;
-          background: var(--bg-surface);
-          border-radius: var(--radius-sm);
-        }
-
-        .batch-queue-stat-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .batch-queue-stat--success .batch-queue-stat-value { color: var(--success); }
-        .batch-queue-stat--error .batch-queue-stat-value { color: var(--error); }
-
-        .batch-queue-stat-label {
-          font-size: 11px;
-          color: var(--text-muted);
-          margin-top: 2px;
-        }
-
-        .batch-queue-summary-failed {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .batch-queue-summary-failed-title {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--error);
-        }
-
-        .batch-queue-failed-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 6px 10px;
-          background: var(--bg-surface);
-          border-radius: var(--radius-sm);
+        .bq-report__sub {
           font-size: 12px;
-          color: var(--text-primary);
-        }
-
-        .batch-queue-failed-reason {
-          color: var(--error);
-          font-size: 11px;
-        }
-
-        .batch-queue-retry-all {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 8px;
-          background: none;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          color: var(--accent);
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
+          color: var(--text-muted);
           margin-top: 4px;
         }
-        .batch-queue-retry-all:hover {
+
+        /* Stat pills */
+        .bq-report__stats {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          padding: 0 24px 12px;
+        }
+        .bq-report__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .bq-report__pill--ok { color: var(--success); }
+        .bq-report__pill--err { color: var(--error); }
+        .bq-report__pill-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--text-muted);
+        }
+        .bq-report__pill-dot--ok { background: var(--success); }
+        .bq-report__pill-dot--err { background: var(--error); }
+
+        /* Progress bar */
+        .bq-report__bar-track {
+          margin: 0 24px 16px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--border);
+          overflow: hidden;
+        }
+        .bq-report__bar-fill {
+          height: 100%;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--accent), var(--success));
+        }
+
+        /* Table */
+        .bq-report__table-wrap {
+          flex: 1;
+          overflow-y: auto;
+          max-height: 300px;
+          border-top: 1px solid var(--border);
+        }
+        .bq-report__table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+        .bq-report__th {
+          padding: 8px 16px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-muted);
+          text-align: left;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-elevated);
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+        .bq-report__th--status { width: 64px; }
+        .bq-report__th--action { width: 80px; text-align: center; }
+
+        .bq-report__row { transition: background .12s ease; }
+        .bq-report__row:hover { background: var(--bg-elevated); }
+        .bq-report__row--err { background: rgba(239,68,68,.03); }
+        .bq-report__row--err:hover { background: rgba(239,68,68,.06); }
+        .bq-report__row + .bq-report__row td { border-top: 1px solid var(--border); }
+
+        .bq-report__td {
+          padding: 10px 16px;
+          font-size: 12px;
+          vertical-align: middle;
+        }
+        .bq-report__td--status { white-space: nowrap; }
+        .bq-report__td--title { overflow: hidden; }
+        .bq-report__td--title > span:first-child {
+          display: block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          color: var(--text-primary);
+          line-height: 1.4;
+        }
+        .bq-report__td--action { text-align: center; white-space: nowrap; }
+
+        .bq-report__dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          margin-right: 5px;
+          vertical-align: middle;
+        }
+        .bq-report__dot--ok { background: var(--success); }
+        .bq-report__dot--err { background: var(--error); }
+        .bq-report__stext {
+          font-size: 11px;
+          font-weight: 600;
+          vertical-align: middle;
+        }
+        .bq-report__stext--ok { color: var(--success); }
+        .bq-report__stext--err { color: var(--error); }
+
+        .bq-report__reason {
+          display: block;
+          font-size: 10px;
+          color: var(--error);
+          margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          opacity: .85;
+        }
+
+        /* Buttons */
+        .bq-report__btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          background: none;
+          transition: all .12s ease;
+        }
+        .bq-report__btn--open { color: var(--accent); }
+        .bq-report__btn--open:hover {
           background: var(--accent-glow);
           border-color: var(--accent);
         }
+        .bq-report__btn--retry { color: var(--warning); }
+        .bq-report__btn--retry:hover {
+          background: rgba(245,158,11,.08);
+          border-color: var(--warning);
+        }
 
-        .batch-queue-summary-actions {
+        /* Footer */
+        .bq-report__footer {
           display: flex;
-          justify-content: center;
-          padding-top: 8px;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          padding: 12px 24px;
+          border-top: 1px solid var(--border);
         }
-
-        .batch-queue-dismiss {
-          padding: 8px 32px;
+        .bq-report__btn--retry-all {
+          color: var(--accent);
+          padding: 5px 14px;
+          font-size: 12px;
+        }
+        .bq-report__btn--retry-all:hover {
+          background: var(--accent-glow);
+          border-color: var(--accent);
+        }
+        .bq-report__btn--close {
           background: var(--accent);
-          color: white;
-          border: none;
-          border-radius: var(--radius-sm);
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
+          color: #fff;
+          border-color: var(--accent);
+          padding: 6px 22px;
+          font-size: 12px;
         }
-        .batch-queue-dismiss:hover {
-          opacity: 0.9;
-        }
+        .bq-report__btn--close:hover { opacity: .9; }
       `}</style>
     </motion.div>
   )

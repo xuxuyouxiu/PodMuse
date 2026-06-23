@@ -1,9 +1,49 @@
 import type { AIProviderId } from '../shared/types'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // 重试配置
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1000 // 1秒基础延迟
 const MAX_DELAY_MS = 10000 // 最大延迟10秒
+
+// ── Prompt 模板外部加载 ──
+
+let promptDir: string | null = null
+
+export function setPromptDir(dir: string): void {
+  promptDir = dir
+}
+
+function loadExternalPrompt(filename: string): string | null {
+  if (!promptDir) return null
+  const filePath = path.join(promptDir, filename)
+  try {
+    if (!fs.existsSync(filePath)) return null
+    const content = fs.readFileSync(filePath, 'utf-8').trim()
+    if (!content) return null
+    return content
+  } catch {
+    return null
+  }
+}
+
+export function exportBuiltInTemplates(): void {
+  if (!promptDir) return
+  try {
+    if (!fs.existsSync(promptDir)) fs.mkdirSync(promptDir, { recursive: true })
+    const notePath = path.join(promptDir, 'note-generation.default.md')
+    const correctionPath = path.join(promptDir, 'transcript-correction.default.md')
+    if (!fs.existsSync(notePath)) {
+      fs.writeFileSync(notePath, BUILT_IN_NOTE_PROMPT_CORE + AI_PROMPT, 'utf-8')
+    }
+    if (!fs.existsSync(correctionPath)) {
+      fs.writeFileSync(correctionPath, CORRECTION_PROMPT, 'utf-8')
+    }
+  } catch (e) {
+    console.log(`⚠ 导出内置模板失败: ${e instanceof Error ? e.message : e}`)
+  }
+}
 
 const CORRECTION_PROMPT = `你是一位专业的转录校对员。以下是一段语音识别（Whisper）生成的播客逐字稿。语音识别对同音词和专有名词的识别经常出错。
 
@@ -210,9 +250,8 @@ category: [从以下4个类别中选择最匹配的一个：科技商业（AI/�
 {transcript}
 `
 
-// 根据内容类型生成完整的 prompt
-function getAIPrompt(): string {
-  return `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
+// 内置笔记 prompt 的「核心原则」部分（不含格式说明）
+const BUILT_IN_NOTE_PROMPT_CORE = `你是一位专业的知识管理助手。请根据以下播客节目的逐字稿，生成一份结构化的知识笔记。
 
 这段播客可能包含中文、英文或中英混合内容。
 
@@ -227,7 +266,16 @@ function getAIPrompt(): string {
 6. **自动识别内容类型**：请先判断这段播客属于什么类型（新闻资讯、长文演讲/教程、还是通用访谈等），然后根据类型特点自主选择最合适的模块组合和信息密度：
    - 新闻资讯类：每条新闻/事件必须独立展开详细分析（事件摘要、影响分析、关键数据），不要合并概括；不要使用"关键对话还原"模块
    - 长文/演讲/教程类：保留所有具体例子、案例和论证过程，不要只写结论
-   - 通用访谈/对话类：按内容相关性自由选择模块` + AI_PROMPT
+   - 通用访谈/对话类：按内容相关性自由选择模块`
+
+// 根据内容类型生成完整的 prompt（优先使用外部模板）
+function getAIPrompt(): string {
+  const external = loadExternalPrompt('note-generation.md')
+  if (external) {
+    console.log('📝 使用外部 prompt 模板: note-generation.md')
+    return external + AI_PROMPT
+  }
+  return BUILT_IN_NOTE_PROMPT_CORE + AI_PROMPT
 }
 
 // 构建请求URL
@@ -289,7 +337,8 @@ async function callAI(
   systemPrompt: string,
   userPrompt: string,
   maxTokens = 4096,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  temperature = 0.7,
 ) {
   const apiUrl = buildApiUrl(providerConfig.baseUrl, providerId)
   
@@ -315,7 +364,7 @@ async function callAI(
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          temperature: 0.7,
+          temperature,
           max_tokens: maxTokens,
         }),
       })
@@ -389,11 +438,16 @@ export async function correctTranscript(
   transcript: string,
   signal?: AbortSignal
 ) {
+  const external = loadExternalPrompt('transcript-correction.md')
+  const promptTemplate = external || CORRECTION_PROMPT
+  if (external) {
+    console.log('📝 使用外部 prompt 模板: transcript-correction.md')
+  }
   return callAI(
     providerConfig,
     providerId,
     '转录校对员',
-    CORRECTION_PROMPT.replace('{transcript}', transcript),
+    promptTemplate.replace('{transcript}', transcript),
     4096,
     signal
   )
@@ -406,6 +460,7 @@ export async function generateNotes(
   transcript: string,
   signal?: AbortSignal,
   metadata?: Record<string, string>,
+  onSegmentProgress?: (current: number, total: number) => void,
 ) {
   const date = new Date().toISOString().split('T')[0]
   const prompt = getAIPrompt()
@@ -425,14 +480,400 @@ export async function generateNotes(
     }
   }
 
+  // 长文本分段处理：超过阈值时走分段流程
+  if (transcriptWithContext.length > SEGMENT_THRESHOLD) {
+    return generateNotesSegmented(
+      providerConfig, providerId, transcriptWithContext, date, signal, onSegmentProgress
+    )
+  }
+
   return callAI(
     providerConfig,
     providerId,
     '知识管理助手',
     prompt.replace('{date}', date).replace('{transcript}', transcriptWithContext),
-    8192, // 增加输出token限制到8192，确保长音频内容完整
-    signal
+    16384,
+    signal,
+    0.3,
   )
+}
+
+// ── 分段处理 ──
+
+const SEGMENT_THRESHOLD = 30000
+const SEGMENT_SIZE = 22000
+const SEGMENT_OVERLAP = 500
+const MAX_SEGMENTS = 3
+
+interface SegmentResult {
+  index: number
+  content: string
+  cost: number
+}
+
+function splitTranscript(text: string): string[] {
+  const segments: string[] = []
+  let pos = 0
+
+  while (pos < text.length && segments.length < MAX_SEGMENTS) {
+    const end = pos + SEGMENT_SIZE
+
+    if (end >= text.length) {
+      segments.push(text.slice(pos))
+      break
+    }
+
+    // 找段落边界（双换行或单换行）
+    let breakPoint = text.lastIndexOf('\n\n', end)
+    if (breakPoint <= pos + SEGMENT_SIZE * 0.5) {
+      breakPoint = text.lastIndexOf('\n', end)
+    }
+    if (breakPoint <= pos + SEGMENT_SIZE * 0.5) {
+      breakPoint = end // 找不到合适边界就硬切
+    }
+
+    segments.push(text.slice(pos, breakPoint))
+    // 下一段从 breakPoint - overlap 开始，保留上下文
+    pos = breakPoint - SEGMENT_OVERLAP
+    if (pos < 0) pos = breakPoint
+  }
+
+  // 如果还有剩余文本且已达 MAX_SEGMENTS，追加到最后一段
+  if (pos < text.length && segments.length === MAX_SEGMENTS) {
+    const remaining = text.slice(pos)
+    if (remaining.length > 500) {
+      console.log(`⚠ 播客文本过长，已截断 ${remaining.length} 字符（超出 ${MAX_SEGMENTS} 段上限）`)
+    }
+  }
+
+  return segments
+}
+
+const SEGMENT_FOLLOWUP_PROMPT = `你是一位专业的知识管理助手。你正在处理一段较长的播客逐字稿，已根据前面的内容生成了一份笔记。现在请针对以下新增的逐字稿内容，**仅补充前面笔记中尚未覆盖的新内容**。
+
+输出格式（严格遵守，不要添加其他内容）：
+
+## 新增要点
+- 列出本段中出现的新内容要点（如果前面已覆盖则不重复）
+
+## 新增实体
+### 人物
+- 姓名：xxx
+  角色：xxx
+  核心观点：xxx
+### 项目
+- 项目名称：xxx
+  核心定位：xxx
+### 概念
+- 概念名称：xxx
+  核心解释：xxx
+### 术语
+- 术语名称：xxx
+  卡片类型：xxx
+  上下文解释：xxx
+
+## 新增术语词典条目
+- [[术语名]]
+
+如果本段没有新增内容，输出"（本段无新增内容）"。
+
+已生成笔记的要点摘要（供参考，避免重复）：
+{existing_summary}
+
+新增逐字稿内容：
+{transcript}
+`
+
+function extractExistingSummary(content: string): string {
+  // 提取已有笔记的要点摘要（前 2000 字符 + 实体名称列表）
+  const summary = content.slice(0, 2000)
+  const entityNames: string[] = []
+
+  // 提取 CARD 块中的实体名称
+  const cardNameRe = /(?:姓名|项目名称|概念名称|术语名称)：(.+)/g
+  let match: RegExpExecArray | null
+  while ((match = cardNameRe.exec(content)) !== null) {
+    entityNames.push(match[1].trim())
+  }
+
+  const entityList = entityNames.length > 0
+    ? `\n\n已生成卡片的实体：${entityNames.join('、')}`
+    : ''
+
+  return summary + entityList
+}
+
+function mergeSegmentResults(baseContent: string, supplements: string[]): string {
+  let result = baseContent
+
+  for (const supplement of supplements) {
+    if (supplement.includes('（本段无新增内容）')) continue
+
+    // 提取新增要点
+    const pointsMatch = supplement.match(/## 新增要点\n([\s\S]*?)(?=## |$)/)
+    if (pointsMatch) {
+      const newPoints = pointsMatch[1].trim()
+      if (newPoints && !newPoints.includes('无新增')) {
+        // 追加到「主要内容概览」或「本期主要内容」段落末尾
+        const overviewRe = /(# (?:本期主要内容|主要内容概览)\n[\s\S]*?)(?=\n# |\n---CARD)/
+        const overviewMatch = result.match(overviewRe)
+        if (overviewMatch) {
+          result = result.replace(overviewRe, `$1${newPoints}\n`)
+        }
+      }
+    }
+
+    // 提取新增实体 CARD 块
+    const cardTypes = ['PEOPLE', 'PROJECT', 'CONCEPT', 'TERM'] as const
+    for (const type of cardTypes) {
+      const cardRe = new RegExp(`---CARD-${type}---\\n([\\s\\S]*?)\\n---CARD-${type}-END---`, 'g')
+      let cardMatch: RegExpExecArray | null
+      while ((cardMatch = cardRe.exec(supplement)) !== null) {
+        const cardBlock = cardMatch[0]
+        // 检查是否已存在同名卡片
+        const nameMatch = cardBlock.match(/(?:姓名|项目名称|概念名称|术语名称)：(.+)/)
+        if (nameMatch) {
+          const name = nameMatch[1].trim()
+          if (result.includes(`${nameMatch[0].split('：')[0]}：${name}`)) continue // 已存在
+        }
+        // 追加到笔记末尾（在其他 CARD 块之后）
+        result += `\n\n${cardBlock}`
+      }
+    }
+
+    // 提取新增术语词典条目
+    const termMatch = supplement.match(/## 新增术语词典条目\n([\s\S]*?)(?=## |$)/)
+    if (termMatch) {
+      const newTerms = termMatch[1].trim()
+      if (newTerms) {
+        // 追加到术语词典段落
+        const glossaryRe = /(# 术语词典[^\n]*\n(?:>[^\n]*\n)?[\s\S]*?)(?=\n# |\n---CARD)/
+        const glossaryMatch = result.match(glossaryRe)
+        if (glossaryMatch) {
+          result = result.replace(glossaryRe, `$1${newTerms}\n`)
+        }
+      }
+    }
+
+    // 提取新增关联实体（人物/项目/概念索引）
+    for (const section of ['关联人物', '关联项目', '关联概念']) {
+      const sectionRe = new RegExp(`## ${section}\\n([\\s\\S]*?)(?=## |$)`)
+      const sectionMatch = supplement.match(sectionRe)
+      if (sectionMatch) {
+        const newLinks = sectionMatch[1].trim()
+        if (newLinks) {
+          const existingRe = new RegExp(`(# ${section}\\n[\\s\\S]*?)(?=\\n# |\\n---CARD)`)
+          const existingMatch = result.match(existingRe)
+          if (existingMatch) {
+            // 去重后追加
+            const existingLinks = new Set(existingMatch[1].match(/\[\[[^\]]+\]\]/g) || [])
+            const linksToAdd = (newLinks.match(/\[\[[^\]]+\]\]/g) || [])
+              .filter(l => !existingLinks.has(l))
+            if (linksToAdd.length > 0) {
+              result = result.replace(existingRe, `$1${linksToAdd.map(l => `- ${l}`).join('\n')}\n`)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+async function generateNotesSegmented(
+  providerConfig: { baseUrl: string; apiKey: string; model: string },
+  providerId: AIProviderId,
+  transcript: string,
+  date: string,
+  signal?: AbortSignal,
+  onSegmentProgress?: (current: number, total: number) => void,
+): Promise<{ content: string | null; cost: number }> {
+  const segments = splitTranscript(transcript)
+  console.log(`📏 长文本分段处理：${transcript.length} 字符 → ${segments.length} 段`)
+
+  const prompt = getAIPrompt()
+  let totalCost = 0
+
+  // 第一段：完整 prompt
+  onSegmentProgress?.(1, segments.length)
+  console.log(`  ⏳ 分段 1/${segments.length}...`)
+  const firstResult = await callAI(
+    providerConfig, providerId,
+    '知识管理助手',
+    prompt.replace('{date}', date).replace('{transcript}', segments[0]),
+    16384, signal, 0.3,
+  )
+  totalCost += firstResult.cost
+
+  if (!firstResult.content || segments.length === 1) {
+    return firstResult
+  }
+
+  // 后续段：补充 prompt
+  const supplements: string[] = []
+  let existingSummary = extractExistingSummary(firstResult.content)
+
+  for (let i = 1; i < segments.length; i++) {
+    onSegmentProgress?.(i + 1, segments.length)
+    console.log(`  ⏳ 分段 ${i + 1}/${segments.length}...`)
+
+    try {
+      const followupPrompt = SEGMENT_FOLLOWUP_PROMPT
+        .replace('{existing_summary}', existingSummary)
+        .replace('{transcript}', segments[i])
+
+      const segResult = await callAI(
+        providerConfig, providerId,
+        '知识管理助手',
+        followupPrompt,
+        8192, signal, 0.3,
+      )
+      totalCost += segResult.cost
+
+      if (segResult.content) {
+        supplements.push(segResult.content)
+        // 更新摘要供下一段参考
+        existingSummary = extractExistingSummary(firstResult.content + '\n' + supplements.join('\n'))
+      }
+    } catch (err) {
+      console.log(`  ❌ 分段 ${i + 1} 生成失败: ${err instanceof Error ? err.message : err}`)
+      // 跳过失败段，继续处理后续段
+    }
+  }
+
+  // 合并结果
+  const merged = mergeSegmentResults(firstResult.content, supplements)
+  console.log(`  ✅ 分段合并完成，补充了 ${supplements.length} 段内容`)
+
+  return { content: merged, cost: totalCost }
+}
+
+// ── 质量评估 ──
+
+export interface QualityScore {
+  overall: number
+  contentCoverage: number
+  entityCompleteness: number
+  wikiLinkCoverage: number
+  formatCompliance: number
+  details: string[]
+}
+
+export function evaluateQuality(transcript: string, noteContent: string): QualityScore {
+  const details: string[] = []
+
+  // 1. 内容覆盖率 (40%)：提取转写中的关键名词，检查笔记正文覆盖率
+  const nounRe = /\[\[([^\]|]+)\]\]/g
+  const transcriptNouns = new Set<string>()
+  let m: RegExpExecArray | null
+  while ((m = nounRe.exec(transcript)) !== null) {
+    if (m[1].length >= 2) transcriptNouns.add(m[1])
+  }
+  // 也提取转写中的大写英文词和中文专有名词（2字以上连续中文词）
+  const cnNounRe = /[\u4e00-\u9fff]{2,6}(?:公司|集团|平台|技术|模型|系统|网络|引擎|框架|协议|算法|实验室|大学|学院)/g
+  while ((m = cnNounRe.exec(transcript)) !== null) {
+    transcriptNouns.add(m[0])
+  }
+
+  let contentCoverage = 100
+  if (transcriptNouns.size > 0) {
+    let found = 0
+    for (const noun of transcriptNouns) {
+      if (noteContent.includes(noun)) found++
+    }
+    contentCoverage = Math.round((found / transcriptNouns.size) * 100)
+    if (contentCoverage < 80) {
+      details.push(`内容覆盖率 ${contentCoverage}%：${transcriptNouns.size - Math.round(found)} 个关键名词未在笔记中出现`)
+    }
+  }
+
+  // 2. 实体完整度 (25%)：CARD 块数量 / 正文 wiki-link 去重数量
+  const cardCount = (noteContent.match(/---CARD-(?:PEOPLE|PROJECT|CONCEPT|TERM)---/g) || []).length
+  const bodyLinks = new Set<string>()
+  const bodyLinkRe = /\[\[([^\]|]+)\]\]/g
+  while ((m = bodyLinkRe.exec(noteContent)) !== null) {
+    bodyLinks.add(m[1])
+  }
+
+  // 提取所有 CARD 中的实体名称（共享给维度 2 和 3）
+  const cardNames = new Set<string>()
+  const cardNameRe = /(?:姓名|项目名称|概念名称|术语名称)：(.+)/g
+  while ((m = cardNameRe.exec(noteContent)) !== null) {
+    cardNames.add(m[1].trim())
+  }
+
+  let entityCompleteness = 100
+  if (bodyLinks.size > 0) {
+    let matched = 0
+    for (const link of bodyLinks) {
+      if (cardNames.has(link)) matched++
+    }
+    entityCompleteness = Math.round((matched / bodyLinks.size) * 100)
+    entityCompleteness = Math.max(entityCompleteness, Math.min(100, cardCount * 10))
+    if (entityCompleteness < 70) {
+      details.push(`实体完整度 ${entityCompleteness}%：${bodyLinks.size - matched} 个正文链接缺少对应卡片`)
+    }
+  }
+
+  // 3. wiki-link 覆盖 (20%)：检查正文中首次出现的人名/项目名是否被 [[ ]] 包裹
+  // 通过对比 CARD 中的实体名是否在正文中以 [[ ]] 形式出现
+  let wikiLinkCoverage = 100
+  if (cardNames.size > 0) {
+    let wrappedCount = 0
+    for (const name of cardNames) {
+      // 检查笔记正文中该实体是否以 [[name]] 形式出现
+      if (noteContent.includes(`[[${name}]]`)) wrappedCount++
+    }
+    wikiLinkCoverage = Math.round((wrappedCount / cardNames.size) * 100)
+    if (wikiLinkCoverage < 80) {
+      details.push(`wiki-link 覆盖 ${wikiLinkCoverage}%：${cardNames.size - wrappedCount} 个实体名未被 [[ ]] 包裹`)
+    }
+  }
+
+  // 4. 格式合规性 (15%)：检查 frontmatter + 必要模块
+  let formatCompliance = 100
+  const formatIssues: string[] = []
+  if (!noteContent.startsWith('---')) {
+    formatCompliance -= 30
+    formatIssues.push('缺少 YAML frontmatter')
+  } else {
+    const fmEnd = noteContent.indexOf('\n---', 3)
+    if (fmEnd === -1) {
+      formatCompliance -= 30
+      formatIssues.push('frontmatter 未闭合')
+    } else {
+      const fm = noteContent.substring(0, fmEnd)
+      for (const field of ['type', 'show', 'date', 'tags', 'category']) {
+        if (!fm.includes(`${field}:`)) {
+          formatCompliance -= 5
+          formatIssues.push(`frontmatter 缺少 ${field}`)
+        }
+      }
+    }
+  }
+  if (!noteContent.includes('# 一句话总结')) {
+    formatCompliance -= 10
+    formatIssues.push('缺少一句话总结')
+  }
+  if (!noteContent.includes('术语词典')) {
+    formatCompliance -= 10
+    formatIssues.push('缺少术语词典模块')
+  }
+  formatCompliance = Math.max(0, formatCompliance)
+  if (formatIssues.length > 0) {
+    details.push(`格式问题：${formatIssues.join('、')}`)
+  }
+
+  // 综合评分
+  const overall = Math.round(
+    contentCoverage * 0.4 +
+    entityCompleteness * 0.25 +
+    wikiLinkCoverage * 0.2 +
+    formatCompliance * 0.15
+  )
+
+  return { overall, contentCoverage, entityCompleteness, wikiLinkCoverage, formatCompliance, details }
 }
 
 // 兼容旧接口：使用 DeepSeek 配置

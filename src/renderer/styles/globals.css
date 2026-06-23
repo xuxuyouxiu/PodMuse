@@ -1371,6 +1371,83 @@ body {
   align-items: center;
 }
 
+/* Batch tasks in ActiveTasksPanel */
+.task-status-badge.pending {
+  color: var(--text-tertiary);
+  background: rgba(var(--text-tertiary-rgb, 128,128,128), 0.1);
+  border-color: rgba(var(--text-tertiary-rgb, 128,128,128), 0.2);
+}
+
+.batch-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.batch-section-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--warning-rgb, 234,179,8), 0.12);
+  color: var(--warning, #eab308);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.task-card--batch .task-card-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.batch-task-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+}
+
+.task-card--active .batch-task-index {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.batch-task-error {
+  font-size: 11px;
+  color: var(--error);
+  padding: 2px 0;
+  opacity: 0.85;
+}
+
+.batch-task-steps {
+  display: flex;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.batch-step-dot {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-tertiary);
+}
+.batch-step-dot--done { color: var(--success); }
+.batch-step-dot--running { color: var(--accent); }
+.batch-step-dot--error { color: var(--error); }
+
 .settings-dialog {
   position: relative;
 }

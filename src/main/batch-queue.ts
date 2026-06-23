@@ -6,6 +6,8 @@ import { loadConfig, getUserDataDir } from './config'
 import { getActiveProviderConfig } from './ai-providers'
 import { platformRegistry } from './platforms'
 import { sendNotification } from './notify'
+import { startRecentTask, completeRecentTask, failRecentTask, stopRecentTask } from './recent-task-state'
+import type { FeishuState } from '@shared/types'
 import type {
   BatchTask, BatchTaskStatus, BatchQueueStatus, BatchQueueSnapshot,
   BatchCompletionSummary, BatchInput, StepInfo,
@@ -13,12 +15,21 @@ import type {
 
 const MAX_CONSECUTIVE_FAILURES = 3
 
+const STEP_TITLES = [
+  { title: '解析页面', subtitle: '提取音频' },
+  { title: '下载音频', subtitle: '获取文件' },
+  { title: '语音转文字', subtitle: 'Whisper' },
+  { title: '修正专有名词', subtitle: 'DeepSeek' },
+  { title: 'AI 提炼笔记', subtitle: 'DeepSeek' },
+]
+
 interface BatchCallbacks {
   onTaskUpdate: (index: number, task: BatchTask) => void
   onQueueStateChange: () => void
   onQueueComplete: (summary: BatchCompletionSummary) => void
   sendStep: (step: StepInfo) => void
   sendLog: (msg: string) => void
+  updateRecentState: (updater: (state: FeishuState) => FeishuState) => void
 }
 
 interface PersistedQueue {
@@ -306,6 +317,11 @@ export class BatchQueueService {
     this.currentAbort = new AbortController()
     const signal = this.currentAbort.signal
 
+    // Reset StepPanel to clear stale checkmarks from previous task
+    for (let i = 0; i < STEP_TITLES.length; i++) {
+      this.callbacks.sendStep({ step: i + 1, ...STEP_TITLES[i], status: 'pending' })
+    }
+
     try {
       // Fetch title for URL tasks
       if (task.type === 'url' && !task.title) {
@@ -323,6 +339,19 @@ export class BatchQueueService {
       }
 
       const isLocalFile = task.type === 'file'
+
+      // Derive episodeId for dedup tracking
+      const episodeId = task.type === 'url'
+        ? (platformRegistry.findAdapter(task.source)?.adapter.getDedupKey(task.source) || null)
+        : null
+
+      // Register in recent tasks system so it shows in history
+      this.callbacks.updateRecentState(state => startRecentTask(state, {
+        id: task.id,
+        url: task.source,
+        episodeId,
+        title: task.title,
+      }))
 
       // Create per-task step callback
       const stepCallback = (step: StepInfo) => {
@@ -347,6 +376,7 @@ export class BatchQueueService {
         // Was paused or cleared during processing
         task.status = 'pending'
         task.steps = undefined
+        this.callbacks.updateRecentState(state => stopRecentTask(state))
         this.callbacks.onTaskUpdate(index, { ...task })
         return
       }
@@ -356,18 +386,26 @@ export class BatchQueueService {
         task.filename = result
         task.completedAt = Date.now()
         this.consecutiveFailures = 0
+        this.callbacks.updateRecentState(state => completeRecentTask(state, {
+          taskId: task.id,
+          url: task.source,
+          episodeId,
+          filename: result,
+        }))
         this.callbacks.sendLog(`✓ 完成：${task.title || task.source} → ${result}`)
       } else {
         task.status = 'failed'
         task.failureReason = '处理返回空结果'
         task.completedAt = Date.now()
         this.consecutiveFailures++
+        this.callbacks.updateRecentState(state => failRecentTask(state))
         this.callbacks.sendLog(`✗ 失败：${task.title || task.source}`)
       }
     } catch (err: unknown) {
       if (signal.aborted) {
         task.status = 'pending'
         task.steps = undefined
+        this.callbacks.updateRecentState(state => stopRecentTask(state))
         this.callbacks.onTaskUpdate(index, { ...task })
         return
       }
@@ -377,6 +415,7 @@ export class BatchQueueService {
       task.failureReason = errMsg
       task.completedAt = Date.now()
       this.consecutiveFailures++
+      this.callbacks.updateRecentState(state => failRecentTask(state))
       this.callbacks.sendLog(`✗ 失败：${task.title || task.source} — ${errMsg}`)
     } finally {
       this.currentAbort = null
@@ -444,9 +483,21 @@ export class BatchQueueService {
       if (!fs.existsSync(queuePath)) return
 
       const raw = fs.readFileSync(queuePath, 'utf-8')
-      const data: PersistedQueue = JSON.parse(raw)
+      let data: PersistedQueue
+      try {
+        data = JSON.parse(raw)
+      } catch (parseErr) {
+        console.error('Corrupted batch_queue.json, discarding:', parseErr)
+        try { fs.unlinkSync(queuePath) } catch {}
+        this.tasks = []
+        this.status = 'idle'
+        return
+      }
 
-      if (!data || !Array.isArray(data.tasks)) return
+      if (!data || !Array.isArray(data.tasks)) {
+        try { fs.unlinkSync(queuePath) } catch {}
+        return
+      }
 
       this.tasks = data.tasks.map(t => ({
         ...t,
@@ -454,6 +505,15 @@ export class BatchQueueService {
         filename: undefined,
         steps: undefined,
       }))
+
+      // Validate file-type tasks: mark missing files as skipped
+      for (const task of this.tasks) {
+        if (task.type === 'file' && task.status === 'pending' && !fs.existsSync(task.source)) {
+          task.status = 'skipped'
+          task.failureReason = '源文件已丢失'
+          task.completedAt = Date.now()
+        }
+      }
 
       // Any tasks that were "processing" are now "pending" (persist maps processing → pending)
       // Set status to idle - user can resume manually or via startup prompt
@@ -477,5 +537,23 @@ export class BatchQueueService {
 
   getRecoverableCount(): number {
     return this.tasks.filter(t => t.status === 'pending').length
+  }
+
+  /** Get structured recovery info for the startup dialog */
+  getRecoveryInfo(): { pending: number; failed: number; total: number; allFailed: boolean } | null {
+    if (this.tasks.length === 0) return null
+    const pending = this.tasks.filter(t => t.status === 'pending').length
+    const failed = this.tasks.filter(t => t.status === 'failed').length
+    const completed = this.tasks.filter(t => t.status === 'completed').length
+    const skipped = this.tasks.filter(t => t.status === 'skipped').length
+    const total = this.tasks.length
+    // Only show recovery if there are pending or failed tasks
+    if (pending === 0 && failed === 0) return null
+    return {
+      pending,
+      failed,
+      total,
+      allFailed: pending === 0 && failed > 0 && completed === 0 && skipped === 0,
+    }
   }
 }

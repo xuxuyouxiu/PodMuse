@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Upload, FileAudio, FolderOpen, AlertCircle } from 'lucide-react'
 
 const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.wmv']
-const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.aac', '.flac']
+const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.aac', '.flac', '.m4a', '.ogg']
 const ALLOWED_EXTENSIONS = [...ALLOWED_VIDEO_EXTENSIONS, ...ALLOWED_AUDIO_EXTENSIONS]
 const EXTENSION_LABELS = ALLOWED_EXTENSIONS.map(e => e.toUpperCase().replace('.', '')).join('、')
 
@@ -149,7 +149,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp4,.mov,.avi,.wmv,.mp3,.wav,.aac,.flac"
+        accept=".mp4,.mov,.avi,.wmv,.mp3,.wav,.aac,.flac,.m4a,.ogg"
         onChange={onFileChange}
         style={{ display: 'none' }}
       />

@@ -52,6 +52,7 @@ export default function App() {
   const [batchConfirmItems, setBatchConfirmItems] = useState<BatchInput[] | null>(null)
   const [batchQueueState, setBatchQueueState] = useState<BatchQueueSnapshot | null>(null)
   const [batchCompletion, setBatchCompletion] = useState<BatchCompletionSummary | null>(null)
+  const [recoveryInfo, setRecoveryInfo] = useState<{ pending: number; failed: number; total: number; allFailed: boolean } | null>(null)
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
@@ -121,6 +122,11 @@ export default function App() {
     // Load initial batch state
     window.electronAPI.batchGetState().then((state: BatchQueueSnapshot) => {
       if (state.tasks.length > 0) setBatchQueueState(state)
+    }).catch(() => {})
+
+    // Check for recoverable batch queue from previous session
+    window.electronAPI.batchCheckRecovery().then((info) => {
+      if (info) setRecoveryInfo(info)
     }).catch(() => {})
 
     return () => { cleanups.forEach(fn => fn?.()) }
@@ -335,6 +341,22 @@ export default function App() {
     window.electronAPI.batchClear()
   }, [])
 
+  // ---- Batch recovery dialog handlers ----
+  const handleRecoveryContinue = useCallback(async () => {
+    setRecoveryInfo(null)
+    // Load current state and start the queue
+    const state = await window.electronAPI.batchGetState()
+    setBatchQueueState(state)
+    if (state.tasks.some((t: BatchTask) => t.status === 'pending')) {
+      await window.electronAPI.batchStart()
+    }
+  }, [])
+
+  const handleRecoveryDiscard = useCallback(() => {
+    setRecoveryInfo(null)
+    window.electronAPI.batchClear()
+  }, [])
+
   const commands = useAppCommands({
     theme,
     onToggleTheme: toggleTheme,
@@ -441,6 +463,7 @@ export default function App() {
                   <BatchQueuePanel
                     queueState={batchQueueState}
                     completionSummary={batchCompletion}
+                    obsidianDir={config?.obsidian_dir}
                     onPause={handleBatchPause}
                     onResume={handleBatchResume}
                     onSkip={handleBatchSkip}
@@ -471,7 +494,7 @@ export default function App() {
                   >
                     <Zap size={13} />
                     活跃任务
-                    <span className="rp-tabs__count">{activeTasks.length}</span>
+                    <span className="rp-tabs__count">{activeTasks.length + (batchQueueState?.tasks.length || 0)}</span>
                   </button>
                   <button
                     className={`rp-tabs__tab ${rpTab === 'recent' ? 'is-active' : ''}`}
@@ -484,7 +507,7 @@ export default function App() {
                 </div>
                 <div className="rp-tabs__content">
                   {rpTab === 'active' && (
-                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleReprocess} onCancel={async (taskId: string) => {
+                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleReprocess} onDelete={handleTaskDelete} batchTasks={batchQueueState?.tasks} batchStatus={batchQueueState?.status} onCancel={async (taskId: string) => {
                       if (taskId) {
                         const result = await window.electronAPI.cancelProcessing()
                         const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
@@ -546,6 +569,20 @@ export default function App() {
           danger={true}
           onConfirm={confirmDeleteTask}
           onCancel={() => setDeleteConfirmId(null)}
+        />
+      )}
+      {recoveryInfo && (
+        <ConfirmDialog
+          title={recoveryInfo.allFailed ? '上次批量处理全部失败' : '有未完成的批量任务'}
+          message={
+            recoveryInfo.allFailed
+              ? `上次 ${recoveryInfo.failed} 个任务全部失败，是否查看并重试？`
+              : `上次有 ${recoveryInfo.pending} 个任务未完成${recoveryInfo.failed > 0 ? `，${recoveryInfo.failed} 个失败` : ''}，是否继续处理？`
+          }
+          confirmText={recoveryInfo.allFailed ? '查看' : '继续'}
+          cancelText="放弃"
+          onConfirm={handleRecoveryContinue}
+          onCancel={handleRecoveryDiscard}
         />
       )}
       <CommandPalette

@@ -137,6 +137,9 @@ export interface WriteEntityOptions {
   entities: EntityResult
   obsidianDir: string
   podcastFilename: string
+  podcastTitle?: string
+  podcastDate?: string
+  podcastEpisode?: string
   apiKey?: string
   providerConfig?: { baseUrl: string; apiKey: string; model: string } | null
   providerId?: AIProviderId
@@ -269,7 +272,7 @@ function hasRealContext(term: TermEntity): boolean {
 }
 
 export async function writeEntityNotes(options: WriteEntityOptions, signal?: AbortSignal): Promise<WriteEntityResult> {
-  const { entities, obsidianDir, podcastFilename } = options
+  const { entities, obsidianDir, podcastFilename, podcastTitle, podcastDate, podcastEpisode } = options
   const today = new Date().toISOString().split('T')[0]
   const result: WriteEntityResult = {
     peopleWritten: 0, projectsWritten: 0, conceptsWritten: 0,
@@ -465,6 +468,23 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     }
   }
 
+  // ===== 更新"近期提及"段落 =====
+  if (podcastTitle) {
+    const allEntities: { name: string; dir: string }[] = [
+      ...entities.people.map(e => ({ name: e.name, dir: '人物' })),
+      ...entities.projects.map(e => ({ name: e.name, dir: '项目' })),
+      ...entities.concepts.map(e => ({ name: e.name, dir: '概念' })),
+      ...entities.terms.map(e => ({ name: e.name, dir: hasRealContext(e) ? '术语' : '概念' })),
+    ]
+    for (const { name, dir } of allEntities) {
+      if (!name) continue
+      const filePath = path.join(baseDir, dir, `${sanitizeName(name)}.md`)
+      if (fs.existsSync(filePath)) {
+        updateRecentMentions(filePath, podcastFilename, podcastDate, podcastEpisode)
+      }
+    }
+  }
+
   return result
 }
 
@@ -473,6 +493,41 @@ function appendSourceLink(filePath: string, podcastFilename: string): void {
   const link = `[[${podcastFilename.replace(/\.md$/i, '')}]]`
   if (content.includes(link)) return
   fs.appendFileSync(filePath, `\n- ${link}\n`, 'utf-8')
+}
+
+function updateRecentMentions(
+  filePath: string,
+  podcastTitle: string,
+  podcastDate?: string,
+  podcastEpisode?: string
+): void {
+  let content: string
+  try {
+    content = fs.readFileSync(filePath, 'utf-8')
+  } catch {
+    return
+  }
+
+  const title = podcastTitle.replace(/\.md$/i, '')
+  const datePart = podcastDate || ''
+  const episodePart = podcastEpisode && podcastEpisode !== '单集' ? ` ${podcastEpisode}` : ''
+  const meta = `(${datePart}${episodePart})`.replace(/\(\s*\)/, '').trim()
+  const newEntry = meta ? `- [[${title}]] ${meta}` : `- [[${title}]]`
+
+  const sectionRe = /\n# 近期提及\n([\s\S]*?)(?=\n# |\n---\s*$|$)/
+  const match = content.match(sectionRe)
+
+  if (match) {
+    const existingLines = match[1].trim().split('\n').filter(l => l.startsWith('- '))
+    const filtered = existingLines.filter(l => !l.includes(`[[${title}]]`))
+    const updated = [newEntry, ...filtered].slice(0, 3)
+    const newSection = `\n# 近期提及\n${updated.join('\n')}\n`
+    content = content.replace(sectionRe, newSection)
+  } else {
+    content += `\n# 近期提及\n${newEntry}\n`
+  }
+
+  fs.writeFileSync(filePath, content, 'utf-8')
 }
 
 function getFallbackTemplate(name: string): string {

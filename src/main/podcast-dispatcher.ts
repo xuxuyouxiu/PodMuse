@@ -58,7 +58,7 @@ export class PodcastDispatchService {
       const filename = await processPodcast(url, this.providerConfig, this.providerId, this.language, this.obsidianDir, this.audioDir, this.stepFunc, this.logFunc, signal, false)
       if (filename) {
         if (episodeId) this.store.markUrl(episodeId)
-        this.updateRecentState(state => completeRecentTask(state, { filename }))
+        this.updateRecentState(state => completeRecentTask(state, { url, episodeId, filename }))
         await this.client.sendMessage(this.chatId, `笔记已生成！\n文件：${filename}\n位置：Obsidian → 小宇宙播客`)
         if (this.notificationEnabled) {
           sendNotification('播客笔记助手', `笔记已生成：${filename}`)

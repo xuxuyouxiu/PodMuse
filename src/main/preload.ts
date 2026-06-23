@@ -68,6 +68,7 @@ try {
     batchRemove: (index: number) => ipcRenderer.invoke('batch:remove', index),
     batchReorder: (from: number, to: number) => ipcRenderer.invoke('batch:reorder', from, to),
     batchGetState: () => ipcRenderer.invoke('batch:getState'),
+    batchCheckRecovery: () => ipcRenderer.invoke('batch:checkRecovery'),
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)
