@@ -106,6 +106,9 @@ export default function App() {
         }
       }).catch(() => {})
     }))
+    cleanups.push(window.electronAPI.onToast((t) => {
+      showToast(t.message, t.type)
+    }))
 
     // Batch queue events
     cleanups.push(window.electronAPI.onBatchQueueState((state: BatchQueueSnapshot) => {
@@ -329,13 +332,15 @@ export default function App() {
     window.electronAPI.batchRetry(index)
   }, [])
 
-  const handleBatchRetryAllFailed = useCallback(() => {
+  const handleBatchRetryAllFailed = useCallback(async () => {
     if (!batchQueueState) return
     const failedIndices = batchQueueState.tasks
       .map((t, i) => t.status === 'failed' ? i : -1)
       .filter(i => i >= 0)
-    failedIndices.forEach(i => window.electronAPI.batchRetry(i))
-    window.electronAPI.batchStart()
+    for (const i of failedIndices) {
+      await window.electronAPI.batchRetry(i)
+    }
+    await window.electronAPI.batchStart()
     setBatchCompletion(null)
   }, [batchQueueState])
 

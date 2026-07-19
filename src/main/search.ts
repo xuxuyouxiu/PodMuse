@@ -152,6 +152,21 @@ function buildExcerpt(content: string, contentLower: string, tokens: string[]): 
   return escaped
 }
 
+// ── Build title with <mark> highlights (XSS-safe: escape first, then wrap <mark>) ──
+
+function highlightTitle(title: string, tokens: string[]): string {
+  let escaped = escapeHtml(title)
+  if (tokens.length === 0) return escaped
+  const sortedTokens = [...tokens].sort((a, b) => b.length - a.length)
+  for (const tok of sortedTokens) {
+    const marker = `\u0001MARK_${tok.length}_\u0002`
+    const regex = new RegExp(escapeRegex(tok), 'gi')
+    escaped = escaped.replace(regex, marker)
+    escaped = escaped.split(marker).join(`<mark>${escapeHtml(tok)}</mark>`)
+  }
+  return escaped
+}
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -390,7 +405,7 @@ export function searchEnhanced(obsidianDir: string, params: SearchParams): Searc
 
   // Step 5: build result + facets
   const results: SearchResult[] = page.map(({ note, score, matchType }) => {
-    const title = note.meta.title || note.fileName
+    const title = highlightTitle(note.meta.title || note.fileName, tokens)
     return {
       path: note.path,
       title,

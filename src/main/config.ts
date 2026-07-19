@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
-import { app, safeStorage } from 'electron'
+import { app, safeStorage, BrowserWindow } from 'electron'
 import { PodcastConfig, FeishuState } from '@shared/types'
 import { getAllDefaultProviderConfigs } from './ai-providers'
 import { decryptField } from './security'
@@ -257,5 +257,15 @@ export function saveState(state: FeishuState) {
     const dir = path.dirname(p)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(p, JSON.stringify(state, null, 2), 'utf-8')
-  } catch {}
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[config] saveState failed:', msg)
+    // 通知前端显示 toast，让用户感知状态可能未持久化
+    try {
+      const win = BrowserWindow.getAllWindows()[0]
+      win?.webContents.send('toast', { message: `状态保存失败：${msg}`, type: 'error' })
+    } catch {
+      // window 不可用时不阻塞调用方
+    }
+  }
 }

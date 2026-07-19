@@ -36,9 +36,10 @@ export class XiaoyuzhouAdapter implements PlatformAdapter {
     return this.urlPattern.test(url)
   }
 
-  async extractAudio(url: string): Promise<AudioExtractResult> {
+  async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
     const resp = await fetch(url, {
       headers: { 'User-Agent': HEADERS_UA, 'Accept-Language': 'zh-CN,zh;q=0.9' },
+      signal,
     })
     if (!resp.ok) throw new Error(`抓取页面失败 HTTP ${resp.status}`)
     const html = await resp.text()

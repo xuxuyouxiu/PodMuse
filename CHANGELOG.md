@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.13.1] - 2026-07-19
+
+### 修复
+- 基于代码排查的 7 个潜在改进（全部 <1 天工作量、真实代码证据）
+- 安全：`SearchPanel.tsx` 标题 `dangerouslySetInnerHTML` XSS 漏洞 — `search.ts` 新增 `highlightTitle()`，标题先 `escapeHtml` 再用 `<mark>` 包裹关键词，与 excerpt 路径一致
+- 健壮性：`feishu-client.ts` 的 `feishuApi` 加 `AbortSignal.timeout(15000)`，避免飞书 API 网络挂起时 `MessagePoller.tick()` 永久阻塞、`scanning` 标志永不清除
+- 健壮性：`batch-queue.ts` 的 `resume()` 两处 `processNext().catch(() => {})` 改为通过 `callbacks.sendLog` + `console.error` 上报，避免未捕获异常被静默吞掉导致队列"假停止"
+- 用户体验：`App.tsx` 的 `handleBatchRetryAllFailed` 改 async + `for...of await`，先等待每个 `batchRetry` IPC 完成再 `batchStart`，否则 start 时队列还是 `failed` 不会启动
+- 用户体验：`config.ts` 的 `saveState` 不再静默吞错，磁盘满/权限错时通过新 `toast` IPC 通知前端显示错误（preload 暴露 `onToast`、env.d.ts 类型、App.tsx useEffect 监听）
+- 数据完整性：`shared/utils.ts` 的 `cleanTitle` 在 `cleaned` 为空（纯日期/期数标题被清空）时不再 fallback 原始标题，改为生成 `未命名播客_${YYYYMMDDHHmmss}` 唯一名，避免多期同日期笔记文件互相覆盖
+- 用户体验：`platforms/xiaoyuzhou.ts` 的 `extractAudio` 签名加 `signal?: AbortSignal` 参数（与 B 站适配器一致），传给 `fetch`，用户点取消时能中断小宇宙页面抓取
+
 ## [1.13.0] - 2026-07-19
 
 ### 新增

@@ -43,6 +43,11 @@ try {
       ipcRenderer.on('task:state-changed', handler)
       return () => { ipcRenderer.removeListener('task:state-changed', handler) }
     },
+    onToast: (callback: (toast: { message: string; type: 'success' | 'error' }) => void) => {
+      const handler = (_e: unknown, toast: { message: string; type: 'success' | 'error' }) => callback(toast)
+      ipcRenderer.on('toast', handler)
+      return () => { ipcRenderer.removeListener('toast', handler) }
+    },
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),
     searchNotes: (keyword: string) => ipcRenderer.invoke('search:notes', keyword),

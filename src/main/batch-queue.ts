@@ -140,17 +140,25 @@ export class BatchQueueService {
     this.persist()
     this.callbacks.onQueueStateChange()
 
+    const safeRun = () => {
+      this.processNext().catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e)
+        this.callbacks.sendLog(`⚠ 队列恢复时发生未捕获异常: ${msg}`)
+        console.error('[batch-queue] resume processNext error:', e)
+      })
+    }
+
     // If current task was aborted during pause, mark it pending again
     if (this.currentIndex >= 0 && this.currentIndex < this.tasks.length) {
       const task = this.tasks[this.currentIndex]
       if (task.status === 'pending' || task.status === 'processing') {
         // Restart from current position
-        this.processNext().catch(() => {})
+        safeRun()
         return
       }
     }
 
-    this.processNext().catch(() => {})
+    safeRun()
   }
 
   skipTask(index: number): void {

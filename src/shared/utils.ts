@@ -47,8 +47,17 @@ export function cleanTitle(title: string): string {
   if (cleaned.length > 50) {
     cleaned = cleaned.substring(0, 50) + '...'
   }
-  
-  return cleaned || title
+
+  // fallback：cleaned 为空（纯日期/期数等无语义标题被清空）时，
+  // 不要直接用原始 title（多期同日期会冲突覆盖），生成时间戳唯一名
+  if (!cleaned) {
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+    return `未命名播客_${ts}`
+  }
+
+  return cleaned
 }
 
 /**

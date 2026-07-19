@@ -24,10 +24,16 @@ async function feishuApi(method: string, url: string, token: string | null, body
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   try {
-    const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(15000),
+    })
     return await resp.json() as FeishuApiResponse
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
+    const isTimeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
+    const msg = isTimeout ? '请求超时（15s）' : (e instanceof Error ? e.message : String(e))
     return { code: -1, msg: `网络请求失败: ${msg}` }
   }
 }

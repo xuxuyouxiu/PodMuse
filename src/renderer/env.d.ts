@@ -163,6 +163,7 @@ declare global {
       onFeishuStatus: (callback: (status: FeishuStatus) => void) => () => void
       onProcessingChange: (callback: (processing: boolean, url?: string) => void) => () => void
       onTasksChanged: (callback: () => void) => () => void
+      onToast: (callback: (toast: { message: string; type: 'success' | 'error' }) => void) => () => void
       getRecoveryLogs: () => Promise<RecoveryLogEntry[]>
       cleanTemp: () => Promise<boolean>
       searchNotes: (keyword: string) => Promise<NoteSearchResult[]>
