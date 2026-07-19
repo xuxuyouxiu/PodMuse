@@ -48,6 +48,25 @@ function validateConfigInput(config: Record<string, unknown>): string | null {
     }
   }
 
+  // 验证导出配置（嵌套对象）
+  if (config.export !== undefined && config.export !== null) {
+    const exp = config.export as Record<string, unknown>
+    if (typeof exp.logseq_dir === 'string' && exp.logseq_dir.trim()) {
+      if (!isSafeDirectoryPath(exp.logseq_dir)) {
+        return `路径不安全: export.logseq_dir`
+      }
+    }
+    if (exp.notion !== undefined && exp.notion !== null) {
+      const notion = exp.notion as Record<string, unknown>
+      if ('token' in notion && typeof notion.token !== 'string') {
+        return `字段 export.notion.token 类型无效`
+      }
+      if ('database_id' in notion && typeof notion.database_id !== 'string') {
+        return `字段 export.notion.database_id 类型无效`
+      }
+    }
+  }
+
   // 验证 AI 供应商配置
   if (config.ai_providers && typeof config.ai_providers === 'object') {
     for (const provider of Object.values(config.ai_providers as Record<string, unknown>)) {

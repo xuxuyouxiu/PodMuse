@@ -60,6 +60,12 @@ try {
     getTagIndex: () => ipcRenderer.invoke('tags:getIndex'),
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:showInFolder', filePath),
 
+    // 导出
+    exportToMarkdown: (params: { taskId: string; targetDir: string; stripObsidianSyntax?: boolean }) => ipcRenderer.invoke('export:toMarkdown', params),
+    exportToLogseq: (taskId: string) => ipcRenderer.invoke('export:toLogseq', { taskId }),
+    exportToNotion: (taskId: string) => ipcRenderer.invoke('export:toNotion', { taskId }),
+    testNotionConnection: (params: { token: string; databaseId: string }) => ipcRenderer.invoke('export:notion:testConnection', params),
+
     // 批量处理
     batchAdd: (items: unknown[]) => ipcRenderer.invoke('batch:add', items),
     batchStart: () => ipcRenderer.invoke('batch:start'),

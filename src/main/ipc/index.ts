@@ -3,6 +3,7 @@ import { registerConfigIPC } from './config-ipc'
 import { registerTaskIPC } from './task-ipc'
 import { registerSearchIPC } from './search-ipc'
 import { registerWindowIPC } from './window-ipc'
+import { registerExportIPC } from './export-ipc'
 import type { FeishuMonitor } from '../feishu'
 
 /**
@@ -14,4 +15,5 @@ export function registerCoreIPC(mainWindow?: BrowserWindow | null, monitor?: Fei
   registerTaskIPC(mainWindow, monitor)
   registerSearchIPC(mainWindow)
   registerWindowIPC(mainWindow)
+  registerExportIPC(mainWindow)
 }

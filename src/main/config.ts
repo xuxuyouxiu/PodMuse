@@ -69,10 +69,10 @@ const DEFAULTS: PodcastConfig = {
   // AI 供应商配置
   ai_provider: 'deepseek',
   ai_providers: getAllDefaultProviderConfigs(),
-  
+
   // 旧字段保留兼容
   api_key: '',
-  
+
   feishu_app_id: '', feishu_app_secret: '',
   language: 'auto', feishu_chat_id: '',
   obsidian_dir: '',
@@ -80,6 +80,12 @@ const DEFAULTS: PodcastConfig = {
   whisper_exe_path: '',
   whisper_model: 'large-v3-turbo',
   notification_enabled: true,
+
+  // 导出配置默认值
+  export: {
+    logseq_dir: '',
+    notion: { token: '', database_id: '' },
+  },
 }
 
 function loadShippedConfig(): PodcastConfig | null {

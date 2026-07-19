@@ -35,14 +35,24 @@ export interface AIProviderPreset {
   apiKeyUrl?: string
 }
 
+export interface NotionConfig {
+  token: string
+  database_id: string
+}
+
+export interface ExportConfig {
+  logseq_dir: string
+  notion: NotionConfig
+}
+
 export interface PodcastConfig {
   // AI 供应商配置（新增）
   ai_provider: AIProviderId
   ai_providers: Record<AIProviderId, AIProviderConfig>
-  
+
   // 旧字段保留兼容
   api_key: string
-  
+
   feishu_app_id: string
   feishu_app_secret: string
   language: 'zh' | 'en' | 'auto'
@@ -52,6 +62,9 @@ export interface PodcastConfig {
   whisper_exe_path: string
   whisper_model: string
   notification_enabled: boolean
+
+  // 导出配置（可选，向后兼容）
+  export?: ExportConfig
 }
 
 export interface FeishuState {

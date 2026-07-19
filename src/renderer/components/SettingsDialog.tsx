@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
-import { Link, FileText, Mic, Wrench, Settings, Layers, type LucideIcon } from 'lucide-react'
+import { Link, FileText, Mic, Wrench, Settings, Layers, Download, type LucideIcon } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
-import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms } from './settings'
+import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport } from './settings'
 
-type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools'
+type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
 
 const TABS: { key: TabKey; icon: LucideIcon; label: string }[] = [
   { key: 'api', icon: Link, label: '接口与通知' },
   { key: 'transcribe', icon: FileText, label: '转写偏好' },
   { key: 'whisper', icon: Mic, label: '语音模型' },
   { key: 'platforms', icon: Layers, label: '支持平台' },
+  { key: 'export', icon: Download, label: '导出' },
   { key: 'tools', icon: Wrench, label: '工具维护' },
 ]
 
@@ -26,6 +27,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     ...config,
     ai_provider: config.ai_provider || 'deepseek',
     ai_providers: config.ai_providers || ({} as Record<AIProviderId, AIProviderConfig>),
+    export: config.export || {
+      logseq_dir: '',
+      notion: { token: '', database_id: '' },
+    },
   }
   
   const [form, setForm] = useState<PodcastConfig>(initialConfig)
@@ -298,6 +303,12 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               />
             )}
             {activeTab === 'platforms' && <TabPlatforms />}
+            {activeTab === 'export' && (
+              <TabExport
+                form={form}
+                update={update}
+              />
+            )}
             {activeTab === 'tools' && (
               <TabTools
                 cleaningTemp={cleaningTemp}

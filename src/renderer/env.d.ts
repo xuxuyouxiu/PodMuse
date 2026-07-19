@@ -119,6 +119,32 @@ declare global {
     facets: SearchFacets
   }
 
+  interface ExportParams {
+    taskId: string
+    target: 'markdown' | 'logseq' | 'notion'
+    targetDir?: string
+    stripObsidianSyntax?: boolean
+  }
+
+  interface ExportResult {
+    success: boolean
+    outputPath?: string
+    pageUrl?: string
+    pageId?: string
+    error?: string
+  }
+
+  interface NotionTestConnectionParams {
+    token: string
+    databaseId: string
+  }
+
+  interface NotionTestConnectionResult {
+    success: boolean
+    databaseTitle?: string
+    error?: string
+  }
+
   interface Window {
     electronAPI: {
       getConfig: () => Promise<PodcastConfig | null>
@@ -153,6 +179,12 @@ declare global {
       getBacklinkIndex: () => Promise<BacklinkEntry[]>
       getTagIndex: () => Promise<TagEntry[]>
       showInFolder: (filePath: string) => Promise<boolean>
+
+      // 导出
+      exportToMarkdown: (params: { taskId: string; targetDir: string; stripObsidianSyntax?: boolean }) => Promise<ExportResult>
+      exportToLogseq: (taskId: string) => Promise<ExportResult>
+      exportToNotion: (taskId: string) => Promise<ExportResult>
+      testNotionConnection: (params: NotionTestConnectionParams) => Promise<NotionTestConnectionResult>
 
       // 批量处理
       batchAdd: (items: BatchInput[]) => Promise<BatchQueueSnapshot>

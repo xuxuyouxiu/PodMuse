@@ -45,9 +45,14 @@ export default function App() {
   const [lastUrl, setLastUrl] = useState<string | null>(null)
   const [activeTasks, setActiveTasks] = useState<RecentTaskState[]>([])
   const [recentTasks, setRecentTasks] = useState<RecentTaskState[]>([])
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [rpTab, setRpTab] = useState<'active' | 'recent'>('active')
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [activeView, setActiveView] = useState<SidebarView>('workspace')
   const [batchConfirmItems, setBatchConfirmItems] = useState<BatchInput[] | null>(null)
@@ -179,8 +184,7 @@ export default function App() {
     // Pre-check: has this URL been processed before?
     const wasProcessed = await window.electronAPI.checkProcessed(url).catch(() => false)
     if (wasProcessed) {
-      setToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"')
-      setTimeout(() => setToast(null), 3000)
+      showToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"', 'error')
       return { success: false, error: '该播客已处理过' }
     }
     return handleProcessWithMode(url, false)
@@ -250,8 +254,7 @@ export default function App() {
   const handleSaveConfig = useCallback(async (c: PodcastConfig) => {
     await window.electronAPI.saveConfig(c)
     setConfig(c)
-    setToast('保存成功')
-    setTimeout(() => setToast(null), 2000)
+    showToast('保存成功')
     // 保存后自动重启飞书监听器，使用新凭据重新连接
     window.electronAPI.startFeishu()
       .then(s => s && setFeishuStatus(s))
@@ -522,7 +525,16 @@ export default function App() {
                     }} />
                   )}
                   {rpTab === 'recent' && (
-                    <RecentTasksPanel tasks={recentTasks} processing={processing || cancelling} onResume={handleReprocess} onReplay={handleReprocess} onDelete={handleTaskDelete} />
+                    <RecentTasksPanel
+                      tasks={recentTasks}
+                      processing={processing || cancelling}
+                      onResume={handleReprocess}
+                      onReplay={handleReprocess}
+                      onDelete={handleTaskDelete}
+                      logseqDir={config?.export?.logseq_dir || ''}
+                      notionConfigured={!!(config?.export?.notion?.token?.trim() && config?.export?.notion?.database_id?.trim())}
+                      onToast={showToast}
+                    />
                   )}
                 </div>
               </div>
@@ -562,12 +574,16 @@ export default function App() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--bg-elevated)', border: '1px solid var(--success)',
-          color: 'var(--success)', padding: '10px 24px', borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-elevated)',
+          border: `1px solid ${toast.type === 'error' ? 'var(--error)' : 'var(--success)'}`,
+          color: toast.type === 'error' ? 'var(--error)' : 'var(--success)',
+          padding: '10px 24px', borderRadius: 'var(--radius-md)',
           fontSize: 13, fontWeight: 600, zIndex: 2000,
           animation: 'toastIn 0.3s ease',
+          maxWidth: 'calc(100vw - 80px)',
+          wordBreak: 'break-word',
         }}>
-          ✓ {toast}
+          {toast.type === 'error' ? '✗ ' : '✓ '}{toast.message}
         </div>
       )}
       {deleteConfirmId && (

@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.13.0] - 2026-07-19
+
+### 新增
+- 导出更多平台（ICE 6.0）：完成笔记后手动导出到 Markdown / Logseq / Notion，单任务触发，不侵入批量流程
+  - 新增 `exporter.ts`：通用复制核心（`copyNoteToDir` + `stripWikiLinks` + `getNotePathByTaskId` + `exportNote` 总入口），文件名冲突自动追加时间戳后缀（YYYYMMDDHHmmss），`NodeJS.ErrnoException` 按 code 映射中文错误（ENOENT/EACCES/ENOSPC/ENAMETOOLONG/EROFS）
+  - 新增 `notion-converter.ts`：无 Notion SDK 直接 `fetch` 调 REST API（`Notion-Version: 2022-06-28`），极简按行 markdown 解析（标题/段落/列表/引用/todo/code/divider），frontmatter → Notion properties（title/show/episode/host/guest/platform→rich_text；date→date；category/platform→select；tags→multi_select），上传前 GET database schema 校验列名，重复检测（query by title），100 blocks 上限截断
+  - 新增 4 个 IPC：`export:toMarkdown` / `export:toLogseq` / `export:toNotion` / `export:notion:testConnection`，preload 桥接 + env.d.ts 类型声明
+  - 新增 `ExportMenu` 组件：RecentTask 完成卡片「导出」下拉菜单，未配置项禁用 + 悬停提示，导出中按钮 spinner + disabled
+  - 新增 `TabExport` 设置 tab：Logseq 目录配置（DirField）+ Notion token（password 输入）/ database_id 配置 + 测试连接按钮 + 测试结果显示 + 集成说明
+  - 新增 `ExportConfig` / `NotionConfig` 接口扩展 `PodcastConfig.export` 字段，DEFAULTS 默认值 + `validateConfigInput` 嵌套对象校验（logseq_dir 路径安全 + notion token/database_id 类型校验）
+- 新增文档：`docs/用户故事-导出更多平台.md`（4 个 US：Markdown P0 / Logseq P1 / Notion P1 / 配置 UI P0）、`docs/PRD-导出更多平台.md`（完整类型定义 + 算法说明 + 数据流 + IPC 合约 + UI 设计 + 性能要求 + 风险降级）
+
+### 改进
+- App.tsx 的 toast 状态从 `string | null` 扩展为 `{ message: string; type: 'success' | 'error' } | null`，新增 `showToast(message, type?)` 函数，渲染根据类型显示 ✓/✗ 图标 + 对应颜色边框，支撑导出成功/失败不同 UX
+- `RecentTasksPanel` 接收 `logseqDir` / `notionConfigured` / `onToast` props，仅在 status=completed 且 task.filename 存在时渲染 ExportMenu
+- `SettingsDialog` 新增第 6 个 tab「导出」（图标 Download），`initialConfig` 补充 export 字段默认值（向后兼容旧 config）
+
 ## [1.12.0] - 2026-07-19
 
 ### 新增

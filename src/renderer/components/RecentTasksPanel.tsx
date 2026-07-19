@@ -1,6 +1,7 @@
 import { Clock, RotateCcw, Play, Trash2 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { cleanTitle } from '@shared/utils'
+import ExportMenu from './ExportMenu'
 
 interface Props {
   tasks: RecentTaskState[]
@@ -8,6 +9,9 @@ interface Props {
   onReplay: (task: RecentTaskState) => void
   onDelete: (taskId: string) => void
   processing: boolean
+  logseqDir: string
+  notionConfigured: boolean
+  onToast: (msg: string, type: 'success' | 'error') => void
 }
 
 const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
@@ -17,7 +21,7 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
   completed: { label: '已完成' },
 }
 
-export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, processing }: Props) {
+export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, processing, logseqDir, notionConfigured, onToast }: Props) {
   return (
     <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
@@ -40,6 +44,7 @@ export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, 
         {tasks.map(task => {
           const meta = STATUS_META[task.status] || { label: task.status }
           const canResume = task.status !== 'completed'
+          const canExport = task.status === 'completed' && !!task.filename
           return (
             <article key={task.id} className="task-card">
               <div className="task-card-header">
@@ -51,6 +56,14 @@ export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, 
               <div className="task-card-actions">
                 {canResume && <button onClick={() => onResume(task)} disabled={processing} className="recent-task-primary"><Play size={12} /> 恢复</button>}
                 <button onClick={() => onReplay(task)} disabled={processing} className="recent-task-secondary"><RotateCcw size={12} /> 重新处理</button>
+                {canExport && (
+                  <ExportMenu
+                    taskId={task.id}
+                    logseqDir={logseqDir}
+                    notionConfigured={notionConfigured}
+                    onToast={onToast}
+                  />
+                )}
                 <button onClick={() => onDelete(task.id)} disabled={processing} className="recent-task-danger"><Trash2 size={12} /> 删除</button>
               </div>
             </article>
