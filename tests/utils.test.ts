@@ -20,8 +20,8 @@ describe('cleanTitle', () => {
   it('handles empty string', () => {
     expect(cleanTitle('')).toBe('')
   })
-  it('returns original if cleaning results in empty', () => {
-    expect(cleanTitle('第1期')).toBe('第1期')
+  it('generates unique fallback when cleaning results in empty', () => {
+    expect(cleanTitle('第1期')).toMatch(/^未命名播客_\d{14}$/)
   })
   it('truncates long titles', () => {
     const long = 'A'.repeat(60)
