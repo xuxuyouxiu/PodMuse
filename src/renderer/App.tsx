@@ -14,6 +14,7 @@ import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import type { SidebarView } from './components/WorkspaceSidebar'
 import BacklinkPanel from './components/BacklinkPanel'
+import SearchPanel from './components/SearchPanel'
 import BatchConfirmPanel from './components/BatchConfirmPanel'
 import BatchQueuePanel from './components/BatchQueuePanel'
 import CommandPalette, { useAppCommands } from './components/CommandPalette'
@@ -533,6 +534,15 @@ export default function App() {
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <BacklinkPanel />
+                </div>
+              </div>
+            </div>
+          )}
+          {activeView === 'search' && (
+            <div className="workspace-body">
+              <div className="workspace-main-column">
+                <div className="workspace-content">
+                  <SearchPanel />
                 </div>
               </div>
             </div>

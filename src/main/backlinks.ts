@@ -23,7 +23,7 @@ export type BacklinkIndex = BacklinkEntry[]
 
 // ── Entity subdirectories ──────────────────────────────
 
-const ENTITY_DIRS: { dir: string; type: BacklinkEntry['entityType'] }[] = [
+export const ENTITY_DIRS: { dir: string; type: BacklinkEntry['entityType'] }[] = [
   { dir: '人物', type: 'people' },
   { dir: '项目', type: 'projects' },
   { dir: '概念', type: 'concepts' },
@@ -41,13 +41,17 @@ const WIKILINK_RE = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g
 
 // ── Frontmatter parser (read first ~30 lines) ──
 
-interface FrontmatterMeta {
+export interface FrontmatterMeta {
   date?: string
   category?: string
   show?: string
   type?: string
   episode?: string
   tags?: string[]
+  title?: string
+  host?: string
+  guest?: string
+  platform?: string
 }
 
 function parseFrontmatter(filePath: string): FrontmatterMeta {
@@ -81,6 +85,10 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
       else if (key === 'show') meta.show = value
       else if (key === 'type') meta.type = value
       else if (key === 'episode') meta.episode = value
+      else if (key === 'title') meta.title = value
+      else if (key === 'host') meta.host = value
+      else if (key === 'guest') meta.guest = value
+      else if (key === 'platform') meta.platform = value
       else if (key === 'tags') {
         // Parse YAML array: tags: [AI, 创业, 大语言模型]
         const arrMatch = value.match(/^\[(.+)\]$/)
@@ -95,6 +103,9 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
     return {}
   }
 }
+
+// Export parseFrontmatter so search module can reuse it
+export { parseFrontmatter }
 
 // ── Extract podcast filename from entity card ──
 

@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.12.0] - 2026-07-19
+
+### 新增
+- 增强搜索（ICE 10.5）：独立搜索视图，支持全文搜索 + 分面过滤 + 字段加权评分 + 高亮摘录
+  - 后端 `search.ts`：无外部库实现，字符级 bigram 中文分词（`中文搜索` → `中文`/`文搜`/`搜索` + 完整片段），字段加权评分（标题 5x / 标签 3x / 内容 1x，单 token 内容命中上限 5），高亮摘录构建器（±80 字符上下文，HTML 转义 + `<mark>` 包裹防 XSS）
+  - 分面过滤：分类/标签/节目/日期范围/实体引用五维筛选，二次过滤（分面根据当前过滤器动态更新，避免 0 结果组合），mtime 失效缓存（`facetCache` + `facetCacheDir`）
+  - 独立 `SearchPanel` 视图：搜索框 + 排序（相关度/日期）+ 分页 + 左侧分面侧栏 + 右侧结果卡片，`<mark>` 高亮通过 `dangerouslySetInnerHTML` 渲染（摘录内容已 HTML 转义），分类徽章 `CATEGORY_COLORS` 映射
+  - 实体过滤：`entityRefs` 参数支持按实体引用筛选笔记，复用 `ENTITY_DIRS` 常量
+  - 新增 IPC `search:enhanced` + `search:facets`，preload `searchEnhanced` + `searchFacets` 桥接
+  - `WorkspaceSidebar` 新增 `search` 视图入口（Search 图标）
+- 新增文档：`docs/用户故事-增强搜索.md`（4 个 US：后端 P0 / 分面 P1 / UI P1 / 实体 P2）、`docs/PRD-增强搜索.md`（完整类型定义 + 算法说明 + 文件变更清单 + IPC 合约 + UI 设计 + 性能要求）
+
+### 改进
+- `backlinks.ts`：`FrontmatterMeta` 接口扩展 `title?`/`host?`/`guest?`/`platform?` 字段，`parseFrontmatter` 解析对应键，导出 `ENTITY_DIRS` 常量 + `parseFrontmatter` 函数供 search.ts 复用
+
 ## [1.11.0] - 2026-07-19
 
 ### 新增

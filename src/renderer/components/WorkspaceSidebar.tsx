@@ -1,8 +1,8 @@
 import { motion } from 'motion/react'
-import { Settings, Info, Zap, Clock, CheckCircle2, Link2, LayoutDashboard } from 'lucide-react'
+import { Settings, Info, Zap, Clock, CheckCircle2, Link2, LayoutDashboard, Search } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
-export type SidebarView = 'workspace' | 'backlinks'
+export type SidebarView = 'workspace' | 'backlinks' | 'search'
 
 interface Props {
   activeView: SidebarView
@@ -52,6 +52,16 @@ export default function WorkspaceSidebar({ activeView, onViewChange, onSettings,
         >
           <Link2 size={16} />
           知识关联
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'search' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('search')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Search size={16} />
+          搜索
         </motion.button>
       </nav>
 

@@ -46,6 +46,8 @@ try {
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),
     searchNotes: (keyword: string) => ipcRenderer.invoke('search:notes', keyword),
+    searchEnhanced: (params: unknown) => ipcRenderer.invoke('search:enhanced', params),
+    searchFacets: () => ipcRenderer.invoke('search:facets'),
     openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),

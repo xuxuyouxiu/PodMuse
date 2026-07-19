@@ -2,6 +2,8 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs/promises'
 import { loadConfig } from '../config'
+import { searchEnhanced, getFacets } from '../search'
+import type { SearchParams, SearchResponse, SearchFacets } from '../search'
 
 interface NoteSearchResult {
   path: string
@@ -11,6 +13,7 @@ interface NoteSearchResult {
 }
 
 export function registerSearchIPC(_mainWindow?: BrowserWindow | null): void {
+  // Legacy: simple substring search (kept for backward compat with Header Ctrl+K)
   ipcMain.handle('search:notes', async (_e, keyword: string): Promise<NoteSearchResult[]> => {
     const config = loadConfig()
     const obsidianDir = config.obsidian_dir?.trim()
@@ -73,5 +76,19 @@ export function registerSearchIPC(_mainWindow?: BrowserWindow | null): void {
 
     await walkDir(obsidianDir)
     return results.slice(0, 30)
+  })
+
+  // New: enhanced search with filters, facets, pagination, highlight
+  ipcMain.handle('search:enhanced', async (_e, params: SearchParams): Promise<SearchResponse> => {
+    const config = loadConfig()
+    const obsidianDir = config.obsidian_dir?.trim() || ''
+    return searchEnhanced(obsidianDir, params || {})
+  })
+
+  // New: get all facets for current library (cached by dir mtime)
+  ipcMain.handle('search:facets', async (): Promise<SearchFacets> => {
+    const config = loadConfig()
+    const obsidianDir = config.obsidian_dir?.trim() || ''
+    return getFacets(obsidianDir)
   })
 }

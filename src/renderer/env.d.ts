@@ -78,6 +78,47 @@ declare global {
     outdated: boolean
   }
 
+  interface SearchParams {
+    keyword?: string
+    filters?: {
+      category?: string
+      tags?: string[]
+      show?: string
+      dateFrom?: string
+      dateTo?: string
+      entityRefs?: string[]
+    }
+    sortBy?: 'score' | 'date_desc' | 'date_asc'
+    limit?: number
+    offset?: number
+  }
+
+  interface SearchResult {
+    path: string
+    title: string
+    date?: string
+    category?: string
+    show?: string
+    tags: string[]
+    excerpt: string
+    matchType: ('title' | 'content' | 'tags')[]
+    score: number
+  }
+
+  interface SearchFacets {
+    categories: { value: string; count: number }[]
+    tags: { value: string; count: number }[]
+    shows: { value: string; count: number }[]
+    dateRange: { earliest?: string; latest?: string }
+    topEntities: { value: string; type: string; count: number }[]
+  }
+
+  interface SearchResponse {
+    results: SearchResult[]
+    total: number
+    facets: SearchFacets
+  }
+
   interface Window {
     electronAPI: {
       getConfig: () => Promise<PodcastConfig | null>
@@ -99,6 +140,8 @@ declare global {
       getRecoveryLogs: () => Promise<RecoveryLogEntry[]>
       cleanTemp: () => Promise<boolean>
       searchNotes: (keyword: string) => Promise<NoteSearchResult[]>
+      searchEnhanced: (params: SearchParams) => Promise<SearchResponse>
+      searchFacets: () => Promise<SearchFacets>
       openPath: (filePath: string) => Promise<boolean>
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
