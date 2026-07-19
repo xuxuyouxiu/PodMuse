@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.11.0] - 2026-07-19
+
+### 新增
+- 内容标签与聚类：知识关联面板新增"标签"顶级视图，支持标签云浏览、分类聚类、标签详情、相关笔记推荐（ICE 14.0）
+  - 标签云：按频率动态映射字体大小（12-22px），点击标签查看详情
+  - 分类聚类：科技商业/每日资讯/社会心理/生活文化 4 类卡片，点击查看该分类下所有标签和笔记
+  - 标签详情：展示标签下所有播客笔记列表（标题/日期/分类/节目）
+  - 相关笔记推荐：Jaccard 相似度算法，基于标签重合度推荐 Top 3 相关笔记
+  - 后端 `buildTagIndex` 函数：扫描 Obsidian 目录所有笔记 frontmatter 的 tags 字段，构建 `TagEntry[]` 索引，按数量降序排序
+  - 新增 IPC `tags:getIndex` + preload `getTagIndex` 桥接
+- 需求优先级排序更新：删除"转写结果可编辑"需求（用户判断手动修正逐字稿太耗时、体验鸡肋）
+- 新增文档：`docs/用户故事-内容标签与聚类.md`、`docs/PRD-内容标签与聚类.md`
+
+### 改进
+- `BacklinkPanel` 组件支持实体/标签双顶级视图切换
+- `FrontmatterMeta` 接口扩展 `tags?: string[]` 字段，`parseFrontmatter` 支持 `[a, b, c]` 数组解析
+
 ## [1.10.21] - 2026-06-23
 
 ### 新增

@@ -56,6 +56,21 @@ declare global {
     podcastRefs: PodcastRef[]
   }
 
+  interface TagPodcastRef {
+    path: string
+    title: string
+    date?: string
+    category?: string
+    show?: string
+    tags: string[]
+  }
+
+  interface TagEntry {
+    tagName: string
+    count: number
+    podcastRefs: TagPodcastRef[]
+  }
+
   interface YtDlpStatus {
     available: boolean
     path: string | null
@@ -93,6 +108,7 @@ declare global {
       fetchAIModels: (baseUrl: string, apiKey: string) => Promise<AIModelListResult>
       detectYtDlp: () => Promise<YtDlpStatus>
       getBacklinkIndex: () => Promise<BacklinkEntry[]>
+      getTagIndex: () => Promise<TagEntry[]>
       showInFolder: (filePath: string) => Promise<boolean>
 
       // 批量处理

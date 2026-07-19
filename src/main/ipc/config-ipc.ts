@@ -4,7 +4,7 @@ import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
 import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath } from '../security'
 import { detectYtDlp } from '../platforms/yt-dlp'
-import { buildBacklinkIndex } from '../backlinks'
+import { buildBacklinkIndex, buildTagIndex } from '../backlinks'
 import type { PodcastConfig } from '@shared/types'
 
 /**
@@ -165,6 +165,11 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('backlinks:index', () => {
     const cfg = loadConfig()
     return buildBacklinkIndex(cfg.obsidian_dir || '')
+  })
+
+  ipcMain.handle('tags:getIndex', () => {
+    const cfg = loadConfig()
+    return buildTagIndex(cfg.obsidian_dir || '')
   })
 
   ipcMain.handle('shell:showInFolder', async (_e, filePath: string) => {

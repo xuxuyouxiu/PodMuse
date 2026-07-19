@@ -47,6 +47,7 @@ interface FrontmatterMeta {
   show?: string
   type?: string
   episode?: string
+  tags?: string[]
 }
 
 function parseFrontmatter(filePath: string): FrontmatterMeta {
@@ -80,6 +81,13 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
       else if (key === 'show') meta.show = value
       else if (key === 'type') meta.type = value
       else if (key === 'episode') meta.episode = value
+      else if (key === 'tags') {
+        // Parse YAML array: tags: [AI, 创业, 大语言模型]
+        const arrMatch = value.match(/^\[(.+)\]$/)
+        if (arrMatch) {
+          meta.tags = arrMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(t => t.length > 0)
+        }
+      }
     }
 
     return meta
@@ -257,4 +265,81 @@ export function buildBacklinkIndex(obsidianDir: string): BacklinkIndex {
   index.sort((a, b) => b.podcastRefs.length - a.podcastRefs.length)
 
   return index
+}
+
+// ── Tag Index ──────────────────────────────────────────
+
+export interface TagPodcastRef {
+  path: string
+  title: string
+  date?: string
+  category?: string
+  show?: string
+  tags: string[]
+}
+
+export interface TagEntry {
+  tagName: string
+  count: number
+  podcastRefs: TagPodcastRef[]
+}
+
+export type TagIndex = TagEntry[]
+
+export function buildTagIndex(obsidianDir: string): TagIndex {
+  if (!obsidianDir || !fs.existsSync(obsidianDir)) {
+    console.warn('[tags] Obsidian directory not found:', obsidianDir)
+    return []
+  }
+
+  // 1. Build podcast file map (reuse existing function)
+  const { exact: podcastMap } = buildPodcastFileMap(obsidianDir)
+
+  // 2. Parse frontmatter for each podcast note
+  const allPodcasts: { path: string; title: string; meta: FrontmatterMeta }[] = []
+  for (const [name, fullPath] of podcastMap) {
+    const meta = parseFrontmatter(fullPath)
+    allPodcasts.push({ path: fullPath, title: name, meta })
+  }
+
+  // 3. Build tag → podcast index
+  const tagMap = new Map<string, TagPodcastRef[]>()
+
+  for (const pod of allPodcasts) {
+    const tags = pod.meta.tags
+    if (!tags || tags.length === 0) continue
+
+    const ref: TagPodcastRef = {
+      path: pod.path,
+      title: pod.title,
+      date: pod.meta.date,
+      category: pod.meta.category,
+      show: pod.meta.show,
+      tags,
+    }
+
+    for (const tag of tags) {
+      const trimmed = tag.trim()
+      if (!trimmed) continue
+      if (!tagMap.has(trimmed)) tagMap.set(trimmed, [])
+      tagMap.get(trimmed)!.push(ref)
+    }
+  }
+
+  // 4. Convert to sorted array
+  const tagIndex: TagEntry[] = []
+  for (const [tagName, refs] of tagMap) {
+    // Sort refs by date descending
+    refs.sort((a, b) => {
+      if (!a.date && !b.date) return 0
+      if (!a.date) return 1
+      if (!b.date) return -1
+      return b.date.localeCompare(a.date)
+    })
+    tagIndex.push({ tagName, count: refs.length, podcastRefs: refs })
+  }
+
+  tagIndex.sort((a, b) => b.count - a.count)
+
+  return tagIndex
 }

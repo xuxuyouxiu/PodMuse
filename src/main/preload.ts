@@ -55,6 +55,7 @@ try {
     fetchAIModels: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
     detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
     getBacklinkIndex: () => ipcRenderer.invoke('backlinks:index'),
+    getTagIndex: () => ipcRenderer.invoke('tags:getIndex'),
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:showInFolder', filePath),
 
     // 批量处理

@@ -199,6 +199,12 @@ export default function BacklinkPanel() {
   const [graphMode, setGraphMode] = useState(false)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 
+  // Tag view state
+  const [topView, setTopView] = useState<'entities' | 'tags'>('entities')
+  const [tagIndex, setTagIndex] = useState<TagEntry[]>([])
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+
   useEffect(() => {
     let cancelled = false
     window.electronAPI.getBacklinkIndex().then(data => {
@@ -219,8 +225,12 @@ export default function BacklinkPanel() {
     try {
       const data = await window.electronAPI.getBacklinkIndex()
       setIndex(data || [])
+      // Also refresh tag index
+      const tags = await window.electronAPI.getTagIndex()
+      setTagIndex(tags || [])
     } catch {
       setIndex([])
+      setTagIndex([])
     } finally {
       setLoading(false)
     }
@@ -270,6 +280,82 @@ export default function BacklinkPanel() {
     if (!selectedEntity || !graphMode) return { nodes: [], edges: [] }
     return computeGraph(index, selectedEntity, 400, 320)
   }, [index, selectedEntity, graphMode])
+
+  // ── Tag view computed values ──
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      '科技商业': 0, '每日资讯': 0, '社会心理': 0, '生活文化': 0,
+    }
+    const seen = new Set<string>()
+    for (const tag of tagIndex) {
+      for (const ref of tag.podcastRefs) {
+        if (ref.category && counts[ref.category] !== undefined && !seen.has(ref.path)) {
+          seen.add(ref.path)
+          counts[ref.category]++
+        }
+      }
+    }
+    return counts
+  }, [tagIndex])
+
+  const filteredTagIndex = useMemo(() => {
+    if (!activeCategory) return tagIndex
+    return tagIndex
+      .map(tag => ({
+        ...tag,
+        podcastRefs: tag.podcastRefs.filter(r => r.category === activeCategory),
+      }))
+      .filter(tag => tag.podcastRefs.length > 0)
+      .sort((a, b) => b.podcastRefs.length - a.podcastRefs.length)
+  }, [tagIndex, activeCategory])
+
+  const selectedTagEntry = useMemo(() => {
+    if (!selectedTag) return null
+    return tagIndex.find(t => t.tagName === selectedTag) || null
+  }, [tagIndex, selectedTag])
+
+  const maxTagCount = useMemo(() => {
+    return tagIndex.length > 0 ? tagIndex[0].count : 1
+  }, [tagIndex])
+
+  function getTagFontSize(count: number): number {
+    const min = 12, max = 22
+    const ratio = maxTagCount > 0 ? count / maxTagCount : 0
+    return Math.round(min + (max - min) * ratio)
+  }
+
+  function handleTagClick(tagName: string) {
+    setSelectedTag(prev => prev === tagName ? null : tagName)
+  }
+
+  function handleCategoryClick(cat: string) {
+    setActiveCategory(prev => prev === cat ? null : cat)
+    setSelectedTag(null)
+  }
+
+  // Related notes recommendation (US-003)
+  function findRelatedNotes(targetPath: string, targetTags: string[]): { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }[] {
+    const seen = new Map<string, { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }>()
+
+    for (const tag of tagIndex) {
+      if (!targetTags.includes(tag.tagName)) continue
+      for (const ref of tag.podcastRefs) {
+        if (ref.path === targetPath) continue
+        const shared = ref.tags.filter(t => targetTags.includes(t))
+        const union = new Set([...targetTags, ...ref.tags]).size
+        const similarity = union > 0 ? shared.length / union : 0
+        const existing = seen.get(ref.path)
+        if (!existing || similarity > existing.similarity) {
+          seen.set(ref.path, { path: ref.path, title: ref.title, date: ref.date, sharedTags: shared, similarity })
+        }
+      }
+    }
+
+    return Array.from(seen.values())
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 3)
+  }
 
   function handleTabChange(type: string) {
     setActiveTab(type)
@@ -378,52 +464,157 @@ export default function BacklinkPanel() {
       {/* Header */}
       <div className="backlink-panel__header">
         <h2 className="backlink-panel__title">知识关联</h2>
+        <div className="backlink-panel__topview">
+          <button
+            className={`backlink-topview__btn ${topView === 'entities' ? 'is-active' : ''}`}
+            onClick={() => setTopView('entities')}
+          >实体</button>
+          <button
+            className={`backlink-topview__btn ${topView === 'tags' ? 'is-active' : ''}`}
+            onClick={() => {
+              setTopView('tags')
+              if (tagIndex.length === 0) {
+                window.electronAPI.getTagIndex().then(data => setTagIndex(data || []))
+              }
+            }}
+          >标签</button>
+        </div>
         <button className="backlink-panel__refresh" onClick={handleRefresh} title="刷新索引">
           <RefreshCw size={14} />
         </button>
       </div>
 
-      {/* Stats bar */}
-      <div className="backlink-panel__stats">
-        <span className="backlink-panel__stat"><strong>{totalEntities}</strong> 个实体</span>
-        <span className="backlink-panel__stat-sep">·</span>
-        <span className="backlink-panel__stat"><strong>{totalLinks}</strong> 条关联</span>
-      </div>
+      {topView === 'tags' ? (
+        <>
+          {/* Category overview */}
+          <div className="tag-category-overview">
+            {Object.entries(categoryCounts).map(([cat, count]) => (
+              <button
+                key={cat}
+                className={`tag-category-card ${activeCategory === cat ? 'is-active' : ''}`}
+                style={{ borderColor: activeCategory === cat ? CATEGORY_COLORS[cat] : 'transparent' }}
+                onClick={() => handleCategoryClick(cat)}
+              >
+                <span className="tag-category-card__name">{cat}</span>
+                <span className="tag-category-card__count">{count}</span>
+              </button>
+            ))}
+          </div>
 
-      {/* Search */}
-      <div className="backlink-panel__search">
-        <Search size={13} className="backlink-panel__search-icon" />
-        <input
-          type="text"
-          className="backlink-panel__search-input"
-          placeholder="搜索当前分类…"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-      </div>
+          {/* Tag cloud */}
+          <div className="tag-cloud">
+            {filteredTagIndex.length === 0 ? (
+              <div className="tag-cloud__empty">
+                {tagIndex.length === 0 ? '暂无标签数据' : '该分类下无标签'}
+              </div>
+            ) : (
+              filteredTagIndex.map(tag => (
+                <button
+                  key={tag.tagName}
+                  className={`tag-cloud__item ${selectedTag === tag.tagName ? 'is-active' : ''}`}
+                  style={{ fontSize: getTagFontSize(tag.count) }}
+                  onClick={() => handleTagClick(tag.tagName)}
+                >
+                  {tag.tagName}
+                  <span className="tag-cloud__count">{tag.count}</span>
+                </button>
+              ))
+            )}
+          </div>
 
-      {/* Tabs */}
-      <div className="backlink-tabs">
-        {TYPE_ORDER.map(type => {
-          const meta = TYPE_META[type]
-          const Icon = meta.icon
-          const isActive = activeTab === type
-          return (
-            <button
-              key={type}
-              className={`backlink-tab ${isActive ? 'is-active' : ''}`}
-              onClick={() => handleTabChange(type)}
-            >
-              <Icon size={12} style={{ color: meta.color }} />
-              <span className="backlink-tab__label">{meta.label}</span>
-              <span className="backlink-tab__count">{typeCounts[type]}</span>
-            </button>
-          )
-        })}
-      </div>
+          {/* Selected tag detail */}
+          {selectedTagEntry && (
+            <div className="tag-detail">
+              <div className="tag-detail__header">
+                <h3 className="tag-detail__title">{selectedTagEntry.tagName}</h3>
+                <span className="tag-detail__count">{selectedTagEntry.count} 篇笔记</span>
+              </div>
+              <div className="tag-detail__list">
+                {selectedTagEntry.podcastRefs
+                  .filter(r => !activeCategory || r.category === activeCategory)
+                  .map(ref => {
+                    const related = findRelatedNotes(ref.path, ref.tags)
+                    return (
+                      <div key={ref.path} className="tag-detail__item">
+                        <div className="tag-detail__item-main" onClick={() => openNote(ref.path)} onContextMenu={(e) => handleContextMenu(e, ref.path)}>
+                          <span className="tag-detail__item-title">{ref.title}</span>
+                          <div className="tag-detail__item-meta">
+                            {ref.date && <span>{ref.date}</span>}
+                            {ref.show && <span>{ref.show}</span>}
+                            {ref.category && <span style={{ color: CATEGORY_COLORS[ref.category] || 'inherit' }}>{ref.category}</span>}
+                          </div>
+                          <div className="tag-detail__item-tags">
+                            {ref.tags.map(t => (
+                              <span key={t} className={`tag-detail__tag ${t === selectedTag ? 'is-highlight' : ''}`}>{t}</span>
+                            ))}
+                          </div>
+                        </div>
+                        {related.length > 0 && (
+                          <div className="tag-detail__related">
+                            <span className="tag-detail__related-label">相关笔记</span>
+                            {related.map(r => (
+                              <button
+                                key={r.path}
+                                className="tag-detail__related-item"
+                                onClick={() => openNote(r.path)}
+                                onContextMenu={(e) => handleContextMenu(e, r.path)}
+                              >
+                                <span>{r.title}</span>
+                                <span className="tag-detail__related-shared">{r.sharedTags.length} 个共同标签</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Stats bar */}
+          <div className="backlink-panel__stats">
+            <span className="backlink-panel__stat"><strong>{totalEntities}</strong> 个实体</span>
+            <span className="backlink-panel__stat-sep">·</span>
+            <span className="backlink-panel__stat"><strong>{totalLinks}</strong> 条关联</span>
+          </div>
 
-      {/* Split: entity list + detail */}
-      <div className="backlink-split">
+          {/* Search */}
+          <div className="backlink-panel__search">
+            <Search size={13} className="backlink-panel__search-icon" />
+            <input
+              type="text"
+              className="backlink-panel__search-input"
+              placeholder="搜索当前分类…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Tabs */}
+          <div className="backlink-tabs">
+            {TYPE_ORDER.map(type => {
+              const meta = TYPE_META[type]
+              const Icon = meta.icon
+              const isActive = activeTab === type
+              return (
+                <button
+                  key={type}
+                  className={`backlink-tab ${isActive ? 'is-active' : ''}`}
+                  onClick={() => handleTabChange(type)}
+                >
+                  <Icon size={12} style={{ color: meta.color }} />
+                  <span className="backlink-tab__label">{meta.label}</span>
+                  <span className="backlink-tab__count">{typeCounts[type]}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Split: entity list + detail */}
+          <div className="backlink-split">
         {/* Left: entity list */}
         <div className="backlink-split__left">
           {filteredEntities.length === 0 ? (
@@ -811,6 +1002,8 @@ export default function BacklinkPanel() {
           )
         })}
       </div>
+      </>
+      )}
 
       <style>{`
         .backlink-panel {
@@ -1519,6 +1712,210 @@ export default function BacklinkPanel() {
           color: var(--text-muted);
           text-align: center;
           padding-top: 4px;
+        }
+
+        /* ── Top view toggle ── */
+        .backlink-panel__topview {
+          display: flex;
+          gap: 2px;
+          margin-left: auto;
+          margin-right: 8px;
+          background: var(--bg-elevated);
+          border-radius: 6px;
+          padding: 2px;
+        }
+        .backlink-topview__btn {
+          padding: 4px 12px;
+          font-size: var(--fs-sm);
+          font-weight: 500;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .backlink-topview__btn:hover { color: var(--text-primary); }
+        .backlink-topview__btn.is-active {
+          background: var(--bg-card);
+          color: var(--text-primary);
+        }
+
+        /* ── Category overview ── */
+        .tag-category-overview {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          padding: 12px 20px 8px;
+        }
+        .tag-category-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          padding: 10px 8px;
+          background: var(--bg-elevated);
+          border: 2px solid transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .tag-category-card:hover { background: var(--bg-card); }
+        .tag-category-card.is-active {
+          background: var(--bg-card);
+          border-width: 2px;
+        }
+        .tag-category-card__name {
+          font-size: var(--fs-sm);
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .tag-category-card__count {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+
+        /* ── Tag cloud ── */
+        .tag-cloud {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px 10px;
+          padding: 8px 20px 12px;
+          overflow-y: auto;
+          flex: 0 0 auto;
+          max-height: 180px;
+        }
+        .tag-cloud__empty {
+          color: var(--text-muted);
+          font-size: var(--fs-sm);
+          padding: 16px 0;
+        }
+        .tag-cloud__item {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 3px;
+          padding: 2px 8px;
+          background: var(--bg-elevated);
+          border: 1px solid transparent;
+          border-radius: 4px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+          font-weight: 500;
+        }
+        .tag-cloud__item:hover {
+          background: var(--bg-card);
+          color: var(--text-primary);
+        }
+        .tag-cloud__item.is-active {
+          background: var(--accent-bg, rgba(99, 102, 241, 0.15));
+          color: var(--accent);
+          border-color: var(--accent);
+        }
+        .tag-cloud__count {
+          font-size: 11px;
+          color: var(--text-muted);
+          font-weight: 400;
+        }
+
+        /* ── Tag detail ── */
+        .tag-detail {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0 20px 16px;
+        }
+        .tag-detail__header {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--border);
+          margin-bottom: 8px;
+        }
+        .tag-detail__title {
+          font-size: var(--fs-lg);
+          font-weight: 700;
+          color: var(--text-primary);
+          margin: 0;
+        }
+        .tag-detail__count {
+          font-size: var(--fs-sm);
+          color: var(--text-muted);
+        }
+        .tag-detail__list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .tag-detail__item {
+          background: var(--bg-elevated);
+          border-radius: 8px;
+          padding: 10px 12px;
+        }
+        .tag-detail__item-main {
+          cursor: pointer;
+        }
+        .tag-detail__item-title {
+          font-size: var(--fs-sm);
+          font-weight: 600;
+          color: var(--text-primary);
+          display: block;
+        }
+        .tag-detail__item-meta {
+          display: flex;
+          gap: 8px;
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+        .tag-detail__item-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 4px;
+        }
+        .tag-detail__tag {
+          font-size: 10px;
+          padding: 1px 6px;
+          border-radius: 3px;
+          background: var(--bg-card);
+          color: var(--text-muted);
+        }
+        .tag-detail__tag.is-highlight {
+          background: var(--accent-bg, rgba(99, 102, 241, 0.15));
+          color: var(--accent);
+          font-weight: 600;
+        }
+        .tag-detail__related {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px dashed var(--border);
+        }
+        .tag-detail__related-label {
+          font-size: 10px;
+          color: var(--text-muted);
+          margin-bottom: 4px;
+          display: block;
+        }
+        .tag-detail__related-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          padding: 3px 0;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+        .tag-detail__related-item:hover {
+          color: var(--accent);
+        }
+        .tag-detail__related-shared {
+          color: var(--text-muted);
+          font-size: 10px;
         }
       `}</style>
     </div>
