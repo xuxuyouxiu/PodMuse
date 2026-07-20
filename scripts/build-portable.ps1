@@ -1,8 +1,15 @@
-# Build script for Podcast Notes Assistant
+# Build script for Podcast Notes Assistant (Portable Edition)
 # - Preserves portable data directory across rebuilds
 # - Kills running app processes before build
+# - Copies portable marker into win-unpacked after build
+#
+# Usage: powershell -ExecutionPolicy Bypass -File .\scripts\build-portable.ps1
 
-$distExe = "G:\Podcast_Notes\dist-exe"
+$ErrorActionPreference = 'Stop'
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = Split-Path -Parent $scriptRoot
+$distExe = Join-Path $projectRoot "dist-exe"
 $winUnpacked = Join-Path $distExe "win-unpacked"
 $dataDir = Join-Path $winUnpacked "data"
 $backupDir = Join-Path $distExe "_data_backup"
@@ -36,13 +43,40 @@ if (Test-Path $dataDir) {
     Write-Host "No data directory to backup (first build)"
 }
 
-# Step 3: Clean old installer files
-Write-Host "`n=== Step 3: Cleaning old installer files ==="
-Get-ChildItem $distExe -File | Where-Object { $_.Name -match 'Setup-.*\.exe' -and $_.Name -notmatch $args[0] } | ForEach-Object {
-    Write-Host "  Removing: $($_.Name)"
-    Remove-Item $_.FullName -Force
+# Step 3: Build
+Write-Host "`n=== Step 3: Building ==="
+Push-Location $projectRoot
+try {
+    & node "node_modules/vite/bin/vite.js" build
+    if ($LASTEXITCODE -ne 0) { throw "vite build failed" }
+
+    & node "node_modules/electron-builder/out/cli/cli.js" "--win" "--config.directories.output=dist-exe"
+    if ($LASTEXITCODE -ne 0) { throw "electron-builder failed" }
+} finally {
+    Pop-Location
 }
 
-# Step 4: Build (called externally)
-Write-Host "`n=== Step 4: Build will be executed by caller ==="
-Write-Host "Backup location: $backupDir"
+# Step 4: Copy portable marker into win-unpacked
+Write-Host "`n=== Step 4: Adding portable marker ==="
+$portableSrc = Join-Path $projectRoot "build\portable"
+$portableDst = Join-Path $winUnpacked "portable"
+if (Test-Path $winUnpacked) {
+    Copy-Item $portableSrc $portableDst -Force
+    Write-Host "Portable marker copied to $portableDst"
+} else {
+    Write-Host "WARNING: win-unpacked not found at $winUnpacked"
+}
+
+# Step 5: Restore data directory
+Write-Host "`n=== Step 5: Restoring portable data ==="
+if ((Test-Path $backupDir) -and (Test-Path $winUnpacked)) {
+    if (Test-Path $dataDir) { Remove-Item $dataDir -Recurse -Force }
+    Copy-Item $backupDir $dataDir -Recurse
+    Write-Host "Data restored to $dataDir"
+} else {
+    Write-Host "No backup to restore"
+}
+
+Write-Host "`n=== Done ==="
+Write-Host "Portable build: $winUnpacked"
+Write-Host "NSIS installer: $distExe\播客笔记助手-Setup-*.exe"

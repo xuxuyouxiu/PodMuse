@@ -15,8 +15,6 @@ extraResources:
 extraFiles:
   - from: node_modules/electron/dist/ffmpeg.dll
     to: ffmpeg.dll
-  - from: build/portable
-    to: portable
   - from: build/yt-dlp.exe
     to: yt-dlp.exe
 win:

@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.13.2] - 2026-07-20
+
+### 修复
+- 安装版配置丢失：`electron-builder.yml` 的 `extraFiles` 错误打包了 `portable` 标记文件，导致安装版被当作便携版运行，配置存到安装目录（重装即丢失）。移除 `portable` 后安装版正确使用 `%APPDATA%/播客笔记助手/` 存储配置
+- 便携版构建脚本：`scripts/build-portable.ps1` 重写为完整构建脚本（备份 data → 构建 → 复制 portable 标记 → 恢复 data），新增 `npm run build:portable` 命令
+
 ## [1.13.1] - 2026-07-19
 
 ### 修复

@@ -1,6 +1,6 @@
 {
   "name": "podcast-notes",
-  "version": "1.13.1",
+  "version": "1.13.2",
   "description": "播客笔记助手 - 小宇宙链接自动下载、AI提炼、写入Obsidian",
   "main": "dist-electron/main/index.js",
   "author": "podcast-notes contributors",
@@ -27,6 +27,7 @@
     "build": "node \"node_modules/vite/bin/vite.js\" build && node \"node_modules/electron-builder/out/cli/cli.js\" --win",
     "build:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-test-package.ps1",
     "build:setup": "node \"node_modules/vite/bin/vite.js\" build && node \"node_modules/electron-builder/out/cli/cli.js\" --win --config.directories.output=dist-exe",
+    "build:portable": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-portable.ps1",
     "deploy:test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy-test-build.ps1",
     "refresh:test": "npm run build:test && npm run deploy:test",
     "preview": "node \"node_modules/vite/bin/vite.js\" preview",
