@@ -172,6 +172,20 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
   return toSave
 }
 
+/** 清理旧版 example config 遗留的占位值（以"你的"开头的中文提示） */
+function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
+  const result = { ...config }
+  const placeholderPattern = /^你的/
+  const fieldsToClean: (keyof PodcastConfig)[] = ['api_key', 'feishu_app_id', 'feishu_app_secret', 'feishu_chat_id', 'obsidian_dir', 'whisper_exe_path']
+  for (const field of fieldsToClean) {
+    const val = result[field]
+    if (typeof val === 'string' && placeholderPattern.test(val)) {
+      (result as Record<string, unknown>)[field] = ''
+    }
+  }
+  return result
+}
+
 export function loadConfig(): PodcastConfig {
   // 1. 优先加载用户配置文件（已持久化的用户设置）
   try {
@@ -179,7 +193,8 @@ export function loadConfig(): PodcastConfig {
     if (fs.existsSync(userPath)) {
       const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       const merged = { ...DEFAULTS, ...data }
-      return migrateEncryptedFields(merged)
+      const cleaned = stripPlaceholderValues(merged)
+      return migrateEncryptedFields(cleaned)
     }
   } catch {}
 
