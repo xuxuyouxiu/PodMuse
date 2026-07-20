@@ -23,6 +23,42 @@ export function getStandardModels(): Omit<WhisperModelInfo, 'downloaded'>[] {
   return STANDARD_MODELS
 }
 
+/** 自动检测 Faster-Whisper-XXL 可执行文件路径 */
+function autoDetectExePath(): string | undefined {
+  const exeName = 'faster-whisper-xxl.exe'
+  const candidates: string[] = []
+
+  // 常见安装路径
+  const drives = ['C:', 'D:', 'E:', 'F:']
+  const commonDirs = [
+    'Faster-Whisper-XXL',
+    'faster-whisper-xxl',
+    path.join('Potplayer', 'Engine', 'Faster-Whisper-XXL'),
+    path.join('Program Files', 'Faster-Whisper-XXL'),
+    path.join('Program Files (x86)', 'Faster-Whisper-XXL'),
+    path.join(os.homedir(), 'Downloads', 'Faster-Whisper-XXL'),
+    path.join(os.homedir(), 'Desktop', 'Faster-Whisper-XXL'),
+  ]
+  for (const drive of drives) {
+    for (const dir of commonDirs) {
+      candidates.push(path.join(drive + '\\', dir, exeName))
+    }
+  }
+
+  // PATH 环境变量
+  const pathDirs = (process.env.PATH || '').split(path.delimiter)
+  for (const dir of pathDirs) {
+    candidates.push(path.join(dir, exeName))
+  }
+
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return p
+    } catch {}
+  }
+  return undefined
+}
+
 function getCacheDirs(whisperExePath?: string): string[] {
   const home = os.homedir()
   const dirs: string[] = []
@@ -39,12 +75,17 @@ function getCacheDirs(whisperExePath?: string): string[] {
     if (d && fs.existsSync(d)) dirs.push(d)
   }
 
+  // 自动检测 exe 路径（如果用户未配置）
+  if (!whisperExePath) {
+    whisperExePath = autoDetectExePath()
+  }
+
   if (whisperExePath) {
     const exeDir = path.dirname(whisperExePath)
     // Faster-Whisper-XXL 常见模型目录
-    for (const sub of ['_models', 'models']) {
-      const modelsDir = path.join(exeDir, sub)
-      if (fs.existsSync(modelsDir)) dirs.push(modelsDir)
+    for (const sub of ['_models', 'models', '']) {
+      const modelsDir = sub ? path.join(exeDir, sub) : exeDir
+      if (modelsDir && fs.existsSync(modelsDir)) dirs.push(modelsDir)
     }
   }
 

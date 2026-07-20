@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.14.3] - 2026-07-20
+
+### 改进
+- Whisper 模型扫描自动检测 Faster-Whisper-XXL 安装路径（扫描常见目录和 PATH），无需手动配置 exe 路径即可识别已下载模型
+
 ## [1.14.2] - 2026-07-20
 
 ### 修复
