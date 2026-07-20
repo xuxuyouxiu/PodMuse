@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.14.5] - 2026-07-20
+
+### 改进
+- 新增 GitHub Release workflow，推送 tag 自动构建并上传安装包到 Releases
+
 ## [1.14.4] - 2026-07-20
 
 ### 修复
