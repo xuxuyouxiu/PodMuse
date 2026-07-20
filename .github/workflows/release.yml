@@ -21,10 +21,10 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build:setup
+      - run: npm run build
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: dist-exe/播客笔记助手-Setup-*.exe
+          files: dist/播客笔记助手-Setup-*.exe
