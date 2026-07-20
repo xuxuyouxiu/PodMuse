@@ -4,7 +4,7 @@
 
 将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、多 AI 供应商提炼，以及飞书消息轮询自动处理。
 
-[![Version](https://img.shields.io/badge/version-1.0.33-blue.svg)](package.json)
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/Podcast_notes?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 功能特性
@@ -144,4 +144,14 @@ npm run refresh:test
 
 ## 开源协议
 
-MIT
+本项目源码采用 [MIT License](LICENSE) 授权。
+
+### 第三方组件许可说明
+
+本项目的构建产物（安装包）中包含以下第三方组件，其许可证与本项目源码许可不同：
+
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)**：以预编译二进制形式随安装包分发，采用 [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) 许可。构建产物整体遵守 GPL-3.0 条款。
+- **[Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win)**：用户需自行下载并配置，不随本软件分发。
+- **[Electron](https://www.electronjs.org/)**：[MIT License](https://github.com/electron/electron/blob/main/LICENSE)。
+
+使用本软件前，请确保你理解并同意上述所有组件的许可条款。

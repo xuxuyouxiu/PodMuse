@@ -4,7 +4,7 @@
 
 Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes. Supports audio download, Whisper speech-to-text, multi-AI provider summarization, and Lark message polling for automated processing.
 
-[![Version](https://img.shields.io/badge/version-1.0.33-blue.svg)](package.json)
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/Podcast_notes?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
@@ -144,4 +144,14 @@ Issues and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) f
 
 ## License
 
-MIT
+The source code of this project is licensed under the [MIT License](LICENSE).
+
+### Third-Party Component Licensing
+
+The built artifacts (installer packages) include the following third-party components with licenses different from the project source:
+
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)**: distributed as a precompiled binary bundled with the installer, licensed under [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The built artifacts as a whole comply with the terms of GPL-3.0.
+- **[Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win)**: users must download and configure it separately; not distributed with this software.
+- **[Electron](https://www.electronjs.org/)**: [MIT License](https://github.com/electron/electron/blob/main/LICENSE).
+
+Please ensure you understand and agree to the license terms of all the above components before using this software.
