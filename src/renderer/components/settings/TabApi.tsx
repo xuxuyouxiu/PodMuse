@@ -209,26 +209,22 @@ export default function TabApi({ form, update, validationErrors }: {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {currentPreset?.website && (
-                <a
-                  href={currentPreset.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <span
+                  onClick={() => window.electronAPI.openExternal(currentPreset.website!)}
                   className="settings-link-button"
-                  style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
+                  style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ExternalLink size={11} />官网</span>
-                </a>
+                </span>
               )}
               {currentPreset?.apiKeyUrl && (
-                <a
-                  href={currentPreset.apiKeyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <span
+                  onClick={() => window.electronAPI.openExternal(currentPreset.apiKeyUrl!)}
                   className="settings-link-button"
-                  style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
+                  style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Key size={11} />获取密钥</span>
-                </a>
+                </span>
               )}
               {currentPreset && (
                 <button
@@ -391,7 +387,7 @@ export default function TabApi({ form, update, validationErrors }: {
           )}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-          在<a href="https://open.feishu.cn" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>飞书开放平台</a>创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。
+          在<span onClick={() => window.electronAPI.openExternal('https://open.feishu.cn')} style={{ color: 'var(--accent)', cursor: 'pointer' }}>飞书开放平台</span>创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。
         </div>
       </div>
 

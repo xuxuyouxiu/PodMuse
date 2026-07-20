@@ -120,7 +120,7 @@ export default function TabExport({ form, update }: Props) {
           )}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-          在 Notion 中创建 integration（<a href="https://www.notion.so/my-integrations" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>https://www.notion.so/my-integrations</a>），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。
+          在 Notion 中创建 integration（<span onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')} style={{ color: 'var(--accent)', cursor: 'pointer' }}>https://www.notion.so/my-integrations</span>），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。
         </div>
       </div>
     </div>

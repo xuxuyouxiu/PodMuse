@@ -100,14 +100,12 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。
             <br />
-            <a
-              href="https://github.com/Purfview/whisper-standalone-win/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--accent)', textDecoration: 'none' }}
+            <span
+              onClick={() => window.electronAPI.openExternal('https://github.com/Purfview/whisper-standalone-win/releases')}
+              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ExternalLink size={12} />GitHub 下载 faster-whisper-xxl 模型</span>
-            </a>
+            </span>
           </div>
         </div>
       </div>
