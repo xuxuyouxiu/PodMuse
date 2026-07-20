@@ -31,6 +31,8 @@ export default function TabApi({ form, update, validationErrors }: {
   const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string }>>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsStatus, setFetchModelsStatus] = useState<string | null>(null)
+  const [feishuTesting, setFeishuTesting] = useState(false)
+  const [feishuTestResult, setFeishuTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   // 获取当前供应商配置
   const currentProvider = providers[activeProvider] || {} as AIProviderConfig
@@ -351,6 +353,45 @@ export default function TabApi({ form, update, validationErrors }: {
           <Field label="飞书 App ID" value={form.feishu_app_id} onChange={v => update('feishu_app_id', v)} />
           <Field label="飞书 App Secret" value={form.feishu_app_secret} onChange={v => update('feishu_app_secret', v)} secret />
           <Field label="飞书群聊 Chat ID" value={form.feishu_chat_id} onChange={v => update('feishu_chat_id', v)} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={async () => {
+              setFeishuTesting(true)
+              setFeishuTestResult(null)
+              try {
+                const result = await window.electronAPI.testFeishuConnection({
+                  appId: form.feishu_app_id,
+                  appSecret: form.feishu_app_secret,
+                })
+                setFeishuTestResult(result)
+              } catch (e) {
+                setFeishuTestResult({ success: false, message: `测试失败: ${(e as Error).message}` })
+              } finally {
+                setFeishuTesting(false)
+              }
+            }}
+            disabled={feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()}
+            className="tailbar-button"
+            style={{
+              padding: '6px 12px',
+              fontSize: 12,
+              opacity: feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim() ? 0.6 : 1,
+            }}
+          >
+            {feishuTesting ? '测试中…' : '测试连接'}
+          </button>
+          {feishuTestResult && (
+            <span style={{
+              fontSize: 11,
+              color: feishuTestResult.success ? 'var(--success)' : 'var(--error)',
+            }}>
+              {feishuTestResult.success ? '✓ ' : '✗ '}{feishuTestResult.message}
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+          在<a href="https://open.feishu.cn" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>飞书开放平台</a>创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。
         </div>
       </div>
 

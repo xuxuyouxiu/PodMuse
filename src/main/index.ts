@@ -201,6 +201,20 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
+  ipcMain.handle('feishu:testConnection', async (_e, params: { appId: string; appSecret: string }) => {
+    try {
+      const { FeishuClient } = await import('./feishu-client')
+      const client = new FeishuClient(params.appId, params.appSecret, () => {})
+      const ok = await client.ensureToken()
+      if (ok) {
+        return { success: true, message: '飞书凭据验证成功' }
+      }
+      return { success: false, message: '飞书鉴权失败，请检查 App ID 和 App Secret' }
+    } catch (e) {
+      return { success: false, message: `测试失败: ${(e as Error).message}` }
+    }
+  })
+
   ipcMain.handle('podcast:process', async (_event, { url, force, taskId, isLocalFile }: { url: string; force?: boolean; taskId?: string; isLocalFile?: boolean }) => {
     if (!isLocalFile) {
       // 使用平台注册表获取去重 key（通用，支持所有平台）

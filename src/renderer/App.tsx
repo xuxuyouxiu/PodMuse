@@ -259,9 +259,22 @@ export default function App() {
     setConfig(c)
     showToast('保存成功')
     // 保存后自动重启飞书监听器，使用新凭据重新连接
-    window.electronAPI.startFeishu()
-      .then(s => s && setFeishuStatus(s))
-      .catch(() => {})
+    if (c.feishu_app_id && c.feishu_app_secret) {
+      window.electronAPI.startFeishu()
+        .then(s => {
+          if (s) {
+            setFeishuStatus(s)
+            if (s.connected) {
+              showToast('飞书连接成功', 'success')
+            } else {
+              showToast('飞书连接失败，请检查 App ID 和 App Secret', 'error')
+            }
+          }
+        })
+        .catch(() => {
+          showToast('飞书连接异常，请检查配置', 'error')
+        })
+    }
   }, [])
 
   const toggleTheme = useCallback(() => {

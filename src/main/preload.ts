@@ -12,6 +12,7 @@ try {
     startFeishu: () => ipcRenderer.invoke('feishu:start'),
     stopFeishu: () => ipcRenderer.invoke('feishu:stop'),
     getFeishuStatus: () => ipcRenderer.invoke('feishu:status'),
+    testFeishuConnection: (params: { appId: string; appSecret: string }) => ipcRenderer.invoke('feishu:testConnection', params),
 
     processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) => ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),
     checkProcessed: (url: string) => ipcRenderer.invoke('podcast:checkProcessed', url),
