@@ -27,6 +27,20 @@ let tray: Tray | null = null
 let isQuitting = false
 let batchQueueService: BatchQueueService | null = null
 
+// 单实例锁：防止重复打开，第二次启动时聚焦已有窗口
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
 function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true
   if (monitor) {
