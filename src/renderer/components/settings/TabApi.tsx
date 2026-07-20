@@ -350,9 +350,9 @@ export default function TabApi({ form, update, validationErrors }: {
           飞书集成
         </div>
         <div className="settings-grid">
-          <Field label="飞书 App ID" value={form.feishu_app_id} onChange={v => update('feishu_app_id', v)} />
-          <Field label="飞书 App Secret" value={form.feishu_app_secret} onChange={v => update('feishu_app_secret', v)} secret />
-          <Field label="飞书群聊 Chat ID" value={form.feishu_chat_id} onChange={v => update('feishu_chat_id', v)} />
+          <Field label="飞书 App ID" value={form.feishu_app_id} onChange={v => update('feishu_app_id', v)} placeholder="cli_xxxxxxxxxx" />
+          <Field label="飞书 App Secret" value={form.feishu_app_secret} onChange={v => update('feishu_app_secret', v)} secret placeholder="输入飞书应用 App Secret" />
+          <Field label="飞书群聊 Chat ID" value={form.feishu_chat_id} onChange={v => update('feishu_chat_id', v)} placeholder="oc_xxxxxxxxxxxxxxxxxx" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
           <button

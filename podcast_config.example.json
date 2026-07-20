@@ -1,11 +1,11 @@
 {
-  "api_key": "你的 DeepSeek API Key",
-  "feishu_app_id": "你的飞书应用 App ID",
-  "feishu_app_secret": "你的飞书应用 App Secret",
+  "api_key": "",
+  "feishu_app_id": "",
+  "feishu_app_secret": "",
   "language": "auto",
-  "feishu_chat_id": "你的飞书群聊 Chat ID",
-  "obsidian_dir": "你的 Obsidian 笔记目录路径",
+  "feishu_chat_id": "",
+  "obsidian_dir": "",
   "audio_dir": "",
-  "whisper_exe_path": "你的 Faster-Whisper-XXL 可执行文件路径",
+  "whisper_exe_path": "",
   "whisper_model": "large-v3-turbo"
 }

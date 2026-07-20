@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.14.1] - 2026-07-20
+
+### 修复
+- 飞书配置输入框增加 placeholder 提示（App ID / App Secret / Chat ID）
+- 安装版首次启动不再预填飞书/API 占位值，example config 敏感字段改为空字符串
+- Whisper 模型扫描增加 Hugging Face 缓存目录（`~/.cache/huggingface/hub`）和 exe 旁 `models/` 目录，支持 `models--Systran--faster-whisper-*` 格式匹配
+
 ## [1.14.0] - 2026-07-20
 
 ### 新增

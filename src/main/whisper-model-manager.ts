@@ -32,6 +32,8 @@ function getCacheDirs(whisperExePath?: string): string[] {
     path.join(home, '.cache', 'faster-whisper'),
     path.join(process.env.XDG_CACHE_HOME || '', 'whisper'),
     path.join(os.tmpdir(), 'whisper-models'),
+    // Hugging Face 缓存（Faster-Whisper-XXL 默认下载位置）
+    path.join(home, '.cache', 'huggingface', 'hub'),
   ]
   for (const d of candidates) {
     if (d && fs.existsSync(d)) dirs.push(d)
@@ -39,8 +41,11 @@ function getCacheDirs(whisperExePath?: string): string[] {
 
   if (whisperExePath) {
     const exeDir = path.dirname(whisperExePath)
-    const modelsDir = path.join(exeDir, '_models')
-    if (fs.existsSync(modelsDir)) dirs.push(modelsDir)
+    // Faster-Whisper-XXL 常见模型目录
+    for (const sub of ['_models', 'models']) {
+      const modelsDir = path.join(exeDir, sub)
+      if (fs.existsSync(modelsDir)) dirs.push(modelsDir)
+    }
   }
 
   return dirs
@@ -57,8 +62,12 @@ export function scanLocalModels(whisperExePath?: string): WhisperModelInfo[] {
         if (entry.isDirectory()) {
           const name = entry.name.toLowerCase()
           downloadedIds.add(name)
+          // 去掉常见前缀
           const stripped = name.replace(/^(faster-whisper-|faster-|whisper-)/, '')
           if (stripped !== name) downloadedIds.add(stripped)
+          // Hugging Face 缓存格式: models--Systran--faster-whisper-large-v3
+          const hfMatch = name.match(/^models--[^-]+--faster-whisper-(.+)$/)
+          if (hfMatch) downloadedIds.add(hfMatch[1])
         }
       }
     } catch {}
