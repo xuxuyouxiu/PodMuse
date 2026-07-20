@@ -92,6 +92,17 @@ function getCacheDirs(whisperExePath?: string): string[] {
   return dirs
 }
 
+/** 检查目录是否真的包含 Whisper 模型文件 */
+function hasModelFiles(dir: string): boolean {
+  try {
+    const markers = ['model.bin', 'model.safetensors', 'config.json', 'tokenizer.json']
+    const entries = fs.readdirSync(dir)
+    return markers.some(m => entries.includes(m))
+  } catch {
+    return false
+  }
+}
+
 export function scanLocalModels(whisperExePath?: string): WhisperModelInfo[] {
   const cacheDirs = getCacheDirs(whisperExePath)
   const downloadedIds = new Set<string>()
@@ -100,16 +111,24 @@ export function scanLocalModels(whisperExePath?: string): WhisperModelInfo[] {
     try {
       const entries = fs.readdirSync(cacheDir, { withFileTypes: true })
       for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const name = entry.name.toLowerCase()
-          downloadedIds.add(name)
-          // 去掉常见前缀
-          const stripped = name.replace(/^(faster-whisper-|faster-|whisper-)/, '')
-          if (stripped !== name) downloadedIds.add(stripped)
-          // Hugging Face 缓存格式: models--Systran--faster-whisper-large-v3
-          const hfMatch = name.match(/^models--[^-]+--faster-whisper-(.+)$/)
-          if (hfMatch) downloadedIds.add(hfMatch[1])
+        if (!entry.isDirectory()) continue
+        const name = entry.name.toLowerCase()
+
+        // Hugging Face 缓存格式: models--Systran--faster-whisper-large-v3
+        const hfMatch = name.match(/^models--[^-]+--faster-whisper-(.+)$/)
+        if (hfMatch) {
+          // HF 缓存目录下有 blobs/ 子目录包含模型文件，直接信任
+          downloadedIds.add(hfMatch[1])
+          continue
         }
+
+        // 普通目录：必须包含模型文件才算已下载
+        const fullPath = path.join(cacheDir, entry.name)
+        if (!hasModelFiles(fullPath)) continue
+
+        downloadedIds.add(name)
+        const stripped = name.replace(/^(faster-whisper-|faster-|whisper-)/, '')
+        if (stripped !== name) downloadedIds.add(stripped)
       }
     } catch {}
   }

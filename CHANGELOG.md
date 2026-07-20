@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.14.4] - 2026-07-20
+
+### 修复
+- Whisper 模型扫描误判修复：普通目录必须包含模型文件（model.bin / config.json 等）才算已下载，不再因目录名叫 "base" 就误报
+
 ## [1.14.3] - 2026-07-20
 
 ### 改进
