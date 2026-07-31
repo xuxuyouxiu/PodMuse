@@ -32,7 +32,8 @@ export const ENTITY_DIRS: { dir: string; type: BacklinkEntry['entityType'] }[] =
 
 // ── Normalize link names for fuzzy matching ──
 // Handles edge cases like trailing dots mismatch (filename has 4 dots, wiki-link has 3)
-function normalizeLinkName(name: string): string {
+// Exported for testing & reuse
+export function normalizeLinkName(name: string): string {
   return name
     .replace(/[\s.…·]+$/g, '')
     .replace(/\.+$/, '')
@@ -116,24 +117,23 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
 // Export parseFrontmatter so search module can reuse it
 export { parseFrontmatter }
 
+// ── Extract wiki-link names from arbitrary markdown content ──
+export function extractWikiLinks(content: string): string[] {
+  const links: string[] = []
+  let match: RegExpExecArray | null
+  WIKILINK_RE.lastIndex = 0
+  while ((match = WIKILINK_RE.exec(content)) !== null) {
+    links.push(match[1])
+  }
+  return links
+}
+
 // ── Extract podcast filename from entity card ──
 
 function extractPodcastLinks(entityFilePath: string): string[] {
   try {
     const content = fs.readFileSync(entityFilePath, 'utf-8')
-    const links: string[] = []
-
-    // Look for wiki-links that reference podcast notes
-    // Podcast notes live in category subdirs (科技商业/, 每日资讯/, etc.)
-    // or the root obsidian dir
-    // Entity cards reference them as [[podcast-title]]
-    // We extract ALL wiki-links from the file; the caller will resolve paths
-    let match: RegExpExecArray | null
-    WIKILINK_RE.lastIndex = 0
-    while ((match = WIKILINK_RE.exec(content)) !== null) {
-      links.push(match[1])
-    }
-    return links
+    return extractWikiLinks(content)
   } catch {
     return []
   }

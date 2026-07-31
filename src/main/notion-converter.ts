@@ -11,7 +11,7 @@ import type {
 
 // ===== Notion API 类型（精简，只覆盖本项目用到的） =====
 
-type NotionBlock =
+export type NotionBlock =
   | { type: 'heading_1'; heading_1: { rich_text: NotionRichText[] } }
   | { type: 'heading_2'; heading_2: { rich_text: NotionRichText[] } }
   | { type: 'heading_3'; heading_3: { rich_text: NotionRichText[] } }
@@ -36,7 +36,7 @@ interface NotionRichText {
   }
 }
 
-interface NotionDatabaseSchema {
+export interface NotionDatabaseSchema {
   titleProperty?: string // type=title 的列名
   properties: Record<string, { type: string }> // 列名 → type
 }
@@ -74,7 +74,7 @@ async function notionFetch(
   })
 }
 
-function buildRichText(text: string): NotionRichText[] {
+export function buildRichText(text: string): NotionRichText[] {
   if (!text) return []
   // Notion rich_text 单个元素最多 2000 字符，超长截断
   const truncated = text.length > 2000 ? text.substring(0, 1997) + '...' : text
@@ -83,7 +83,7 @@ function buildRichText(text: string): NotionRichText[] {
 
 // ===== frontmatter 解析（极简，复用 backlinks.ts 中的 parseFrontmatter 思路） =====
 
-function parseFrontmatter(markdown: string): {
+export function parseFrontmatter(markdown: string): {
   frontmatter: Record<string, unknown>
   body: string
 } {
@@ -160,7 +160,7 @@ async function getDatabaseSchema(token: string, databaseId: string): Promise<Not
 
 // ===== frontmatter → Notion properties =====
 
-function frontmatterToNotionProperties(
+export function frontmatterToNotionProperties(
   frontmatter: Record<string, unknown>,
   schema: NotionDatabaseSchema,
 ): Record<string, unknown> {
@@ -225,7 +225,7 @@ function frontmatterToNotionProperties(
 
 // ===== markdown → Notion blocks =====
 
-function markdownToNotionBlocks(markdown: string): NotionBlock[] {
+export function markdownToNotionBlocks(markdown: string): NotionBlock[] {
   const lines = markdown.split('\n')
   const blocks: NotionBlock[] = []
 
