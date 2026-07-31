@@ -222,11 +222,13 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
         {/* 左侧导航 */}
         <div style={{
           width: 180,
-          minWidth: 180,
+          minWidth: 140,
+          flexShrink: 0,
           background: 'var(--bg-card)',
           borderRight: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column',
           padding: '16px 0',
+          overflowY: 'auto',
         }}>
           <div style={{
             padding: '0 16px 16px',
@@ -271,6 +273,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
           {/* 内容区域 */}
           <div style={{
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
             padding: '20px 24px',
           }}>
