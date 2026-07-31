@@ -5,6 +5,43 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.15.0] - 2026-07-31
+
+### 修复
+- shell:showInFolder 增加路径安全验证，复用 isSafeFilePath
+- app:cleanTemp 仅允许清理应用默认临时目录，防止 audio_dir 被篡改后误删
+- Whisper 子进程取消时 Windows 上用 taskkill /F /T 杀进程树，避免僵尸进程
+- dedup-store Set 上限 10000，超限淘汰最早一半，防止内存无限增长
+- App.tsx 初始加载配置/任务失败时显示 toast 而非静默吞错
+- 设置对话框窄屏适配：侧边栏可收缩，内容区正确滚动
+
+### 新增
+- 飞书配置「测试连接」按钮，同时验证 App ID/Secret 和 Chat ID
+- 保存配置后自动重连飞书并显示 toast 提示
+- Whisper 模型扫描自动检测 Faster-Whisper-XXL 安装路径
+- 单实例限制：双击打开软件时聚焦已有窗口
+- GitHub Release workflow，推送 tag 自动上传安装包
+- 基础可访问性改进：toast aria-live、对话框 role=dialog、按钮 aria-label
+
+### 改进
+- TabApi/TabExport 内联样式统一为 CSS class（.settings-provider-grid 等）
+- TabWhisper 高级设置按钮改用 .settings-link-button class
+- 设置页面所有外部链接改为系统浏览器打开
+- 导出菜单靠近窗口边缘时自动调整弹出方向
+- 搜索面板和知识关联搜索框样式统一为主页风格
+
+### 重构
+- Prettier 格式化全部源文件（86 个文件）
+- ESLint warnings 清理到 0
+- getResourcePath 移除重复的 dev/prod 分支
+- .gitignore 补充 .vscode/、coverage/、*.tsbuildinfo 等
+
+### 测试
+- 新增 config.test.ts（39 个用例）
+- 新增 backlinks.test.ts（31 个用例）
+- 新增 notion-converter.test.ts（46 个用例）
+- 测试总数从 54 个增加到 170 个
+
 ## [1.14.6] - 2026-07-20
 
 ### 修复
