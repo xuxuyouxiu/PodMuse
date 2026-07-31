@@ -29,6 +29,14 @@ export function runWhisper(
   return new Promise((resolve) => {
     let settled = false
     let _onAbort: (() => void) | null = null
+    let tickHandle: ReturnType<typeof setInterval> | null = null
+
+    const clearTick = () => {
+      if (tickHandle) {
+        clearInterval(tickHandle)
+        tickHandle = null
+      }
+    }
 
     const finish = (value: string | null) => {
       if (settled) return
@@ -83,15 +91,7 @@ export function runWhisper(
     let lastEmitProgress = -1
     let lastEmitTime = 0
     let hasRealActivity = false
-    let tickHandle: ReturnType<typeof setInterval> | null = null
     const spawnAt = Date.now()
-
-    const clearTick = () => {
-      if (tickHandle) {
-        clearInterval(tickHandle)
-        tickHandle = null
-      }
-    }
 
     const emit = () => {
       if (settled || signal?.aborted) return
