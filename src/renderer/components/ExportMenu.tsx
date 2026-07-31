@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { Share, FileText, BookOpen, Globe, Loader2 } from 'lucide-react'
 
 interface Props {
@@ -13,13 +14,42 @@ type ExportTarget = 'markdown' | 'logseq' | 'notion'
 export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToast }: Props) {
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState<ExportTarget | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const containerRef: RefObject<HTMLDivElement> = useRef(null)
+  const btnRef: RefObject<HTMLButtonElement> = useRef(null)
+  const menuRef: RefObject<HTMLDivElement> = useRef(null)
+
+  const openMenu = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      const menuHeight = 120 // 三个菜单项的估算高度
+      const menuWidth = 180
+      let top = rect.bottom + 4
+      let left = rect.left
+
+      // 空间不够往下展开时，往上弹
+      if (top + menuHeight > window.innerHeight) {
+        top = rect.top - menuHeight - 4
+      }
+      // 右侧溢出时往左移
+      if (left + menuWidth > window.innerWidth) {
+        left = window.innerWidth - menuWidth - 8
+      }
+
+      setMenuPos({ top, left })
+    }
+    setOpen(true)
+  }
 
   // 点击外部关闭下拉
   useEffect(() => {
     if (!open) return
     const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
         setOpen(false)
       }
     }
@@ -116,10 +146,67 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
   const notionEnabled = notionConfigured
   const isExporting = exporting !== null
 
+  const menu = open && menuPos ? createPortal(
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: menuPos.top,
+        left: menuPos.left,
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)',
+        boxShadow: 'var(--shadow-md)',
+        zIndex: 99999,
+        minWidth: 180,
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={handleExportMarkdown}
+        disabled={isExporting}
+        style={menuItemStyle(false)}
+        onMouseEnter={e => !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <FileText size={14} />
+        <span>Markdown…</span>
+      </button>
+
+      <button
+        onClick={handleExportLogseq}
+        disabled={isExporting || !logseqEnabled}
+        title={logseqEnabled ? '导出到 Logseq 目录' : '未配置 Logseq 目录，请在设置中配置'}
+        style={menuItemStyle(!logseqEnabled)}
+        onMouseEnter={e => logseqEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <BookOpen size={14} />
+        <span>Logseq</span>
+        {!logseqEnabled && <span style={disabledHintStyle}>未配置</span>}
+      </button>
+
+      <button
+        onClick={handleExportNotion}
+        disabled={isExporting || !notionEnabled}
+        title={notionEnabled ? '上传到 Notion database' : '未配置 Notion 集成，请在设置中配置'}
+        style={menuItemStyle(!notionEnabled)}
+        onMouseEnter={e => notionEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <Globe size={14} />
+        <span>Notion</span>
+        {!notionEnabled && <span style={disabledHintStyle}>未配置</span>}
+      </button>
+    </div>,
+    document.body,
+  ) : null
+
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={() => open ? setOpen(false) : openMenu()}
         disabled={isExporting}
         className="recent-task-secondary"
         title="导出到其他平台"
@@ -128,61 +215,7 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
         {exporting ? <Loader2 size={12} className="animate-spin" /> : <Share size={12} />}
         {exporting ? '导出中...' : '导出'}
       </button>
-
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 4,
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-sm)',
-            boxShadow: 'var(--shadow-md)',
-            zIndex: 100,
-            minWidth: 180,
-            overflow: 'hidden',
-          }}
-        >
-          <button
-            onClick={handleExportMarkdown}
-            disabled={isExporting}
-            style={menuItemStyle(false)}
-            onMouseEnter={e => !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <FileText size={14} />
-            <span>Markdown…</span>
-          </button>
-
-          <button
-            onClick={handleExportLogseq}
-            disabled={isExporting || !logseqEnabled}
-            title={logseqEnabled ? '导出到 Logseq 目录' : '未配置 Logseq 目录，请在设置中配置'}
-            style={menuItemStyle(!logseqEnabled)}
-            onMouseEnter={e => logseqEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <BookOpen size={14} />
-            <span>Logseq</span>
-            {!logseqEnabled && <span style={disabledHintStyle}>未配置</span>}
-          </button>
-
-          <button
-            onClick={handleExportNotion}
-            disabled={isExporting || !notionEnabled}
-            title={notionEnabled ? '上传到 Notion database' : '未配置 Notion 集成，请在设置中配置'}
-            style={menuItemStyle(!notionEnabled)}
-            onMouseEnter={e => notionEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Globe size={14} />
-            <span>Notion</span>
-            {!notionEnabled && <span style={disabledHintStyle}>未配置</span>}
-          </button>
-        </div>
-      )}
+      {menu}
     </div>
   )
 }
