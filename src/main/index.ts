@@ -229,7 +229,7 @@ function setupIPC() {
         if (chatName) {
           return { success: true, message: `凭据有效，群聊「${chatName}」可访问` }
         }
-        return { success: false, message: '凭据有效，但 Chat ID 无效或应用未加入该群聊' }
+        return { success: false, message: '凭据有效，但 Chat ID 无效或应用未加入该群聊（需在飞书开放平台给应用添加 im:chat 权限）' }
       }
       return { success: true, message: '飞书凭据验证成功（未填写 Chat ID，跳过群聊验证）' }
     } catch (e) {

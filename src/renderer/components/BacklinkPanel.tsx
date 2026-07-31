@@ -1058,29 +1058,37 @@ export default function BacklinkPanel() {
 
         .backlink-panel__search {
           position: relative;
-          padding: 10px 20px;
+          padding: 12px 20px;
         }
         .backlink-panel__search-icon {
           position: absolute;
-          left: 30px;
+          left: 32px;
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-muted);
           pointer-events: none;
+          transition: color 0.2s, opacity 0.2s;
         }
         .backlink-panel__search-input {
           width: 100%;
-          padding: 6px 10px 6px 30px;
+          height: 44px;
+          padding: 0 14px 0 36px;
           border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
           background: var(--bg-card);
           color: var(--text-primary);
-          font-size: var(--fs-base);
+          font-size: 13px;
+          font-family: inherit;
           outline: none;
-          transition: border-color 0.15s;
+          transition: border-color 0.2s, box-shadow 0.2s;
         }
         .backlink-panel__search-input:focus {
           border-color: var(--accent);
+          box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        .backlink-panel__search-input:focus ~ .backlink-panel__search-icon {
+          color: var(--accent);
+          opacity: 0.7;
         }
         .backlink-panel__search-input::placeholder {
           color: var(--text-muted);

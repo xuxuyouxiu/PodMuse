@@ -99,8 +99,10 @@ export class FeishuClient {
     const url = `https://open.feishu.cn/open-apis/im/v1/chats/${chatId}`
     const result = await feishuApi('GET', url, this.token)
     if (result.code === 0 && result.data) {
-      return (result.data as Record<string, unknown>).name as string || '(无名称)'
+      const data = result.data as Record<string, unknown>
+      return (data.name as string) || '(无名称)'
     }
+    this.logFunc(`getChatInfo 失败: code=${result.code} msg=${result.msg || '无'}`)
     return null
   }
 }
