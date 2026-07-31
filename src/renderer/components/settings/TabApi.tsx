@@ -134,17 +134,9 @@ export default function TabApi({
       <TabHeader title="AI 供应商配置" subtitle="选择和配置 AI API 供应商" />
 
       {/* 供应商选择网格 */}
-      <div style={{ marginBottom: 20 }}>
-        <div className="settings-field-label" style={{ marginBottom: 8 }}>
-          选择供应商
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: 8,
-          }}
-        >
+      <div className="settings-field" style={{ marginBottom: 20 }}>
+        <div className="settings-field-label">选择供应商</div>
+        <div className="settings-provider-grid">
           {AI_PROVIDER_PRESETS.map(preset => {
             const isActive = activeProvider === preset.id
             const hasKey = providers[preset.id]?.apiKey
@@ -152,40 +144,13 @@ export default function TabApi({
               <button
                 key={preset.id}
                 onClick={() => handleProviderChange(preset.id)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                  background: isActive ? 'var(--accent-bg)' : 'var(--bg-card)',
-                  color: isActive ? 'var(--accent)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: isActive ? 600 : 400,
-                  transition: 'all 0.15s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: 4,
-                  position: 'relative',
-                }}
+                className={`settings-provider-button${isActive ? ' is-active' : ''}`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <div className="settings-provider-button-row">
                   {getProviderIcon(preset.id)}
                   <span>{preset.name}</span>
                 </div>
-                {hasKey && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 6,
-                      right: 6,
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: 'var(--success)',
-                    }}
-                  />
-                )}
+                {hasKey && <div className="settings-provider-dot" />}
               </button>
             )
           })}
@@ -193,107 +158,56 @@ export default function TabApi({
           {/* 自定义供应商 */}
           <button
             onClick={() => handleProviderChange('custom')}
-            style={{
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: `1px dashed ${activeProvider === 'custom' ? 'var(--accent)' : 'var(--border)'}`,
-              background: activeProvider === 'custom' ? 'var(--accent-bg)' : 'transparent',
-              color: activeProvider === 'custom' ? 'var(--accent)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: activeProvider === 'custom' ? 600 : 400,
-              transition: 'all 0.15s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+            className={`settings-provider-button settings-provider-button--custom${activeProvider === 'custom' ? ' is-active' : ''}`}
           >
-            <Plus size={14} />
-            <span>自定义</span>
+            <div className="settings-provider-button-row">
+              <Plus size={14} />
+              <span>自定义</span>
+            </div>
           </button>
         </div>
       </div>
 
       {/* 供应商详情配置 */}
       {showProviderDetail && activeProvider && (
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border)',
-            padding: 16,
-            marginBottom: 20,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16,
-            }}
-          >
+        <div className="settings-section" style={{ marginBottom: 20 }}>
+          <div className="settings-detail-header">
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="settings-detail-title">
                 {currentPreset?.name || '自定义供应商'}
               </div>
               {currentPreset?.description && (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                <div className="settings-detail-description">
                   {currentPreset.description}
                 </div>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="settings-detail-actions">
               {currentPreset?.website && (
                 <span
                   onClick={() => window.electronAPI.openExternal(currentPreset.website!)}
                   className="settings-link-button"
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--accent)',
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                  }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                    <ExternalLink size={11} />
-                    官网
-                  </span>
+                  <ExternalLink size={11} />
+                  官网
                 </span>
               )}
               {currentPreset?.apiKeyUrl && (
                 <span
                   onClick={() => window.electronAPI.openExternal(currentPreset.apiKeyUrl!)}
                   className="settings-link-button"
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--accent)',
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                  }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                    <Key size={11} />
-                    获取密钥
-                  </span>
+                  <Key size={11} />
+                  获取密钥
                 </span>
               )}
               {currentPreset && (
                 <button
                   onClick={handleResetToDefault}
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--text-muted)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
+                  className="settings-link-button"
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                    <RotateCcw size={11} />
-                    重置默认
-                  </span>
+                  <RotateCcw size={11} />
+                  重置默认
                 </button>
               )}
             </div>
@@ -322,14 +236,13 @@ export default function TabApi({
             {/* 模型选择 */}
             <div className="settings-field">
               <div className="settings-field-label">模型</div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div className="settings-dir-row">
                 <div style={{ flex: 1 }}>
                   {fetchedModels.length > 0 ? (
                     <select
                       value={currentProvider.model || ''}
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
-                      style={{ outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
                     >
                       <option value="">选择模型...</option>
                       {fetchedModels.map(model => (
@@ -343,7 +256,6 @@ export default function TabApi({
                       value={currentProvider.model || ''}
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
-                      style={{ outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
                     >
                       <option value="">选择模型...</option>
                       {currentPreset.availableModels.map(model => (
@@ -359,7 +271,6 @@ export default function TabApi({
                       onChange={e => updateProviderConfig('model', e.target.value)}
                       className="settings-input"
                       placeholder="输入模型名称，如 gpt-4o"
-                      style={{ outline: 'none' }}
                     />
                   )}
                 </div>
@@ -378,20 +289,18 @@ export default function TabApi({
               </div>
               {fetchModelsStatus && (
                 <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 11,
-                    color: fetchModelsStatus.includes('已加载')
-                      ? 'var(--success)'
+                  className={
+                    fetchModelsStatus.includes('已加载')
+                      ? 'settings-test-result--success'
                       : fetchModelsStatus.includes('失败') || fetchModelsStatus.includes('请先')
-                        ? 'var(--error)'
-                        : 'var(--text-muted)',
-                  }}
+                        ? 'settings-test-result--error'
+                        : 'settings-test-result--muted'
+                  }
                 >
                   {fetchModelsStatus}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              <div className="settings-hint">
                 填写 API Key 后点击「加载模型」可获取该供应商的可用模型列表
               </div>
             </div>
@@ -401,9 +310,7 @@ export default function TabApi({
 
       {/* 飞书配置 */}
       <div style={{ marginTop: 24 }}>
-        <div
-          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}
-        >
+        <div className="settings-section-title" style={{ marginBottom: 12 }}>
           飞书集成
         </div>
         <div className="settings-grid">
@@ -427,7 +334,7 @@ export default function TabApi({
             placeholder="oc_xxxxxxxxxxxxxxxxxx"
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+        <div className="settings-test-row">
           <button
             onClick={async () => {
               setFeishuTesting(true)
@@ -449,10 +356,8 @@ export default function TabApi({
               }
             }}
             disabled={feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()}
-            className="tailbar-button"
+            className="settings-browse-button"
             style={{
-              padding: '6px 12px',
-              fontSize: 12,
               opacity:
                 feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()
                   ? 0.6
@@ -463,21 +368,23 @@ export default function TabApi({
           </button>
           {feishuTestResult && (
             <span
-              style={{
-                fontSize: 11,
-                color: feishuTestResult.success ? 'var(--success)' : 'var(--error)',
-              }}
+              className={
+                feishuTestResult.success
+                  ? 'settings-test-result--success'
+                  : 'settings-test-result--error'
+              }
             >
               {feishuTestResult.success ? '✓ ' : '✗ '}
               {feishuTestResult.message}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+        <div className="settings-hint">
           在
           <span
             onClick={() => window.electronAPI.openExternal('https://open.feishu.cn')}
-            style={{ color: 'var(--accent)', cursor: 'pointer' }}
+            className="settings-link-button"
+            style={{ display: 'inline' }}
           >
             飞书开放平台
           </span>

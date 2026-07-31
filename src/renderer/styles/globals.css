@@ -1707,6 +1707,152 @@ select.settings-input option:checked {
   box-shadow: 0 6px 20px var(--accent-glow);
 }
 
+/* --- Provider Selection Grid (TabApi) --- */
+.settings-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.settings-provider-button {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  position: relative;
+}
+
+.settings-provider-button:hover {
+  border-color: var(--border-light);
+}
+
+.settings-provider-button.is-active {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-provider-button--custom {
+  border-style: dashed;
+  background: transparent;
+}
+
+.settings-provider-button--custom.is-active {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.settings-provider-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.settings-provider-button-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* --- Detail Header (inside settings-section) --- */
+.settings-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.settings-detail-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-detail-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.settings-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* --- Link Buttons --- */
+.settings-link-button {
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: inherit;
+}
+
+.settings-link-button:hover {
+  opacity: 0.8;
+}
+
+/* --- Checkbox --- */
+.settings-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* --- Hint / Help Text --- */
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* --- Test Connection Row --- */
+.settings-test-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.settings-test-result--success {
+  font-size: 11px;
+  color: var(--success);
+}
+
+.settings-test-result--error {
+  font-size: 11px;
+  color: var(--error);
+}
+
+.settings-test-result--muted {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 button {
   cursor: pointer;
   font-family: inherit;

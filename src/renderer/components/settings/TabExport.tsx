@@ -65,9 +65,7 @@ export default function TabExport({ form, update }: Props) {
 
       {/* Logseq */}
       <div style={{ marginBottom: 28 }}>
-        <div
-          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}
-        >
+        <div className="settings-section-title" style={{ marginBottom: 8 }}>
           Logseq 目录
         </div>
         <DirField
@@ -76,7 +74,7 @@ export default function TabExport({ form, update }: Props) {
           placeholder="未设置"
           onBrowse={handleBrowseLogseq}
         />
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+        <div className="settings-hint" style={{ marginTop: 6 }}>
           配置后，完成笔记的任务卡片「导出」按钮可直接复制到该目录。Logseq 兼容 Obsidian 的
           wiki-link 语法，无需转换。
         </div>
@@ -84,32 +82,30 @@ export default function TabExport({ form, update }: Props) {
 
       {/* Notion */}
       <div>
-        <div
-          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}
-        >
+        <div className="settings-section-title" style={{ marginBottom: 8 }}>
           Notion 集成
         </div>
-        <Field
-          label="Integration Token"
-          value={notion.token}
-          onChange={v => updateNotionField('token', v)}
-          secret
-          placeholder="secret_xxxxxxxxxxxxxxxxxxx"
-        />
-        <Field
-          label="Database ID"
-          value={notion.database_id}
-          onChange={v => updateNotionField('database_id', v)}
-          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx 或 database URL"
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+        <div className="settings-grid">
+          <Field
+            label="Integration Token"
+            value={notion.token}
+            onChange={v => updateNotionField('token', v)}
+            secret
+            placeholder="secret_xxxxxxxxxxxxxxxxxxx"
+          />
+          <Field
+            label="Database ID"
+            value={notion.database_id}
+            onChange={v => updateNotionField('database_id', v)}
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx 或 database URL"
+          />
+        </div>
+        <div className="settings-test-row">
           <button
             onClick={handleTestConnection}
             disabled={testing || !notion.token.trim() || !notion.database_id.trim()}
-            className="tailbar-button"
+            className="settings-browse-button"
             style={{
-              padding: '6px 12px',
-              fontSize: 12,
               opacity: testing || !notion.token.trim() || !notion.database_id.trim() ? 0.6 : 1,
             }}
           >
@@ -117,21 +113,23 @@ export default function TabExport({ form, update }: Props) {
           </button>
           {testResult && (
             <span
-              style={{
-                fontSize: 11,
-                color: testResult.success ? 'var(--success)' : 'var(--error)',
-              }}
+              className={
+                testResult.success
+                  ? 'settings-test-result--success'
+                  : 'settings-test-result--error'
+              }
             >
               {testResult.success ? '✓ ' : '✗ '}
               {testResult.message}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+        <div className="settings-hint" style={{ marginTop: 8 }}>
           在 Notion 中创建 integration（
           <span
             onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')}
-            style={{ color: 'var(--accent)', cursor: 'pointer' }}
+            className="settings-link-button"
+            style={{ display: 'inline' }}
           >
             https://www.notion.so/my-integrations
           </span>
