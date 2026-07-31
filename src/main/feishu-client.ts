@@ -93,4 +93,14 @@ export class FeishuClient {
     }
     return true
   }
+
+  /** 验证 Chat ID 是否有效，返回群名称或 null */
+  async getChatInfo(chatId: string): Promise<string | null> {
+    const url = `https://open.feishu.cn/open-apis/im/v1/chats/${chatId}`
+    const result = await feishuApi('GET', url, this.token)
+    if (result.code === 0 && result.data) {
+      return (result.data as Record<string, unknown>).name as string || '(无名称)'
+    }
+    return null
+  }
 }

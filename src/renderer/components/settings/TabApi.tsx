@@ -359,6 +359,7 @@ export default function TabApi({ form, update, validationErrors }: {
                 const result = await window.electronAPI.testFeishuConnection({
                   appId: form.feishu_app_id,
                   appSecret: form.feishu_app_secret,
+                  chatId: form.feishu_chat_id,
                 })
                 setFeishuTestResult(result)
               } catch (e) {

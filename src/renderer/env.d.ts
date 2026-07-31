@@ -155,7 +155,7 @@ declare global {
       startFeishu: () => Promise<FeishuStatus>
       stopFeishu: () => Promise<void>
       getFeishuStatus: () => Promise<FeishuStatus>
-      testFeishuConnection: (params: { appId: string; appSecret: string }) => Promise<{ success: boolean; message: string }>
+      testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) => Promise<{ success: boolean; message: string }>
       processPodcast: (url: string, force?: boolean, taskId?: string, isLocalFile?: boolean) => Promise<{ success: boolean; filename?: string | null; error?: string }>
       checkProcessed: (url: string) => Promise<boolean>
       cancelProcessing: () => Promise<boolean>

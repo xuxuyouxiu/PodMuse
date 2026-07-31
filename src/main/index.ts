@@ -215,15 +215,23 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
-  ipcMain.handle('feishu:testConnection', async (_e, params: { appId: string; appSecret: string }) => {
+  ipcMain.handle('feishu:testConnection', async (_e, params: { appId: string; appSecret: string; chatId: string }) => {
     try {
       const { FeishuClient } = await import('./feishu-client')
       const client = new FeishuClient(params.appId, params.appSecret, () => {})
       const ok = await client.ensureToken()
-      if (ok) {
-        return { success: true, message: '飞书凭据验证成功' }
+      if (!ok) {
+        return { success: false, message: '飞书鉴权失败，请检查 App ID 和 App Secret' }
       }
-      return { success: false, message: '飞书鉴权失败，请检查 App ID 和 App Secret' }
+      // 如果填了 Chat ID，验证是否有效
+      if (params.chatId?.trim()) {
+        const chatName = await client.getChatInfo(params.chatId.trim())
+        if (chatName) {
+          return { success: true, message: `凭据有效，群聊「${chatName}」可访问` }
+        }
+        return { success: false, message: '凭据有效，但 Chat ID 无效或应用未加入该群聊' }
+      }
+      return { success: true, message: '飞书凭据验证成功（未填写 Chat ID，跳过群聊验证）' }
     } catch (e) {
       return { success: false, message: `测试失败: ${(e as Error).message}` }
     }
@@ -253,11 +261,15 @@ function setupIPC() {
     if (!activeProvider && config.api_key) {
       activeProvider = { baseUrl: 'https://api.deepseek.com', apiKey: config.api_key, model: 'deepseek-chat' }
     }
+    let lastErrorDetail: string | null = null
     try {
       const result = await processPodcast(
         url, activeProvider, config.ai_provider, config.language,
         config.obsidian_dir, config.audio_dir,
-        (step: StepInfo) => { try { mainWindow?.webContents.send('podcast:step', step) } catch {} },
+        (step: StepInfo) => {
+          if (step.status === 'error') lastErrorDetail = step.detail || step.subtitle
+          try { mainWindow?.webContents.send('podcast:step', step) } catch {}
+        },
         (msg: string) => { try { mainWindow?.webContents.send('log', msg) } catch {} },
         signal,
         isLocalFile,
@@ -272,9 +284,10 @@ function setupIPC() {
           sendNotification('播客笔记助手', `笔记已生成：${result}`)
         }
       } else {
-        updateRecentState(state => failRecentTask(state))
+        const errorReason = lastErrorDetail || '处理失败，请检查日志'
+        updateRecentState(state => failRecentTask(state, errorReason))
         if (config.notification_enabled !== false) {
-          sendNotification('播客笔记助手', '处理失败，请检查日志')
+          sendNotification('播客笔记助手', `处理失败：${errorReason}`)
         }
       }
       return { success: true, filename: result }
@@ -290,7 +303,7 @@ function setupIPC() {
         }
         return { success: false, error: '处理已取消' }
       }
-      updateRecentState(state => failRecentTask(state))
+      updateRecentState(state => failRecentTask(state, errMsg))
       if (config.notification_enabled !== false) {
         sendNotification('播客笔记助手', `处理出错：${errMsg}`)
       }
