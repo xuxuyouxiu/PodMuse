@@ -118,17 +118,6 @@ export default function TabWhisper({
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="settings-link-button"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent)',
-              cursor: 'pointer',
-              fontSize: 12,
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
           >
             {showAdvanced ? '▼' : '▶'} 高级设置
           </button>

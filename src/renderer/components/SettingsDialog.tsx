@@ -411,6 +411,17 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
           width: 16px;
           height: 16px;
         }
+        .settings-link-button {
+          background: none;
+          border: none;
+          color: var(--accent);
+          cursor: pointer;
+          font-size: 12px;
+          padding: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
         .settings-link-button:hover {
           text-decoration: underline;
         }
