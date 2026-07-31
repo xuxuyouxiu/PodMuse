@@ -74,10 +74,6 @@ function updateRecentState(
 }
 
 function getResourcePath(...segments: string[]) {
-  const isDev = !!process.env.VITE_DEV_SERVER_URL
-  if (isDev) {
-    return join(__dirname, '..', ...segments)
-  }
   return join(__dirname, '..', ...segments)
 }
 
