@@ -232,6 +232,9 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         className="settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="设置"
         style={{
           width: 720,
           maxWidth: 'calc(100vw - 32px)',

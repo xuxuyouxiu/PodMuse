@@ -38,7 +38,7 @@ export default function ConfirmDialog({
 
   return (
     <div className="confirm-dialog-overlay" onClick={onCancel}>
-      <div className="confirm-dialog-modal" onClick={e => e.stopPropagation()}>
+      <div className="confirm-dialog-modal" onClick={e => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-label={title}>
         {/* 图标和标题 */}
         <div className="confirm-dialog-header">
           <div

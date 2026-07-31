@@ -286,7 +286,7 @@ export default function App() {
       setCancelling(false)
     }
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   const handleCancel = useCallback(async () => {
@@ -689,6 +689,8 @@ export default function App() {
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {toast && (
         <div
+          role="alert"
+          aria-live="polite"
           style={{
             position: 'fixed',
             bottom: 40,

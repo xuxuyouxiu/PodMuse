@@ -215,13 +215,13 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
         className="workspace-topbar__window-controls"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button onClick={handleMinimize} className="topbar-winctl-btn">
+        <button onClick={handleMinimize} className="topbar-winctl-btn" aria-label="最小化">
           <Minus size={14} />
         </button>
-        <button onClick={handleMaximize} className="topbar-winctl-btn">
+        <button onClick={handleMaximize} className="topbar-winctl-btn" aria-label="最大化">
           <Square size={14} />
         </button>
-        <button onClick={handleClose} className="topbar-winctl-btn">
+        <button onClick={handleClose} className="topbar-winctl-btn" aria-label="关闭">
           <X size={14} />
         </button>
       </div>
