@@ -34,7 +34,20 @@ docs/superpowers/
 docs/douyin.png
 docs/抖音封面.png
 
-# 操作系统无关文件
-.DS_Store
-Thumbs.db
+# IDE / 编辑器
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# 测试覆盖率
+coverage/
+
+# TypeScript 缓存
+*.tsbuildinfo
+
+# Windows 系统文件
+desktop.ini
+
+# 工作区临时文件
 C:Usersadmin.qoderworkcnworkspacemq0qsnxnqejzdw09kill-app.ps1
