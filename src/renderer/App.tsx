@@ -74,13 +74,19 @@ export default function App() {
     : null
 
   useEffect(() => {
-    window.electronAPI.getConfig().then(setConfig).catch(() => {})
+    window.electronAPI.getConfig().then(setConfig).catch((e) => {
+      console.error('加载配置失败:', e)
+      showToast('加载配置失败', 'error')
+    })
     window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
       setActiveTasks(aTasks)
       setRecentTasks(rTasks)
       const latestPending = aTasks.find(task => task.status !== 'completed')
       setLastUrl(latestPending?.url || aTasks[0]?.url || null)
-    }).catch(() => {})
+    }).catch((e) => {
+      console.error('加载任务列表失败:', e)
+      showToast('加载任务列表失败', 'error')
+    })
 
     const cleanups: (() => void)[] = []
     cleanups.push(window.electronAPI.onStepUpdate((step: StepInfo) => {

@@ -170,8 +170,8 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
 
   ipcMain.handle('app:cleanTemp', () => {
     try {
-      const cfg = loadConfig()
-      const tempDir = cfg.audio_dir || join(app.getPath('userData'), '_podcast_temp')
+      // 仅允许清理应用默认临时目录，防止 audio_dir 被篡改后误删其他目录
+      const tempDir = join(app.getPath('userData'), '_podcast_temp')
       if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
     } catch {}
     return true
@@ -194,6 +194,14 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('shell:showInFolder', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return false
+      // 复用 shell:openPath 的路径安全检查
+      const config = loadConfig()
+      const allowedDirs = [config.obsidian_dir, app.getPath('userData')].filter(Boolean)
+      const allowedExts = ['.md', '.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.mp3', '.wav', '.m4a', '.mp4', '.json']
+      if (!isSafeFilePath(filePath, allowedDirs, allowedExts)) {
+        console.warn('shell:showInFolder blocked:', filePath)
+        return false
+      }
       shell.showItemInFolder(filePath)
       return true
     } catch { return false }

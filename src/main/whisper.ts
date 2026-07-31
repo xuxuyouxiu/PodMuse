@@ -80,7 +80,14 @@ export function runWhisper(
     })
 
     _onAbort = () => {
-      proc.kill()
+      // Windows 上 SIGTERM 无效，需要用 taskkill 杀掉整个进程树
+      try {
+        if (process.platform === 'win32') {
+          spawn('taskkill', ['/F', '/T', '/PID', String(proc.pid)], { stdio: 'ignore' })
+        } else {
+          proc.kill('SIGKILL')
+        }
+      } catch { proc.kill() }
       finish(null)
     }
     signal?.addEventListener('abort', _onAbort, { once: true })

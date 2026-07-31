@@ -16,7 +16,7 @@ import { runStartupRecovery, startConsistencyChecker, stopConsistencyChecker, ru
 import { sendNotification, setupNotificationAppId } from './notify'
 import { BatchQueueService } from './batch-queue'
 import { registerBatchIPC } from './ipc/batch-ipc'
-import { processedEpisodeIds } from './dedup-store'
+import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -277,7 +277,7 @@ function setupIPC() {
       )
       if (result) {
         if (episodeId) {
-          processedEpisodeIds.add(episodeId)
+          addProcessedId(episodeId)
         }
         updateRecentState(state => completeRecentTask(state, { taskId: actualTaskId, url, episodeId, filename: result }))
         if (config.notification_enabled !== false) {

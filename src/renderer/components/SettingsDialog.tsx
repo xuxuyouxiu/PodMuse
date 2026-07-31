@@ -85,7 +85,8 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     try {
       const result = await window.electronAPI.checkWhisperHardware(modelId)
       setHardwareWarn(result)
-    } catch {
+    } catch (e) {
+      console.error('硬件检测失败:', e)
       setHardwareWarn(null)
     }
   }
