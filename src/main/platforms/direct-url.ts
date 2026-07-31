@@ -2,7 +2,19 @@
 
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
-const MEDIA_EXTENSIONS = ['mp3', 'mp4', 'm4a', 'wav', 'aac', 'ogg', 'flac', 'mov', 'avi', 'wmv', 'webm']
+const MEDIA_EXTENSIONS = [
+  'mp3',
+  'mp4',
+  'm4a',
+  'wav',
+  'aac',
+  'ogg',
+  'flac',
+  'mov',
+  'avi',
+  'wmv',
+  'webm',
+]
 const MEDIA_CONTENT_TYPES = ['audio/', 'video/']
 
 export class DirectUrlAdapter implements PlatformAdapter {

@@ -49,7 +49,7 @@ export interface MessageTask {
 
 export class MessageParser {
   extract(messages: FeishuMessage[]): MessageTask[] {
-    return messages.map((msg) => this.parseOne(msg))
+    return messages.map(msg => this.parseOne(msg))
   }
 
   private parseOne(msg: FeishuMessage): MessageTask {

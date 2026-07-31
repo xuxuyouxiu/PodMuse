@@ -34,7 +34,10 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
 
   // 获取应用版本号
   useEffect(() => {
-    window.electronAPI.getAppVersion().then(v => setVersion(v)).catch(() => {})
+    window.electronAPI
+      .getAppVersion()
+      .then(v => setVersion(v))
+      .catch(() => {})
   }, [])
 
   // Ctrl+K 全局快捷键
@@ -109,26 +112,23 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
   }
 
   const typeBadgeClass: Record<string, string> = {
-    '人物': 'type-person',
-    '项目': 'type-project',
-    '概念': 'type-concept',
-    '术语': 'type-term',
-    '笔记': 'type-note',
+    人物: 'type-person',
+    项目: 'type-project',
+    概念: 'type-concept',
+    术语: 'type-term',
+    笔记: 'type-note',
   }
 
   return (
-    <div className="workspace-topbar topbar-root" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+    <div
+      className="workspace-topbar topbar-root"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
       <div className="workspace-topbar__content">
-        <img
-          src="./icon.png"
-          alt="播客笔记助手"
-          className="topbar-logo"
-        />
+        <img src="./icon.png" alt="播客笔记助手" className="topbar-logo" />
         <span className="topbar-title">
           播客笔记助手
-          {version && (
-            <span className="topbar-version">v{version}</span>
-          )}
+          {version && <span className="topbar-version">v{version}</span>}
         </span>
         <div
           ref={wrapRef}
@@ -145,7 +145,10 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
               type="text"
               value={query}
               onChange={e => handleChange(e.target.value)}
-              onFocus={() => { setFocused(true); setOpen(true) }}
+              onFocus={() => {
+                setFocused(true)
+                setOpen(true)
+              }}
               onBlur={() => setFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder="搜索笔记、播客、关键词..."
@@ -154,58 +157,53 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             {query && (
               <button
                 className="topbar-search-clear"
-                onClick={(e) => { e.stopPropagation(); setQuery(''); setResults([]); inputRef.current?.focus() }}
+                onClick={e => {
+                  e.stopPropagation()
+                  setQuery('')
+                  setResults([])
+                  inputRef.current?.focus()
+                }}
                 aria-label="清除搜索"
               >
                 <X size={11} />
               </button>
             )}
-            {!query && (
-              <kbd className="topbar-kbd">
-                Ctrl + K
-              </kbd>
-            )}
+            {!query && <kbd className="topbar-kbd">Ctrl + K</kbd>}
           </div>
 
           {/* 搜索结果下拉 */}
           {open && (query.trim() || results.length > 0) && (
             <div className="topbar-dropdown">
-              {loading && (
-                <div className="topbar-status-msg">
-                  搜索中...
-                </div>
-              )}
+              {loading && <div className="topbar-status-msg">搜索中...</div>}
               {!loading && query.trim() && results.length === 0 && (
-                <div className="topbar-status-msg">
-                  未找到匹配结果
-                </div>
+                <div className="topbar-status-msg">未找到匹配结果</div>
               )}
-              {!loading && results.map((r, i) => (
-                <div
-                  key={r.path}
-                  onClick={() => handleOpen(r.path)}
-                  className={`topbar-result-item${i === selectedIndex ? ' is-selected' : ''}`}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                >
-                  <div className="topbar-result-head">
-                    <span className={`topbar-type-badge ${typeBadgeClass[r.type] || 'type-note'}`}>
-                      {r.type}
-                    </span>
-                    <span className="topbar-result-name">
-                      {r.name}
-                    </span>
-                  </div>
-                  {r.excerpt && (
-                    <div className="topbar-result-excerpt">
-                      {r.excerpt}
+              {!loading &&
+                results.map((r, i) => (
+                  <div
+                    key={r.path}
+                    onClick={() => handleOpen(r.path)}
+                    className={`topbar-result-item${i === selectedIndex ? ' is-selected' : ''}`}
+                    onMouseEnter={() => setSelectedIndex(i)}
+                  >
+                    <div className="topbar-result-head">
+                      <span
+                        className={`topbar-type-badge ${typeBadgeClass[r.type] || 'type-note'}`}
+                      >
+                        {r.type}
+                      </span>
+                      <span className="topbar-result-name">{r.name}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {r.excerpt && <div className="topbar-result-excerpt">{r.excerpt}</div>}
+                  </div>
+                ))}
             </div>
           )}
         </div>
-        <div className="workspace-topbar__actions" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div
+          className="workspace-topbar__actions"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
           <StatusBar status={status} />
           <button onClick={onToggleTheme} className="topbar-theme-btn">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -213,10 +211,19 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           </button>
         </div>
       </div>
-      <div className="workspace-topbar__window-controls" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <button onClick={handleMinimize} className="topbar-winctl-btn"><Minus size={14} /></button>
-        <button onClick={handleMaximize} className="topbar-winctl-btn"><Square size={14} /></button>
-        <button onClick={handleClose} className="topbar-winctl-btn"><X size={14} /></button>
+      <div
+        className="workspace-topbar__window-controls"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
+        <button onClick={handleMinimize} className="topbar-winctl-btn">
+          <Minus size={14} />
+        </button>
+        <button onClick={handleMaximize} className="topbar-winctl-btn">
+          <Square size={14} />
+        </button>
+        <button onClick={handleClose} className="topbar-winctl-btn">
+          <X size={14} />
+        </button>
       </div>
     </div>
   )

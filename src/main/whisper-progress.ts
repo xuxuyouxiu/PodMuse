@@ -17,12 +17,11 @@ export interface AudioDurationResult {
 
 export function getAudioDurationSec(audioPath: string): AudioDurationResult {
   try {
-    const result = spawnSync('ffprobe', [
-      '-v', 'quiet',
-      '-show_entries', 'format=duration',
-      '-of', 'csv=p=0',
-      audioPath,
-    ], { timeout: 8000 })
+    const result = spawnSync(
+      'ffprobe',
+      ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', audioPath],
+      { timeout: 8000 },
+    )
     if (result.status === 0) {
       const raw = result.stdout.toString().trim()
       if (raw) {
@@ -119,10 +118,7 @@ export function parseWhisperPercent(line: string): number | null {
   const trimmed = line.trim()
   if (!trimmed) return null
 
-  const patterns = [
-    /(\d{1,3})\s*%/g,
-    /(\d{1,3})%/g,
-  ]
+  const patterns = [/(\d{1,3})\s*%/g, /(\d{1,3})%/g]
 
   for (const pattern of patterns) {
     const matches = [...trimmed.matchAll(pattern)]

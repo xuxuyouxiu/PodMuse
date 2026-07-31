@@ -16,9 +16,16 @@ function validateConfigInput(config: Record<string, unknown>): string | null {
 
   // 验证字符串字段类型
   const stringFields = [
-    'ai_provider', 'api_key', 'feishu_app_id', 'feishu_app_secret',
-    'language', 'feishu_chat_id', 'obsidian_dir', 'audio_dir',
-    'whisper_exe_path', 'whisper_model',
+    'ai_provider',
+    'api_key',
+    'feishu_app_id',
+    'feishu_app_secret',
+    'language',
+    'feishu_chat_id',
+    'obsidian_dir',
+    'audio_dir',
+    'whisper_exe_path',
+    'whisper_model',
   ]
   for (const field of stringFields) {
     if (field in config && typeof config[field] !== 'string') {
@@ -27,7 +34,16 @@ function validateConfigInput(config: Record<string, unknown>): string | null {
   }
 
   // 验证 ai_provider 枚举值
-  const validProviders = ['deepseek', 'openai', 'moonshot', 'zhipu', 'qwen', 'yi', 'minimax', 'custom']
+  const validProviders = [
+    'deepseek',
+    'openai',
+    'moonshot',
+    'zhipu',
+    'qwen',
+    'yi',
+    'minimax',
+    'custom',
+  ]
   if (typeof config.ai_provider === 'string' && !validProviders.includes(config.ai_provider)) {
     return `无效的 AI 供应商: ${config.ai_provider}`
   }
@@ -83,7 +99,11 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   })
 
   ipcMain.handle('config:get', () => {
-    try { return loadSafeConfig() } catch { return null }
+    try {
+      return loadSafeConfig()
+    } catch {
+      return null
+    }
   })
 
   ipcMain.handle('config:save', (_e, config) => {
@@ -103,7 +123,10 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       // 还原 AI 供应商 apiKey 脱敏值
       if (incoming.ai_providers && currentConfig.ai_providers) {
         const incomingProviders = incoming.ai_providers as Record<string, Record<string, unknown>>
-        const currentProviders = currentConfig.ai_providers as unknown as Record<string, Record<string, unknown>>
+        const currentProviders = currentConfig.ai_providers as unknown as Record<
+          string,
+          Record<string, unknown>
+        >
         for (const [id, provider] of Object.entries(incomingProviders)) {
           if (typeof provider.apiKey === 'string' && maskedPattern.test(provider.apiKey)) {
             provider.apiKey = currentProviders[id]?.apiKey || ''
@@ -120,7 +143,9 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       }
       saveConfig(merged as PodcastConfig)
       return true
-    } catch { return false }
+    } catch {
+      return false
+    }
   })
 
   ipcMain.handle('dialog:selectDir', async () => {
@@ -153,7 +178,9 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       }
       await shell.openPath(filePath)
       return true
-    } catch { return false }
+    } catch {
+      return false
+    }
   })
 
   ipcMain.handle('shell:openExternal', async (_e, url: string) => {
@@ -165,7 +192,9 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       }
       await shell.openExternal(url)
       return true
-    } catch { return false }
+    } catch {
+      return false
+    }
   })
 
   ipcMain.handle('app:cleanTemp', () => {
@@ -197,13 +226,29 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       // 复用 shell:openPath 的路径安全检查
       const config = loadConfig()
       const allowedDirs = [config.obsidian_dir, app.getPath('userData')].filter(Boolean)
-      const allowedExts = ['.md', '.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.mp3', '.wav', '.m4a', '.mp4', '.json']
+      const allowedExts = [
+        '.md',
+        '.txt',
+        '.pdf',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.svg',
+        '.mp3',
+        '.wav',
+        '.m4a',
+        '.mp4',
+        '.json',
+      ]
       if (!isSafeFilePath(filePath, allowedDirs, allowedExts)) {
         console.warn('shell:showInFolder blocked:', filePath)
         return false
       }
       shell.showItemInFolder(filePath)
       return true
-    } catch { return false }
+    } catch {
+      return false
+    }
   })
 }

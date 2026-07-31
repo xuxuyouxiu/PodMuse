@@ -2,7 +2,8 @@
 
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
 interface XimalayaTrackInfo {
   title: string
@@ -67,7 +68,7 @@ export class XimalayaAdapter implements PlatformAdapter {
 
     if (!resp.ok) throw new Error(`喜马拉雅 API 请求失败: HTTP ${resp.status}`)
 
-    const json = await resp.json() as {
+    const json = (await resp.json()) as {
       ret?: number
       msg?: string
       title?: string

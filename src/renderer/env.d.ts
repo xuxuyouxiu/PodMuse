@@ -155,8 +155,17 @@ declare global {
       startFeishu: () => Promise<FeishuStatus>
       stopFeishu: () => Promise<void>
       getFeishuStatus: () => Promise<FeishuStatus>
-      testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) => Promise<{ success: boolean; message: string }>
-      processPodcast: (url: string, force?: boolean, taskId?: string, isLocalFile?: boolean) => Promise<{ success: boolean; filename?: string | null; error?: string }>
+      testFeishuConnection: (params: {
+        appId: string
+        appSecret: string
+        chatId: string
+      }) => Promise<{ success: boolean; message: string }>
+      processPodcast: (
+        url: string,
+        force?: boolean,
+        taskId?: string,
+        isLocalFile?: boolean,
+      ) => Promise<{ success: boolean; filename?: string | null; error?: string }>
       checkProcessed: (url: string) => Promise<boolean>
       cancelProcessing: () => Promise<boolean>
       onStepUpdate: (callback: (step: StepInfo) => void) => () => void
@@ -164,7 +173,9 @@ declare global {
       onFeishuStatus: (callback: (status: FeishuStatus) => void) => () => void
       onProcessingChange: (callback: (processing: boolean, url?: string) => void) => () => void
       onTasksChanged: (callback: () => void) => () => void
-      onToast: (callback: (toast: { message: string; type: 'success' | 'error' }) => void) => () => void
+      onToast: (
+        callback: (toast: { message: string; type: 'success' | 'error' }) => void,
+      ) => () => void
       getRecoveryLogs: () => Promise<RecoveryLogEntry[]>
       cleanTemp: () => Promise<boolean>
       searchNotes: (keyword: string) => Promise<NoteSearchResult[]>
@@ -183,10 +194,16 @@ declare global {
       showInFolder: (filePath: string) => Promise<boolean>
 
       // 导出
-      exportToMarkdown: (params: { taskId: string; targetDir: string; stripObsidianSyntax?: boolean }) => Promise<ExportResult>
+      exportToMarkdown: (params: {
+        taskId: string
+        targetDir: string
+        stripObsidianSyntax?: boolean
+      }) => Promise<ExportResult>
       exportToLogseq: (taskId: string) => Promise<ExportResult>
       exportToNotion: (taskId: string) => Promise<ExportResult>
-      testNotionConnection: (params: NotionTestConnectionParams) => Promise<NotionTestConnectionResult>
+      testNotionConnection: (
+        params: NotionTestConnectionParams,
+      ) => Promise<NotionTestConnectionResult>
 
       // 批量处理
       batchAdd: (items: BatchInput[]) => Promise<BatchQueueSnapshot>
@@ -199,7 +216,12 @@ declare global {
       batchRemove: (index: number) => Promise<BatchQueueSnapshot>
       batchReorder: (from: number, to: number) => Promise<BatchQueueSnapshot>
       batchGetState: () => Promise<BatchQueueSnapshot>
-      batchCheckRecovery: () => Promise<{ pending: number; failed: number; total: number; allFailed: boolean } | null>
+      batchCheckRecovery: () => Promise<{
+        pending: number
+        failed: number
+        total: number
+        allFailed: boolean
+      } | null>
       onBatchTaskUpdate: (callback: (index: number, task: BatchTask) => void) => () => void
       onBatchQueueState: (callback: (state: BatchQueueSnapshot) => void) => () => void
       onBatchQueueComplete: (callback: (summary: BatchCompletionSummary) => void) => () => void

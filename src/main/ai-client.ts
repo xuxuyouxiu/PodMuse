@@ -296,7 +296,7 @@ function isRetryableError(error: unknown): boolean {
   // 网络错误、超时、连接重置
   if (name === 'TypeError' && msg.includes('fetch')) return true
   if (name === 'AbortError') return true
-  
+
   // HTTP 状态码错误
   if (msg.includes('HTTP')) {
     const statusMatch = msg.match(/HTTP (\d+)/)
@@ -308,17 +308,19 @@ function isRetryableError(error: unknown): boolean {
       if (status >= 400 && status < 500) return false
     }
   }
-  
+
   // API 特定错误
   if (msg.includes('API 错误') || msg.includes('API error')) {
-    if (msg.includes('rate_limit') || 
-        msg.includes('overloaded') || 
-        msg.includes('timeout') ||
-        msg.includes('insufficient_quota')) {
+    if (
+      msg.includes('rate_limit') ||
+      msg.includes('overloaded') ||
+      msg.includes('timeout') ||
+      msg.includes('insufficient_quota')
+    ) {
       return true
     }
   }
-  
+
   return false
 }
 
@@ -341,22 +343,22 @@ async function callAI(
   temperature = 0.7,
 ) {
   const apiUrl = buildApiUrl(providerConfig.baseUrl, providerId)
-  
+
   let lastError: unknown = null
-  
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     // 检查是否已取消
     if (signal?.aborted) {
       throw Object.assign(new Error('已取消'), { name: 'AbortError' })
     }
-    
+
     try {
       const resp = await fetch(apiUrl, {
         method: 'POST',
         signal,
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${providerConfig.apiKey}` 
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${providerConfig.apiKey}`,
         },
         body: JSON.stringify({
           model: providerConfig.model,
@@ -374,52 +376,71 @@ async function callAI(
         throw new Error(`API HTTP ${resp.status}: ${errorText}`)
       }
 
-      const result = await resp.json() as {
+      const result = (await resp.json()) as {
         error?: { message?: string }
-        choices?: Array<{ message?: { content?: string } }>
-        usage?: { prompt_tokens?: number; completion_tokens?: number }
+        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>
+        usage?: {
+          prompt_tokens?: number
+          completion_tokens?: number
+          completion_tokens_details?: { reasoning_tokens?: number }
+        }
       }
       if (result.error) {
         throw new Error(`API 错误: ${result.error.message || JSON.stringify(result.error)}`)
       }
 
       const content = result.choices?.[0]?.message?.content
+      const finishReason = result.choices?.[0]?.finish_reason || ''
       const usage = result.usage || {}
+      const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens || 0
       // 简单估算成本（不同供应商价格不同，这里用通用估算）
       const cost = (usage.prompt_tokens || 0) * 0.000001 + (usage.completion_tokens || 0) * 0.000002
-      return { content: content || null, cost }
-      
+
+      // 推理模型可能在 reasoning 阶段耗尽 max_tokens 导致 content 为空
+      if (!content && finishReason === 'length' && reasoningTokens > 0) {
+        console.log(
+          `⚠ 模型返回空内容: reasoning_tokens=${reasoningTokens} 耗尽了 max_tokens=${maxTokens}（finish_reason=length）。考虑增大 max_tokens 或使用非推理模型。`,
+        )
+      } else if (!content) {
+        console.log(
+          `⚠ 模型返回空内容: finish_reason=${finishReason}, usage=${JSON.stringify(usage)}`,
+        )
+      }
+
+      return { content: content || null, cost, finishReason }
     } catch (error: unknown) {
       lastError = error
-      
+
       // 如果是用户主动取消，直接抛出
       const errName = error instanceof Error ? error.name : ''
       if (signal?.aborted || errName === 'AbortError') {
         throw error
       }
-      
+
       // 如果是最后一次尝试或错误不可重试，抛出错误
       if (attempt >= MAX_RETRIES || !isRetryableError(error)) {
         throw error
       }
-      
+
       // 等待后重试
       const delay = getDelay(attempt)
       const errDetail = error instanceof Error ? error.message : String(error)
-      console.log(`AI API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${errDetail}`)
-      
+      console.log(
+        `AI API 调用失败，${(delay / 1000).toFixed(1)}秒后重试 (${attempt + 1}/${MAX_RETRIES}): ${errDetail}`,
+      )
+
       // 等待延迟，但可被取消
       await new Promise<void>((resolve, reject) => {
         const timeoutId = setTimeout(resolve, delay)
-        
+
         if (signal) {
           const abortHandler = () => {
             clearTimeout(timeoutId)
             reject(Object.assign(new Error('已取消'), { name: 'AbortError' }))
           }
-          
+
           signal.addEventListener('abort', abortHandler, { once: true })
-          
+
           setTimeout(() => {
             signal.removeEventListener('abort', abortHandler)
           }, delay + 100)
@@ -427,7 +448,7 @@ async function callAI(
       })
     }
   }
-  
+
   throw lastError || new Error('AI API 调用失败')
 }
 
@@ -436,20 +457,24 @@ export async function correctTranscript(
   providerConfig: { baseUrl: string; apiKey: string; model: string },
   providerId: AIProviderId,
   transcript: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   const external = loadExternalPrompt('transcript-correction.md')
   const promptTemplate = external || CORRECTION_PROMPT
   if (external) {
     console.log('📝 使用外部 prompt 模板: transcript-correction.md')
   }
+  // 推理模型需要更多 max_tokens 预算（reasoning + content）
+  // 按转写长度估算：中文约 1.5 字符/token，加上 reasoning 余量
+  const estimatedTokens = Math.ceil(transcript.length / 1.5)
+  const maxTokens = Math.max(8192, Math.min(32768, estimatedTokens + 4096))
   return callAI(
     providerConfig,
     providerId,
     '转录校对员',
     promptTemplate.replace('{transcript}', transcript),
-    4096,
-    signal
+    maxTokens,
+    signal,
   )
 }
 
@@ -483,7 +508,12 @@ export async function generateNotes(
   // 长文本分段处理：超过阈值时走分段流程
   if (transcriptWithContext.length > SEGMENT_THRESHOLD) {
     return generateNotesSegmented(
-      providerConfig, providerId, transcriptWithContext, date, signal, onSegmentProgress
+      providerConfig,
+      providerId,
+      transcriptWithContext,
+      date,
+      signal,
+      onSegmentProgress,
     )
   }
 
@@ -596,9 +626,7 @@ function extractExistingSummary(content: string): string {
     entityNames.push(match[1].trim())
   }
 
-  const entityList = entityNames.length > 0
-    ? `\n\n已生成卡片的实体：${entityNames.join('、')}`
-    : ''
+  const entityList = entityNames.length > 0 ? `\n\n已生成卡片的实体：${entityNames.join('、')}` : ''
 
   return summary + entityList
 }
@@ -667,8 +695,9 @@ function mergeSegmentResults(baseContent: string, supplements: string[]): string
           if (existingMatch) {
             // 去重后追加
             const existingLinks = new Set(existingMatch[1].match(/\[\[[^\]]+\]\]/g) || [])
-            const linksToAdd = (newLinks.match(/\[\[[^\]]+\]\]/g) || [])
-              .filter(l => !existingLinks.has(l))
+            const linksToAdd = (newLinks.match(/\[\[[^\]]+\]\]/g) || []).filter(
+              l => !existingLinks.has(l),
+            )
             if (linksToAdd.length > 0) {
               result = result.replace(existingRe, `$1${linksToAdd.map(l => `- ${l}`).join('\n')}\n`)
             }
@@ -688,7 +717,7 @@ async function generateNotesSegmented(
   date: string,
   signal?: AbortSignal,
   onSegmentProgress?: (current: number, total: number) => void,
-): Promise<{ content: string | null; cost: number }> {
+): Promise<{ content: string | null; cost: number; finishReason?: string }> {
   const segments = splitTranscript(transcript)
   console.log(`📏 长文本分段处理：${transcript.length} 字符 → ${segments.length} 段`)
 
@@ -699,10 +728,13 @@ async function generateNotesSegmented(
   onSegmentProgress?.(1, segments.length)
   console.log(`  ⏳ 分段 1/${segments.length}...`)
   const firstResult = await callAI(
-    providerConfig, providerId,
+    providerConfig,
+    providerId,
     '知识管理助手',
     prompt.replace('{date}', date).replace('{transcript}', segments[0]),
-    16384, signal, 0.3,
+    16384,
+    signal,
+    0.3,
   )
   totalCost += firstResult.cost
 
@@ -719,22 +751,28 @@ async function generateNotesSegmented(
     console.log(`  ⏳ 分段 ${i + 1}/${segments.length}...`)
 
     try {
-      const followupPrompt = SEGMENT_FOLLOWUP_PROMPT
-        .replace('{existing_summary}', existingSummary)
-        .replace('{transcript}', segments[i])
+      const followupPrompt = SEGMENT_FOLLOWUP_PROMPT.replace(
+        '{existing_summary}',
+        existingSummary,
+      ).replace('{transcript}', segments[i])
 
       const segResult = await callAI(
-        providerConfig, providerId,
+        providerConfig,
+        providerId,
         '知识管理助手',
         followupPrompt,
-        8192, signal, 0.3,
+        8192,
+        signal,
+        0.3,
       )
       totalCost += segResult.cost
 
       if (segResult.content) {
         supplements.push(segResult.content)
         // 更新摘要供下一段参考
-        existingSummary = extractExistingSummary(firstResult.content + '\n' + supplements.join('\n'))
+        existingSummary = extractExistingSummary(
+          firstResult.content + '\n' + supplements.join('\n'),
+        )
       }
     } catch (err) {
       console.log(`  ❌ 分段 ${i + 1} 生成失败: ${err instanceof Error ? err.message : err}`)
@@ -771,7 +809,8 @@ export function evaluateQuality(transcript: string, noteContent: string): Qualit
     if (m[1].length >= 2) transcriptNouns.add(m[1])
   }
   // 也提取转写中的大写英文词和中文专有名词（2字以上连续中文词）
-  const cnNounRe = /[\u4e00-\u9fff]{2,6}(?:公司|集团|平台|技术|模型|系统|网络|引擎|框架|协议|算法|实验室|大学|学院)/g
+  const cnNounRe =
+    /[\u4e00-\u9fff]{2,6}(?:公司|集团|平台|技术|模型|系统|网络|引擎|框架|协议|算法|实验室|大学|学院)/g
   while ((m = cnNounRe.exec(transcript)) !== null) {
     transcriptNouns.add(m[0])
   }
@@ -784,7 +823,9 @@ export function evaluateQuality(transcript: string, noteContent: string): Qualit
     }
     contentCoverage = Math.round((found / transcriptNouns.size) * 100)
     if (contentCoverage < 80) {
-      details.push(`内容覆盖率 ${contentCoverage}%：${transcriptNouns.size - Math.round(found)} 个关键名词未在笔记中出现`)
+      details.push(
+        `内容覆盖率 ${contentCoverage}%：${transcriptNouns.size - Math.round(found)} 个关键名词未在笔记中出现`,
+      )
     }
   }
 
@@ -812,7 +853,9 @@ export function evaluateQuality(transcript: string, noteContent: string): Qualit
     entityCompleteness = Math.round((matched / bodyLinks.size) * 100)
     entityCompleteness = Math.max(entityCompleteness, Math.min(100, cardCount * 10))
     if (entityCompleteness < 70) {
-      details.push(`实体完整度 ${entityCompleteness}%：${bodyLinks.size - matched} 个正文链接缺少对应卡片`)
+      details.push(
+        `实体完整度 ${entityCompleteness}%：${bodyLinks.size - matched} 个正文链接缺少对应卡片`,
+      )
     }
   }
 
@@ -827,7 +870,9 @@ export function evaluateQuality(transcript: string, noteContent: string): Qualit
     }
     wikiLinkCoverage = Math.round((wrappedCount / cardNames.size) * 100)
     if (wikiLinkCoverage < 80) {
-      details.push(`wiki-link 覆盖 ${wikiLinkCoverage}%：${cardNames.size - wrappedCount} 个实体名未被 [[ ]] 包裹`)
+      details.push(
+        `wiki-link 覆盖 ${wikiLinkCoverage}%：${cardNames.size - wrappedCount} 个实体名未被 [[ ]] 包裹`,
+      )
     }
   }
 
@@ -868,25 +913,40 @@ export function evaluateQuality(transcript: string, noteContent: string): Qualit
   // 综合评分
   const overall = Math.round(
     contentCoverage * 0.4 +
-    entityCompleteness * 0.25 +
-    wikiLinkCoverage * 0.2 +
-    formatCompliance * 0.15
+      entityCompleteness * 0.25 +
+      wikiLinkCoverage * 0.2 +
+      formatCompliance * 0.15,
   )
 
-  return { overall, contentCoverage, entityCompleteness, wikiLinkCoverage, formatCompliance, details }
+  return {
+    overall,
+    contentCoverage,
+    entityCompleteness,
+    wikiLinkCoverage,
+    formatCompliance,
+    details,
+  }
 }
 
 // 兼容旧接口：使用 DeepSeek 配置
-export async function correctTranscriptLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
+export async function correctTranscriptLegacy(
+  apiKey: string,
+  transcript: string,
+  signal?: AbortSignal,
+) {
   return correctTranscript(
     { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
     'deepseek',
     transcript,
-    signal
+    signal,
   )
 }
 
-export async function generateNotesLegacy(apiKey: string, transcript: string, signal?: AbortSignal) {
+export async function generateNotesLegacy(
+  apiKey: string,
+  transcript: string,
+  signal?: AbortSignal,
+) {
   return generateNotes(
     { baseUrl: 'https://api.deepseek.com', apiKey, model: 'deepseek-v4-flash' },
     'deepseek',

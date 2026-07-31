@@ -4,19 +4,33 @@ import type { AIProviderId } from '../shared/types'
 import { buildApiUrl } from './ai-client'
 
 export interface PeopleEntity {
-  name: string; role?: string; opinions?: string[]; timeline?: string; quotes?: string[]
+  name: string
+  role?: string
+  opinions?: string[]
+  timeline?: string
+  quotes?: string[]
 }
 
 export interface ProjectEntity {
-  name: string; summary?: string; timeline?: string; links?: string; achievements?: string[]
+  name: string
+  summary?: string
+  timeline?: string
+  links?: string
+  achievements?: string[]
 }
 
 export interface ConceptEntity {
-  name: string; explanation?: string; related?: string[]
+  name: string
+  explanation?: string
+  related?: string[]
 }
 
 export interface TermEntity {
-  name: string; cardType?: string; contextExplanation?: string; supplementary?: string; related?: string[]
+  name: string
+  cardType?: string
+  contextExplanation?: string
+  supplementary?: string
+  related?: string[]
 }
 
 export interface EntityResult {
@@ -48,7 +62,7 @@ function parseEntitySection(text: string, tag: string): Map<string, string>[] {
   const re = new RegExp(`---CARD-${tag}---\\n([\\s\\S]*?)\\n---CARD-${tag}-END---`, 'g')
   const matches = [...text.matchAll(re)]
   if (matches.length === 0) return []
-  
+
   const results: Map<string, string>[] = []
   for (const match of matches) {
     const raw = match[1].trim()
@@ -65,10 +79,40 @@ export function parseEntityBlocks(markdown: string): EntityResult {
   const concepts = parseEntitySection(markdown, 'CONCEPT')
   const terms = parseEntitySection(markdown, 'TERM')
   const parsed: EntityResult = {
-    people: people.map(m => ({ name: m.get('姓名') || '', role: m.get('角色'), opinions: m.get('核心观点')?.split('\n').filter(Boolean), timeline: m.get('时间轴'), quotes: m.get('金句')?.split('\n').filter(Boolean) })),
-    projects: projects.map(m => ({ name: m.get('项目名称') || '', summary: m.get('核心定位'), timeline: m.get('提及时间点'), links: m.get('相关链接'), achievements: m.get('关键成果')?.split('\n').filter(Boolean) })),
-    concepts: concepts.map(m => ({ name: m.get('概念名称') || '', explanation: m.get('核心解释'), related: m.get('相关概念')?.split(/[,，]/).map(s => s.trim().replace(/^\[\[|]]$/g, '')).filter(Boolean) })),
-    terms: terms.map(m => ({ name: m.get('术语名称') || '', cardType: m.get('卡片类型'), contextExplanation: m.get('上下文解释'), supplementary: m.get('补充说明'), related: m.get('相关术语')?.split(/[,，]/).map(s => s.trim().replace(/^\[\[|]]$/g, '')).filter(Boolean) })),
+    people: people.map(m => ({
+      name: m.get('姓名') || '',
+      role: m.get('角色'),
+      opinions: m.get('核心观点')?.split('\n').filter(Boolean),
+      timeline: m.get('时间轴'),
+      quotes: m.get('金句')?.split('\n').filter(Boolean),
+    })),
+    projects: projects.map(m => ({
+      name: m.get('项目名称') || '',
+      summary: m.get('核心定位'),
+      timeline: m.get('提及时间点'),
+      links: m.get('相关链接'),
+      achievements: m.get('关键成果')?.split('\n').filter(Boolean),
+    })),
+    concepts: concepts.map(m => ({
+      name: m.get('概念名称') || '',
+      explanation: m.get('核心解释'),
+      related: m
+        .get('相关概念')
+        ?.split(/[,，]/)
+        .map(s => s.trim().replace(/^\[\[|]]$/g, ''))
+        .filter(Boolean),
+    })),
+    terms: terms.map(m => ({
+      name: m.get('术语名称') || '',
+      cardType: m.get('卡片类型'),
+      contextExplanation: m.get('上下文解释'),
+      supplementary: m.get('补充说明'),
+      related: m
+        .get('相关术语')
+        ?.split(/[,，]/)
+        .map(s => s.trim().replace(/^\[\[|]]$/g, ''))
+        .filter(Boolean),
+    })),
   }
   return filterNonNotablePeople(parsed)
 }
@@ -88,14 +132,7 @@ const NON_NOTABLE_ROLE_PATTERNS = [
   /^内容创作者$/,
 ]
 
-const NON_NOTABLE_NAME_PATTERNS = [
-  /妈妈$/,
-  /爸爸$/,
-  /君$/,
-  /学长$/,
-  /学姐$/,
-  /老师$/,
-]
+const NON_NOTABLE_NAME_PATTERNS = [/妈妈$/, /爸爸$/, /君$/, /学长$/, /学姐$/, /老师$/]
 
 function isNotablePerson(person: PeopleEntity): boolean {
   const name = person.name || ''
@@ -118,19 +155,24 @@ export function filterNonNotablePeople(entities: EntityResult): EntityResult {
   const filtered = entities.people.filter(isNotablePerson)
   const removed = entities.people.length - filtered.length
   if (removed > 0) {
-    const removedNames = entities.people.filter(p => !isNotablePerson(p)).map(p => p.name).join(', ')
+    const removedNames = entities.people
+      .filter(p => !isNotablePerson(p))
+      .map(p => p.name)
+      .join(', ')
     console.log(`🃏 人物卡片过滤: 移除 ${removed} 个不符合知名度门槛的人物 (${removedNames})`)
   }
   return { ...entities, people: filtered }
 }
 
 export function sanitizeName(name: string): string {
-  return name
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
-    .replace(/\.\./g, '_')
-    .replace(/\.+$/, '')
-    .trim()
-    .slice(0, 100) || '未命名'
+  return (
+    name
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      .replace(/\.\./g, '_')
+      .replace(/\.+$/, '')
+      .trim()
+      .slice(0, 100) || '未命名'
+  )
 }
 
 export interface WriteEntityOptions {
@@ -157,7 +199,9 @@ export interface WriteEntityResult {
 
 function loadTemplate(name: string): string {
   const paths = [
-    ...(process.resourcesPath ? [path.join(process.resourcesPath, 'obsidian_templates', name)] : []),
+    ...(process.resourcesPath
+      ? [path.join(process.resourcesPath, 'obsidian_templates', name)]
+      : []),
     path.join(__dirname, '..', '..', 'obsidian_templates', name),
     path.join(process.cwd(), 'obsidian_templates', name),
   ]
@@ -166,8 +210,6 @@ function loadTemplate(name: string): string {
   }
   return getFallbackTemplate(name)
 }
-
-
 
 function fillTemplate(tmpl: string, fields: Record<string, string>): string {
   let result = tmpl
@@ -179,7 +221,10 @@ function fillTemplate(tmpl: string, fields: Record<string, string>): string {
 }
 
 /** 带超时的 fetch，防止网络不通导致长时间挂起 */
-async function fetchWithTimeout(url: string, opts: RequestInit & { timeoutMs?: number }): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  opts: RequestInit & { timeoutMs?: number },
+): Promise<Response> {
   const { timeoutMs = 8000, ...fetchOpts } = opts
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
@@ -194,10 +239,18 @@ async function fetchWithTimeout(url: string, opts: RequestInit & { timeoutMs?: n
   }
 }
 
-async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: string; apiKey: string; model: string } | null, providerId?: string, signal?: AbortSignal): Promise<string | null> {
+async function fetchConceptDefinition(
+  name: string,
+  providerConfig?: { baseUrl: string; apiKey: string; model: string } | null,
+  providerId?: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
   // 包装：返回 null 的源改为 throw，让 Promise.any 跳过它继续等
   const race = (fn: () => Promise<string | null>): Promise<string> =>
-    fn().then(r => { if (r) return r; throw new Error('no result') })
+    fn().then(r => {
+      if (r) return r
+      throw new Error('no result')
+    })
 
   // 所有数据源并行竞速，任一成功立即返回
   const sources: Promise<string>[] = [
@@ -206,7 +259,9 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       const url = `https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
-      const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
+      const data = (await resp.json()) as {
+        query?: { pages?: Record<string, { extract?: string }> }
+      }
       const pages = data?.query?.pages
       if (!pages) return null
       const page = Object.values(pages)[0]
@@ -218,7 +273,9 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=${encodeURIComponent(name)}&origin=*`
       const resp = await fetchWithTimeout(url, { signal, timeoutMs: 8000 })
       if (!resp.ok) return null
-      const data = await resp.json() as { query?: { pages?: Record<string, { extract?: string }> } }
+      const data = (await resp.json()) as {
+        query?: { pages?: Record<string, { extract?: string }> }
+      }
       const pages = data?.query?.pages
       if (!pages) return null
       const page = Object.values(pages)[0]
@@ -226,25 +283,40 @@ async function fetchConceptDefinition(name: string, providerConfig?: { baseUrl: 
       return null
     }),
     // AI 解释
-    ...(providerConfig ? [race(async () => {
-      const resp = await fetchWithTimeout(buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId), {
-        method: 'POST',
-        signal,
-        timeoutMs: 15000,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${providerConfig.apiKey}` },
-        body: JSON.stringify({
-          model: providerConfig.model,
-          messages: [
-            { role: 'user', content: `请用一段话（不超过200字）简洁解释什么是"${name}"。如果是中文概念用中文回答，如果是英文概念用中文解释。只输出解释内容，不要加任何前缀如"${name}是"。` }
-          ],
-          temperature: 0.3,
-          max_tokens: 300,
-        }),
-      })
-      if (!resp.ok) return null
-      const result = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
-      return result.choices?.[0]?.message?.content?.trim() || null
-    })] : []),
+    ...(providerConfig
+      ? [
+          race(async () => {
+            const resp = await fetchWithTimeout(
+              buildApiUrl(providerConfig.baseUrl, (providerId || 'deepseek') as AIProviderId),
+              {
+                method: 'POST',
+                signal,
+                timeoutMs: 15000,
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${providerConfig.apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: providerConfig.model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: `请用一段话（不超过200字）简洁解释什么是"${name}"。如果是中文概念用中文回答，如果是英文概念用中文解释。只输出解释内容，不要加任何前缀如"${name}是"。`,
+                    },
+                  ],
+                  temperature: 0.3,
+                  max_tokens: 300,
+                }),
+              },
+            )
+            if (!resp.ok) return null
+            const result = (await resp.json()) as {
+              choices?: Array<{ message?: { content?: string } }>
+            }
+            return result.choices?.[0]?.message?.content?.trim() || null
+          }),
+        ]
+      : []),
   ]
 
   try {
@@ -271,12 +343,20 @@ function hasRealContext(term: TermEntity): boolean {
   return true
 }
 
-export async function writeEntityNotes(options: WriteEntityOptions, signal?: AbortSignal): Promise<WriteEntityResult> {
-  const { entities, obsidianDir, podcastFilename, podcastTitle, podcastDate, podcastEpisode } = options
+export async function writeEntityNotes(
+  options: WriteEntityOptions,
+  signal?: AbortSignal,
+): Promise<WriteEntityResult> {
+  const { entities, obsidianDir, podcastFilename, podcastTitle, podcastDate, podcastEpisode } =
+    options
   const today = new Date().toISOString().split('T')[0]
   const result: WriteEntityResult = {
-    peopleWritten: 0, projectsWritten: 0, conceptsWritten: 0,
-    termsWritten: 0, termToConcept: 0, conceptSearched: 0,
+    peopleWritten: 0,
+    projectsWritten: 0,
+    conceptsWritten: 0,
+    termsWritten: 0,
+    termToConcept: 0,
+    conceptSearched: 0,
   }
 
   // 确保 Obsidian 根目录存在
@@ -365,23 +445,29 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
     options.onProgress?.(`  🔍 正在并行查找 ${namesArray.length} 个实体定义（全局超时 30 秒）...`)
 
     const GLOBAL_TIMEOUT_MS = 30_000
-    const globalTimeoutPromise = new Promise<'timeout'>((resolve) =>
-      setTimeout(() => resolve('timeout'), GLOBAL_TIMEOUT_MS)
+    const globalTimeoutPromise = new Promise<'timeout'>(resolve =>
+      setTimeout(() => resolve('timeout'), GLOBAL_TIMEOUT_MS),
     )
 
     // 每个 fetch 完成后立即写入 definitionMap，超时后也能读取已完成的结果
     const fetchAllPromise = Promise.allSettled(
       namesArray.map(name =>
-        fetchConceptDefinition(name, options.providerConfig, options.providerId, signal)
-          .then(def => { definitionMap.set(name, def); return def })
-      )
+        fetchConceptDefinition(name, options.providerConfig, options.providerId, signal).then(
+          def => {
+            definitionMap.set(name, def)
+            return def
+          },
+        ),
+      ),
     )
 
     const raceResult = await Promise.race([fetchAllPromise, globalTimeoutPromise])
 
     if (raceResult === 'timeout') {
       const fetched = [...definitionMap.values()].filter(Boolean).length
-      options.onProgress?.(`  ⏱ 全局超时（${GLOBAL_TIMEOUT_MS / 1000}s），${fetched}/${namesArray.length} 个已获取`)
+      options.onProgress?.(
+        `  ⏱ 全局超时（${GLOBAL_TIMEOUT_MS / 1000}s），${fetched}/${namesArray.length} 个已获取`,
+      )
     } else {
       const fetched = [...definitionMap.values()].filter(Boolean).length
       options.onProgress?.(`  ✅ 定义查找完成：${fetched}/${namesArray.length} 成功`)
@@ -452,8 +538,9 @@ export async function writeEntityNotes(options: WriteEntityOptions, signal?: Abo
         appendSourceLink(filePath, podcastFilename)
       } else {
         const tmpl = loadTemplate('Concept_Template.md')
-        const explanation = definition
-          || `（暂未从网络中获取到"${term.name}"的定义，请手动搜索补充。本概念在播客中被提及但AI未生成完整上下文解释。）`
+        const explanation =
+          definition ||
+          `（暂未从网络中获取到"${term.name}"的定义，请手动搜索补充。本概念在播客中被提及但AI未生成完整上下文解释。）`
         const content = fillTemplate(tmpl, {
           date: today,
           name: term.name,
@@ -499,7 +586,7 @@ function updateRecentMentions(
   filePath: string,
   podcastTitle: string,
   podcastDate?: string,
-  podcastEpisode?: string
+  podcastEpisode?: string,
 ): void {
   let content: string
   try {
@@ -518,7 +605,10 @@ function updateRecentMentions(
   const match = content.match(sectionRe)
 
   if (match) {
-    const existingLines = match[1].trim().split('\n').filter(l => l.startsWith('- '))
+    const existingLines = match[1]
+      .trim()
+      .split('\n')
+      .filter(l => l.startsWith('- '))
     const filtered = existingLines.filter(l => !l.includes(`[[${title}]]`))
     const updated = [newEntry, ...filtered].slice(0, 3)
     const newSection = `\n# 近期提及\n${updated.join('\n')}\n`
@@ -559,7 +649,10 @@ export function extractGlossaryTerms(markdown: string): string[] {
   return terms
 }
 
-export function fillMissingTermCards(markdown: string, entities: EntityResult): { entities: EntityResult; filled: number } {
+export function fillMissingTermCards(
+  markdown: string,
+  entities: EntityResult,
+): { entities: EntityResult; filled: number } {
   const glossaryTerms = extractGlossaryTerms(markdown)
   if (!glossaryTerms.length) return { entities, filled: 0 }
 
@@ -567,13 +660,16 @@ export function fillMissingTermCards(markdown: string, entities: EntityResult): 
   const missing = glossaryTerms.filter(t => !existingNames.has(t))
   if (!missing.length) return { entities, filled: 0 }
 
-  const filled = missing.map(name => ({
-    name,
-    cardType: '',
-    contextExplanation: '',
-    supplementary: '',
-    related: [],
-  } as TermEntity))
+  const filled = missing.map(
+    name =>
+      ({
+        name,
+        cardType: '',
+        contextExplanation: '',
+        supplementary: '',
+        related: [],
+      }) as TermEntity,
+  )
 
   return {
     entities: { ...entities, terms: [...entities.terms, ...filled] },
@@ -601,7 +697,10 @@ export function extractBodyWikiLinks(markdown: string): string[] {
 /**
  * 为正文中引用但没有卡片的 wiki-link 自动补上概念卡片，确保每个链接都有落地页
  */
-export function fillMissingEntityCards(entities: EntityResult, bodyLinks: string[]): { entities: EntityResult; filled: number } {
+export function fillMissingEntityCards(
+  entities: EntityResult,
+  bodyLinks: string[],
+): { entities: EntityResult; filled: number } {
   // 收集所有已有卡片的实体名
   const existingNames = new Set<string>()
   for (const p of entities.people) if (p.name) existingNames.add(p.name)
@@ -613,11 +712,14 @@ export function fillMissingEntityCards(entities: EntityResult, bodyLinks: string
   if (!missing.length) return { entities, filled: 0 }
 
   // 为缺卡片的链接创建概念卡片（最通用的实体类型）
-  const stubs = missing.map(name => ({
-    name,
-    explanation: '',
-    related: [],
-  } as ConceptEntity))
+  const stubs = missing.map(
+    name =>
+      ({
+        name,
+        explanation: '',
+        related: [],
+      }) as ConceptEntity,
+  )
 
   return {
     entities: { ...entities, concepts: [...entities.concepts, ...stubs] },

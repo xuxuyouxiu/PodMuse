@@ -37,14 +37,8 @@ export default function ConfirmDialog({
   }, [onCancel])
 
   return (
-    <div
-      className="confirm-dialog-overlay"
-      onClick={onCancel}
-    >
-      <div
-        className="confirm-dialog-modal"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="confirm-dialog-overlay" onClick={onCancel}>
+      <div className="confirm-dialog-modal" onClick={e => e.stopPropagation()}>
         {/* 图标和标题 */}
         <div className="confirm-dialog-header">
           <div
@@ -53,23 +47,16 @@ export default function ConfirmDialog({
             {danger ? <AlertTriangle size={20} /> : <HelpCircle size={20} />}
           </div>
           <div>
-            <div className="confirm-dialog-title">
-              {title}
-            </div>
+            <div className="confirm-dialog-title">{title}</div>
           </div>
         </div>
 
         {/* 消息内容 */}
-        <div className="confirm-dialog-message">
-          {message}
-        </div>
+        <div className="confirm-dialog-message">{message}</div>
 
         {/* 按钮组 */}
         <div className="confirm-dialog-actions">
-          <button
-            className="confirm-dialog-cancel-btn"
-            onClick={onCancel}
-          >
+          <button className="confirm-dialog-cancel-btn" onClick={onCancel}>
             {cancelText}
           </button>
           <button

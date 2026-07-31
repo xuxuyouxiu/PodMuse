@@ -6,11 +6,21 @@ import { loadConfig, getUserDataDir } from './config'
 import { getActiveProviderConfig } from './ai-providers'
 import { platformRegistry } from './platforms'
 import { sendNotification } from './notify'
-import { startRecentTask, completeRecentTask, failRecentTask, stopRecentTask } from './recent-task-state'
+import {
+  startRecentTask,
+  completeRecentTask,
+  failRecentTask,
+  stopRecentTask,
+} from './recent-task-state'
 import type { FeishuState } from '@shared/types'
 import type {
-  BatchTask, BatchTaskStatus, BatchQueueStatus, BatchQueueSnapshot,
-  BatchCompletionSummary, BatchInput, StepInfo,
+  BatchTask,
+  BatchTaskStatus,
+  BatchQueueStatus,
+  BatchQueueSnapshot,
+  BatchCompletionSummary,
+  BatchInput,
+  StepInfo,
 } from '@shared/types'
 
 const MAX_CONSECUTIVE_FAILURES = 3
@@ -343,23 +353,30 @@ export class BatchQueueService {
       const config = loadConfig()
       let activeProvider = getActiveProviderConfig(config.ai_provider, config.ai_providers)
       if (!activeProvider && config.api_key) {
-        activeProvider = { baseUrl: 'https://api.deepseek.com', apiKey: config.api_key, model: 'deepseek-chat' }
+        activeProvider = {
+          baseUrl: 'https://api.deepseek.com',
+          apiKey: config.api_key,
+          model: 'deepseek-chat',
+        }
       }
 
       const isLocalFile = task.type === 'file'
 
       // Derive episodeId for dedup tracking
-      const episodeId = task.type === 'url'
-        ? (platformRegistry.findAdapter(task.source)?.adapter.getDedupKey(task.source) || null)
-        : null
+      const episodeId =
+        task.type === 'url'
+          ? platformRegistry.findAdapter(task.source)?.adapter.getDedupKey(task.source) || null
+          : null
 
       // Register in recent tasks system so it shows in history
-      this.callbacks.updateRecentState(state => startRecentTask(state, {
-        id: task.id,
-        url: task.source,
-        episodeId,
-        title: task.title,
-      }))
+      this.callbacks.updateRecentState(state =>
+        startRecentTask(state, {
+          id: task.id,
+          url: task.source,
+          episodeId,
+          title: task.title,
+        }),
+      )
 
       // Create per-task step callback
       const stepCallback = (step: StepInfo) => {
@@ -371,10 +388,16 @@ export class BatchQueueService {
       }
 
       const result = await processPodcast(
-        task.source, activeProvider, config.ai_provider, config.language,
-        config.obsidian_dir, config.audio_dir,
+        task.source,
+        activeProvider,
+        config.ai_provider,
+        config.language,
+        config.obsidian_dir,
+        config.audio_dir,
         stepCallback,
-        (msg: string) => { this.callbacks.sendLog(msg) },
+        (msg: string) => {
+          this.callbacks.sendLog(msg)
+        },
         signal,
         isLocalFile,
         false,
@@ -394,12 +417,14 @@ export class BatchQueueService {
         task.filename = result
         task.completedAt = Date.now()
         this.consecutiveFailures = 0
-        this.callbacks.updateRecentState(state => completeRecentTask(state, {
-          taskId: task.id,
-          url: task.source,
-          episodeId,
-          filename: result,
-        }))
+        this.callbacks.updateRecentState(state =>
+          completeRecentTask(state, {
+            taskId: task.id,
+            url: task.source,
+            episodeId,
+            filename: result,
+          }),
+        )
         this.callbacks.sendLog(`✓ 完成：${task.title || task.source} → ${result}`)
       } else {
         task.status = 'failed'
@@ -496,14 +521,18 @@ export class BatchQueueService {
         data = JSON.parse(raw)
       } catch (parseErr) {
         console.error('Corrupted batch_queue.json, discarding:', parseErr)
-        try { fs.unlinkSync(queuePath) } catch {}
+        try {
+          fs.unlinkSync(queuePath)
+        } catch {}
         this.tasks = []
         this.status = 'idle'
         return
       }
 
       if (!data || !Array.isArray(data.tasks)) {
-        try { fs.unlinkSync(queuePath) } catch {}
+        try {
+          fs.unlinkSync(queuePath)
+        } catch {}
         return
       }
 
@@ -525,7 +554,7 @@ export class BatchQueueService {
 
       // Any tasks that were "processing" are now "pending" (persist maps processing → pending)
       // Set status to idle - user can resume manually or via startup prompt
-      this.status = data.status === 'running' ? 'idle' : (data.status || 'idle')
+      this.status = data.status === 'running' ? 'idle' : data.status || 'idle'
       this.currentIndex = this.tasks.findIndex(t => t.status === 'pending')
 
       if (this.tasks.length > 0 && this.currentIndex >= 0) {

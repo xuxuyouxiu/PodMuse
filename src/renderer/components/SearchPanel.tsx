@@ -1,16 +1,26 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
-  Search, RefreshCw, ChevronLeft, ChevronRight, X, Calendar,
-  Tag as TagIcon, FolderOpen, Radio, Users, ArrowUpDown, FileText,
+  Search,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Calendar,
+  Tag as TagIcon,
+  FolderOpen,
+  Radio,
+  Users,
+  ArrowUpDown,
+  FileText,
 } from 'lucide-react'
 
 // ── Constants ──
 
 const CATEGORY_COLORS: Record<string, string> = {
-  '科技商业': '#3b82f6',
-  '每日资讯': '#10b981',
-  '社会心理': '#f59e0b',
-  '生活文化': '#ec4899',
+  科技商业: '#3b82f6',
+  每日资讯: '#10b981',
+  社会心理: '#f59e0b',
+  生活文化: '#ec4899',
 }
 
 const ENTITY_TYPE_LABEL: Record<string, string> = {
@@ -62,20 +72,33 @@ export default function SearchPanel() {
   }, [refreshFacets])
 
   // Build search params
-  const params: SearchParams = useMemo(() => ({
-    keyword: debouncedKeyword || undefined,
-    filters: {
-      category: selectedCategory,
-      tags: selectedTags.length > 0 ? selectedTags : undefined,
-      show: selectedShow,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      entityRefs: selectedEntities.length > 0 ? selectedEntities : undefined,
-    },
-    sortBy,
-    limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
-  }), [debouncedKeyword, selectedCategory, selectedTags, selectedShow, dateFrom, dateTo, selectedEntities, sortBy, page])
+  const params: SearchParams = useMemo(
+    () => ({
+      keyword: debouncedKeyword || undefined,
+      filters: {
+        category: selectedCategory,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        show: selectedShow,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        entityRefs: selectedEntities.length > 0 ? selectedEntities : undefined,
+      },
+      sortBy,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
+    }),
+    [
+      debouncedKeyword,
+      selectedCategory,
+      selectedTags,
+      selectedShow,
+      dateFrom,
+      dateTo,
+      selectedEntities,
+      sortBy,
+      page,
+    ],
+  )
 
   // Trigger search on param change
   useEffect(() => {
@@ -90,16 +113,19 @@ export default function SearchPanel() {
       }
     })
 
-    window.electronAPI.searchEnhanced(params).then(r => {
-      if (cancelled) return
-      setResponse(r)
-      setLoading(false)
-    }).catch(e => {
-      if (cancelled) return
-      console.error('Search failed:', e)
-      setError('搜索失败，请重试')
-      setLoading(false)
-    })
+    window.electronAPI
+      .searchEnhanced(params)
+      .then(r => {
+        if (cancelled) return
+        setResponse(r)
+        setLoading(false)
+      })
+      .catch(e => {
+        if (cancelled) return
+        console.error('Search failed:', e)
+        setError('搜索失败，请重试')
+        setLoading(false)
+      })
 
     return () => {
       cancelled = true
@@ -114,7 +140,9 @@ export default function SearchPanel() {
       setDebouncedKeyword(keyword)
       setPage(0)
     }, 300)
-    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current) }
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
   }, [keyword])
 
   // Use facets from response (filtered) if available, else global
@@ -122,9 +150,7 @@ export default function SearchPanel() {
 
   // Handlers
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    )
+    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]))
     setPage(0)
   }
 
@@ -179,7 +205,14 @@ export default function SearchPanel() {
   const total = response?.total || 0
   const results = response?.results || []
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const hasActiveFilters = !!(selectedCategory || selectedTags.length > 0 || selectedShow || dateFrom || dateTo || selectedEntities.length > 0)
+  const hasActiveFilters = !!(
+    selectedCategory ||
+    selectedTags.length > 0 ||
+    selectedShow ||
+    dateFrom ||
+    dateTo ||
+    selectedEntities.length > 0
+  )
 
   if (!globalFacets && loading) {
     return (
@@ -209,7 +242,7 @@ export default function SearchPanel() {
             className="search-panel__search-input"
             placeholder="搜索笔记标题、内容、标签..."
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={e => setKeyword(e.target.value)}
             autoFocus
           />
           {keyword && (
@@ -222,7 +255,7 @@ export default function SearchPanel() {
           <ArrowUpDown size={13} />
           <select
             value={sortBy}
-            onChange={(e) => handleSortChange(e.target.value as 'score' | 'date_desc' | 'date_asc')}
+            onChange={e => handleSortChange(e.target.value as 'score' | 'date_desc' | 'date_asc')}
             className="search-panel__sort-select"
           >
             <option value="score">相关度</option>
@@ -257,7 +290,9 @@ export default function SearchPanel() {
               <button
                 key={c.value}
                 className={`search-panel__facet-item ${selectedCategory === c.value ? 'is-active' : ''}`}
-                onClick={() => handleCategoryClick(selectedCategory === c.value ? undefined : c.value)}
+                onClick={() =>
+                  handleCategoryClick(selectedCategory === c.value ? undefined : c.value)
+                }
               >
                 <span
                   className="search-panel__facet-dot"
@@ -273,7 +308,10 @@ export default function SearchPanel() {
           <FacetSection title="标签" icon={<TagIcon size={12} />}>
             {facets?.tags.length === 0 && <div className="search-panel__facet-empty">无标签</div>}
             {facets?.tags.slice(0, 30).map(t => (
-              <label key={t.value} className={`search-panel__facet-check ${selectedTags.includes(t.value) ? 'is-active' : ''}`}>
+              <label
+                key={t.value}
+                className={`search-panel__facet-check ${selectedTags.includes(t.value) ? 'is-active' : ''}`}
+              >
                 <input
                   type="checkbox"
                   checked={selectedTags.includes(t.value)}
@@ -311,7 +349,7 @@ export default function SearchPanel() {
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => handleDateFromChange(e.target.value)}
+                onChange={e => handleDateFromChange(e.target.value)}
                 className="search-panel__date-input"
                 placeholder="从"
               />
@@ -319,7 +357,7 @@ export default function SearchPanel() {
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => handleDateToChange(e.target.value)}
+                onChange={e => handleDateToChange(e.target.value)}
                 className="search-panel__date-input"
                 placeholder="到"
               />
@@ -332,8 +370,13 @@ export default function SearchPanel() {
           </FacetSection>
 
           {/* Entity filter (multi select, max 3, OR) */}
-          <FacetSection title={`实体 ${selectedEntities.length > 0 ? `(${selectedEntities.length}/3)` : ''}`} icon={<Users size={12} />}>
-            {facets?.topEntities.length === 0 && <div className="search-panel__facet-empty">无实体</div>}
+          <FacetSection
+            title={`实体 ${selectedEntities.length > 0 ? `(${selectedEntities.length}/3)` : ''}`}
+            icon={<Users size={12} />}
+          >
+            {facets?.topEntities.length === 0 && (
+              <div className="search-panel__facet-empty">无实体</div>
+            )}
             {facets?.topEntities.map(e => (
               <label
                 key={e.value}
@@ -345,7 +388,9 @@ export default function SearchPanel() {
                   onChange={() => toggleEntity(e.value)}
                   disabled={selectedEntities.length >= 3 && !selectedEntities.includes(e.value)}
                 />
-                <span className="search-panel__entity-type">{ENTITY_TYPE_LABEL[e.type] || e.type}</span>
+                <span className="search-panel__entity-type">
+                  {ENTITY_TYPE_LABEL[e.type] || e.type}
+                </span>
                 <span>{e.value}</span>
                 <span className="search-panel__facet-count">{e.count}</span>
               </label>
@@ -355,9 +400,7 @@ export default function SearchPanel() {
 
         {/* Result list */}
         <main className="search-panel__results">
-          {error && (
-            <div className="search-panel__error">{error}</div>
-          )}
+          {error && <div className="search-panel__error">{error}</div>}
 
           {!error && !loading && results.length === 0 && (
             <div className="search-panel__empty">
@@ -386,7 +429,8 @@ export default function SearchPanel() {
           {!loading && results.length > 0 && (
             <>
               <div className="search-panel__result-meta">
-                共 <strong>{total}</strong> 条结果 {debouncedKeyword && `(关键词: "${debouncedKeyword}")`}
+                共 <strong>{total}</strong> 条结果{' '}
+                {debouncedKeyword && `(关键词: "${debouncedKeyword}")`}
               </div>
               <div className="search-panel__result-list">
                 {results.map(r => (
@@ -499,10 +543,21 @@ export default function SearchPanel() {
 
 // ── Facet section wrapper ──
 
-function FacetSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function FacetSection({
+  title,
+  icon,
+  children,
+}: {
+  title: string
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div className="search-panel__facet-section">
-      <h4 className="search-panel__facet-title">{icon}{title}</h4>
+      <h4 className="search-panel__facet-title">
+        {icon}
+        {title}
+      </h4>
       {children}
     </div>
   )
@@ -527,9 +582,7 @@ function ResultCard({ result, onOpen }: { result: SearchResult; onOpen: (path: s
             {result.category}
           </span>
         )}
-        {result.show && (
-          <span className="search-panel__result-show">· {result.show}</span>
-        )}
+        {result.show && <span className="search-panel__result-show">· {result.show}</span>}
         {result.matchType.length > 0 && (
           <div className="search-panel__result-match-types">
             {result.matchType.map(t => (
@@ -543,7 +596,9 @@ function ResultCard({ result, onOpen }: { result: SearchResult; onOpen: (path: s
       {result.tags.length > 0 && (
         <div className="search-panel__result-tags">
           {result.tags.map(t => (
-            <span key={t} className="search-panel__result-tag">{t}</span>
+            <span key={t} className="search-panel__result-tag">
+              {t}
+            </span>
           ))}
         </div>
       )}

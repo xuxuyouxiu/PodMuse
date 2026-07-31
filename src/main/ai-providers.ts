@@ -10,7 +10,9 @@ export function getProviderPreset(providerId: AIProviderId): AIProviderPreset | 
 }
 
 // 创建默认供应商配置
-export function createDefaultProviderConfig(providerId: AIProviderId): AIProviderConfig | undefined {
+export function createDefaultProviderConfig(
+  providerId: AIProviderId,
+): AIProviderConfig | undefined {
   const preset = getProviderPreset(providerId)
   if (!preset) return undefined
 
@@ -42,20 +44,20 @@ export function createCustomProviderConfig(): AIProviderConfig {
 // 获取所有供应商的默认配置
 export function getAllDefaultProviderConfigs(): Record<AIProviderId, AIProviderConfig> {
   const configs: Partial<Record<AIProviderId, AIProviderConfig>> = {}
-  
+
   for (const preset of AI_PROVIDER_PRESETS) {
     configs[preset.id] = createDefaultProviderConfig(preset.id)!
   }
-  
+
   configs.custom = createCustomProviderConfig()
-  
+
   return configs as Record<AIProviderId, AIProviderConfig>
 }
 
 // 获取当前活跃供应商的API配置
 export function getActiveProviderConfig(
   providerId: AIProviderId,
-  providers: Record<AIProviderId, AIProviderConfig>
+  providers: Record<AIProviderId, AIProviderConfig>,
 ): { baseUrl: string; apiKey: string; model: string } | null {
   const config = providers[providerId]
   if (!config || !config.apiKey) return null

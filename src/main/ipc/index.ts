@@ -10,7 +10,10 @@ import type { FeishuMonitor } from '../feishu'
  * 注册所有无状态 / 轻量状态的 IPC handler
  * 涉及复杂模块级状态的 handler（podcast、feishu、whisper、ai）由调用方自行注册
  */
-export function registerCoreIPC(mainWindow?: BrowserWindow | null, monitor?: FeishuMonitor | null): void {
+export function registerCoreIPC(
+  mainWindow?: BrowserWindow | null,
+  monitor?: FeishuMonitor | null,
+): void {
   registerConfigIPC(mainWindow)
   registerTaskIPC(mainWindow, monitor)
   registerSearchIPC(mainWindow)

@@ -3,7 +3,8 @@
 import type { PlatformAdapter, AudioExtractResult } from './types'
 import { fetchOgTitle } from './xiaoyuzhou'
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 const RSS_TIMEOUT_MS = 15_000
 
 interface RssItem {
@@ -89,7 +90,7 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
         signal,
       })
       if (!resp.ok) return null
-      const json = await resp.json() as { results?: Array<{ feedUrl?: string }> }
+      const json = (await resp.json()) as { results?: Array<{ feedUrl?: string }> }
       return json.results?.[0]?.feedUrl || null
     } catch {
       return null
@@ -97,7 +98,11 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
   }
 
   /** 从 Apple Podcasts 页面获取单集标题（用于 RSS 匹配） */
-  private async fetchEpisodeTitle(url: string, episodeId: string | null, signal?: AbortSignal): Promise<string | null> {
+  private async fetchEpisodeTitle(
+    url: string,
+    episodeId: string | null,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
     try {
       const title = await fetchOgTitle(url, signal)
       return title || null
@@ -109,9 +114,7 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
   /** 获取并解析 RSS Feed（带超时） */
   private async fetchAndParseRss(rssUrl: string, signal?: AbortSignal): Promise<PodcastInfo> {
     const timeoutSignal = AbortSignal.timeout(RSS_TIMEOUT_MS)
-    const combinedSignal = signal
-      ? AbortSignal.any([signal, timeoutSignal])
-      : timeoutSignal
+    const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
 
     try {
       const resp = await fetch(rssUrl, {
@@ -139,8 +142,8 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
 
     // channel 级标题和作者
     const channelTitle = this.extractTag(channelContent, 'title')
-    const channelAuthor = this.extractTag(channelContent, 'itunes:author') ||
-                          this.extractTag(channelContent, 'author')
+    const channelAuthor =
+      this.extractTag(channelContent, 'itunes:author') || this.extractTag(channelContent, 'author')
 
     // 提取所有 <item> 块
     const items: RssItem[] = []
@@ -173,7 +176,10 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
   /** 从 XML 片段中提取标签内容（处理 CDATA） */
   private extractTag(xml: string, tag: string): string | null {
     const escapedTag = tag.replace(':', '\\:')
-    const re = new RegExp(`<${escapedTag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${escapedTag}>`, 'i')
+    const re = new RegExp(
+      `<${escapedTag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${escapedTag}>`,
+      'i',
+    )
     const match = xml.match(re)
     if (!match) return null
     return this.decodeXmlEntities(match[1].trim())
@@ -191,7 +197,11 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
   }
 
   /** 匹配单集：优先精确匹配 episodeId/title，降级到标题模糊匹配，最后取最新 */
-  private matchEpisode(items: RssItem[], episodeId: string | null, pageTitle: string | null): RssItem | null {
+  private matchEpisode(
+    items: RssItem[],
+    episodeId: string | null,
+    pageTitle: string | null,
+  ): RssItem | null {
     if (!items.length) return null
 
     // 策略 1：按标题精确匹配（og:title 和 RSS title）
@@ -201,9 +211,10 @@ export class ApplePodcastsAdapter implements PlatformAdapter {
       if (exact) return exact
 
       // 策略 2：标题包含匹配（处理副标题差异）
-      const partial = items.find(item =>
-        this.normalizeTitle(item.title).includes(normalized) ||
-        normalized.includes(this.normalizeTitle(item.title))
+      const partial = items.find(
+        item =>
+          this.normalizeTitle(item.title).includes(normalized) ||
+          normalized.includes(this.normalizeTitle(item.title)),
       )
       if (partial) return partial
     }

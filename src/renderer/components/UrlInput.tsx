@@ -1,6 +1,17 @@
 import { useState, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Link, Play, HelpCircle, X, Radio, MonitorPlay, PlayCircle, Headphones, Podcast, Music } from 'lucide-react'
+import {
+  Link,
+  Play,
+  HelpCircle,
+  X,
+  Radio,
+  MonitorPlay,
+  PlayCircle,
+  Headphones,
+  Podcast,
+  Music,
+} from 'lucide-react'
 
 interface Props {
   onProcess: (url: string) => Promise<{ success: boolean; error?: string }>
@@ -24,14 +35,45 @@ interface DetectedPlatform {
   icon: typeof Link
 }
 
-const PLATFORM_DETECTORS: Array<{ id: string; name: string; pattern: RegExp; icon: typeof Link }> = [
-  { id: 'xiaoyuzhou', name: '小宇宙', pattern: /^https?:\/\/[^\s]*xiaoyuzhoufm\.com\//i, icon: Radio },
-  { id: 'bilibili', name: 'B 站', pattern: /^https?:\/\/(www\.|m\.)?(bilibili\.com\/video\/|b23\.tv\/)/i, icon: MonitorPlay },
-  { id: 'youtube', name: 'YouTube', pattern: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)/i, icon: PlayCircle },
-  { id: 'ximalaya', name: '喜马拉雅', pattern: /^https?:\/\/(www\.|m\.)?ximalaya\.com\/sound\//i, icon: Headphones },
-  { id: 'apple-podcasts', name: 'Apple Podcasts', pattern: /^https?:\/\/podcasts\.apple\.com\/[a-z]{2}\/podcast\//i, icon: Podcast },
-  { id: 'direct-url', name: '直链', pattern: /^https?:\/\/[^\s]+\.(mp3|mp4|m4a|wav|aac|ogg)(\?[^\s]*)?/i, icon: Music },
-]
+const PLATFORM_DETECTORS: Array<{ id: string; name: string; pattern: RegExp; icon: typeof Link }> =
+  [
+    {
+      id: 'xiaoyuzhou',
+      name: '小宇宙',
+      pattern: /^https?:\/\/[^\s]*xiaoyuzhoufm\.com\//i,
+      icon: Radio,
+    },
+    {
+      id: 'bilibili',
+      name: 'B 站',
+      pattern: /^https?:\/\/(www\.|m\.)?(bilibili\.com\/video\/|b23\.tv\/)/i,
+      icon: MonitorPlay,
+    },
+    {
+      id: 'youtube',
+      name: 'YouTube',
+      pattern: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)/i,
+      icon: PlayCircle,
+    },
+    {
+      id: 'ximalaya',
+      name: '喜马拉雅',
+      pattern: /^https?:\/\/(www\.|m\.)?ximalaya\.com\/sound\//i,
+      icon: Headphones,
+    },
+    {
+      id: 'apple-podcasts',
+      name: 'Apple Podcasts',
+      pattern: /^https?:\/\/podcasts\.apple\.com\/[a-z]{2}\/podcast\//i,
+      icon: Podcast,
+    },
+    {
+      id: 'direct-url',
+      name: '直链',
+      pattern: /^https?:\/\/[^\s]+\.(mp3|mp4|m4a|wav|aac|ogg)(\?[^\s]*)?/i,
+      icon: Music,
+    },
+  ]
 
 function detectPlatform(url: string): DetectedPlatform | null {
   const trimmed = url.trim()
@@ -49,18 +91,24 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   // 检测多行粘贴
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text')
-    if (!pasted.includes('\n') || !onBatchUrls) return
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const pasted = e.clipboardData.getData('text')
+      if (!pasted.includes('\n') || !onBatchUrls) return
 
-    e.preventDefault()
-    const urls = pasted.split('\n').map(u => u.trim()).filter(u => /^https?:\/\//i.test(u))
-    if (urls.length > 1) {
-      onBatchUrls(urls)
-    } else if (urls.length === 1) {
-      setUrl(urls[0])
-    }
-  }, [onBatchUrls])
+      e.preventDefault()
+      const urls = pasted
+        .split('\n')
+        .map(u => u.trim())
+        .filter(u => /^https?:\/\//i.test(u))
+      if (urls.length > 1) {
+        onBatchUrls(urls)
+      } else if (urls.length === 1) {
+        setUrl(urls[0])
+      }
+    },
+    [onBatchUrls],
+  )
 
   // 实时检测平台（派生状态，无需 useEffect）
   const { detected, unsupported } = useMemo(() => {
@@ -125,7 +173,8 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
                 </div>
               ))}
               <div className="url-input-tip-note">
-                直链指任何能直接下载到音频/视频文件的公开 URL，如播客 RSS 音频链接、云盘公开下载链接等。
+                直链指任何能直接下载到音频/视频文件的公开 URL，如播客 RSS
+                音频链接、云盘公开下载链接等。
               </div>
             </div>
           </motion.div>
@@ -156,7 +205,9 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
             disabled={disabled}
           />
           {detected && (
-            <span className="url-input-badge" title={detected.name}>{detected.name}</span>
+            <span className="url-input-badge" title={detected.name}>
+              {detected.name}
+            </span>
           )}
           {url && !disabled && (
             <button className="url-input-clear" onClick={() => setUrl('')} title="清空">

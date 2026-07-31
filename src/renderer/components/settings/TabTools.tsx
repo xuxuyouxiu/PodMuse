@@ -1,6 +1,10 @@
 import { TabHeader } from './FieldComponents'
 
-export default function TabTools({ cleaningTemp, tempCleanResult, onCleanTemp }: {
+export default function TabTools({
+  cleaningTemp,
+  tempCleanResult,
+  onCleanTemp,
+}: {
   cleaningTemp: boolean
   tempCleanResult: string | null
   onCleanTemp: () => void
@@ -21,10 +25,12 @@ export default function TabTools({ cleaningTemp, tempCleanResult, onCleanTemp }:
               {cleaningTemp ? '清理中…' : '立即清理'}
             </button>
             {tempCleanResult && (
-              <span style={{
-                fontSize: 12,
-                color: tempCleanResult.includes('已清理') ? 'var(--success)' : 'var(--error)'
-              }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: tempCleanResult.includes('已清理') ? 'var(--success)' : 'var(--error)',
+                }}
+              >
                 {tempCleanResult}
               </span>
             )}

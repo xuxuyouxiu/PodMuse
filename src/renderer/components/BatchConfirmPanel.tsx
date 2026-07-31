@@ -41,17 +41,29 @@ function getDisplayName(item: BatchInput): string {
   return item.source
 }
 
-export default function BatchConfirmPanel({ items, onConfirm, onCancel, onRemoveItem, onReorder }: Props) {
+export default function BatchConfirmPanel({
+  items,
+  onConfirm,
+  onCancel,
+  onRemoveItem,
+  onReorder,
+}: Props) {
   const fileCount = items.filter(i => i.type === 'file').length
   const urlCount = items.filter(i => i.type === 'url').length
 
-  const moveUp = useCallback((index: number) => {
-    if (index > 0) onReorder(index, index - 1)
-  }, [onReorder])
+  const moveUp = useCallback(
+    (index: number) => {
+      if (index > 0) onReorder(index, index - 1)
+    },
+    [onReorder],
+  )
 
-  const moveDown = useCallback((index: number) => {
-    if (index < items.length - 1) onReorder(index, index + 1)
-  }, [onReorder, items.length])
+  const moveDown = useCallback(
+    (index: number) => {
+      if (index < items.length - 1) onReorder(index, index + 1)
+    },
+    [onReorder, items.length],
+  )
 
   return (
     <motion.div
@@ -106,11 +118,7 @@ export default function BatchConfirmPanel({ items, onConfirm, onCancel, onRemove
                 <span className="batch-confirm-item-name">{getDisplayName(item)}</span>
                 <span className="batch-confirm-item-platform">{platform}</span>
               </div>
-              <button
-                className="batch-confirm-remove"
-                onClick={() => onRemoveItem(i)}
-                title="移除"
-              >
+              <button className="batch-confirm-remove" onClick={() => onRemoveItem(i)} title="移除">
                 <X size={13} />
               </button>
             </div>

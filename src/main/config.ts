@@ -73,8 +73,10 @@ const DEFAULTS: PodcastConfig = {
   // 旧字段保留兼容
   api_key: '',
 
-  feishu_app_id: '', feishu_app_secret: '',
-  language: 'auto', feishu_chat_id: '',
+  feishu_app_id: '',
+  feishu_app_secret: '',
+  language: 'auto',
+  feishu_chat_id: '',
   obsidian_dir: '',
   audio_dir: '',
   whisper_exe_path: '',
@@ -176,11 +178,18 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
 function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
   const result = { ...config }
   const placeholderPattern = /^你的/
-  const fieldsToClean: (keyof PodcastConfig)[] = ['api_key', 'feishu_app_id', 'feishu_app_secret', 'feishu_chat_id', 'obsidian_dir', 'whisper_exe_path']
+  const fieldsToClean: (keyof PodcastConfig)[] = [
+    'api_key',
+    'feishu_app_id',
+    'feishu_app_secret',
+    'feishu_chat_id',
+    'obsidian_dir',
+    'whisper_exe_path',
+  ]
   for (const field of fieldsToClean) {
     const val = result[field]
     if (typeof val === 'string' && placeholderPattern.test(val)) {
-      (result as Record<string, unknown>)[field] = ''
+      ;(result as Record<string, unknown>)[field] = ''
     }
   }
   return result

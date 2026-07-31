@@ -65,7 +65,9 @@ export default function TabExport({ form, update }: Props) {
 
       {/* Logseq */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+        <div
+          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}
+        >
           Logseq 目录
         </div>
         <DirField
@@ -75,13 +77,16 @@ export default function TabExport({ form, update }: Props) {
           onBrowse={handleBrowseLogseq}
         />
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-          配置后，完成笔记的任务卡片「导出」按钮可直接复制到该目录。Logseq 兼容 Obsidian 的 wiki-link 语法，无需转换。
+          配置后，完成笔记的任务卡片「导出」按钮可直接复制到该目录。Logseq 兼容 Obsidian 的
+          wiki-link 语法，无需转换。
         </div>
       </div>
 
       {/* Notion */}
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+        <div
+          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}
+        >
           Notion 集成
         </div>
         <Field
@@ -111,16 +116,28 @@ export default function TabExport({ form, update }: Props) {
             {testing ? '测试中…' : '测试连接'}
           </button>
           {testResult && (
-            <span style={{
-              fontSize: 11,
-              color: testResult.success ? 'var(--success)' : 'var(--error)',
-            }}>
-              {testResult.success ? '✓ ' : '✗ '}{testResult.message}
+            <span
+              style={{
+                fontSize: 11,
+                color: testResult.success ? 'var(--success)' : 'var(--error)',
+              }}
+            >
+              {testResult.success ? '✓ ' : '✗ '}
+              {testResult.message}
             </span>
           )}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-          在 Notion 中创建 integration（<span onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')} style={{ color: 'var(--accent)', cursor: 'pointer' }}>https://www.notion.so/my-integrations</span>），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。
+          在 Notion 中创建 integration（
+          <span
+            onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')}
+            style={{ color: 'var(--accent)', cursor: 'pointer' }}
+          >
+            https://www.notion.so/my-integrations
+          </span>
+          ），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database
+          需包含 title
+          列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。
         </div>
       </div>
     </div>

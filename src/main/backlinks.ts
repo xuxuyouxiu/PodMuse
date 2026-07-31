@@ -33,7 +33,10 @@ export const ENTITY_DIRS: { dir: string; type: BacklinkEntry['entityType'] }[] =
 // ── Normalize link names for fuzzy matching ──
 // Handles edge cases like trailing dots mismatch (filename has 4 dots, wiki-link has 3)
 function normalizeLinkName(name: string): string {
-  return name.replace(/[\s.…·]+$/g, '').replace(/\.+$/, '').trim()
+  return name
+    .replace(/[\s.…·]+$/g, '')
+    .replace(/\.+$/, '')
+    .trim()
 }
 
 // ── Wiki-link regex (matches [[name]] but not [[name|alias]]) ──
@@ -76,7 +79,10 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
       const key = line.substring(0, colonIdx).trim()
       let value = line.substring(colonIdx + 1).trim()
       // Remove surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1)
       }
 
@@ -93,7 +99,10 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
         // Parse YAML array: tags: [AI, 创业, 大语言模型]
         const arrMatch = value.match(/^\[(.+)\]$/)
         if (arrMatch) {
-          meta.tags = arrMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(t => t.length > 0)
+          meta.tags = arrMatch[1]
+            .split(',')
+            .map(t => t.trim().replace(/["']/g, ''))
+            .filter(t => t.length > 0)
         }
       }
     }
@@ -132,7 +141,10 @@ function extractPodcastLinks(entityFilePath: string): string[] {
 
 // ── Build podcast file map (filename -> full path) ──
 
-function buildPodcastFileMap(obsidianDir: string): { exact: Map<string, string>; normalized: Map<string, string> } {
+function buildPodcastFileMap(obsidianDir: string): {
+  exact: Map<string, string>
+  normalized: Map<string, string>
+} {
   const exact = new Map<string, string>()
   const normalized = new Map<string, string>()
   try {
@@ -153,7 +165,9 @@ function buildPodcastFileMap(obsidianDir: string): { exact: Map<string, string>;
               normalized.set(normalizeLinkName(nameWithoutExt), fullPath)
             }
           }
-        } catch { /* skip unreadable dirs */ }
+        } catch {
+          /* skip unreadable dirs */
+        }
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         // Root-level .md files
         const nameWithoutExt = entry.name.replace(/\.md$/i, '')
@@ -162,7 +176,9 @@ function buildPodcastFileMap(obsidianDir: string): { exact: Map<string, string>;
         normalized.set(normalizeLinkName(nameWithoutExt), fullPath)
       }
     }
-  } catch { /* obsidianDir unreadable */ }
+  } catch {
+    /* obsidianDir unreadable */
+  }
   return { exact, normalized }
 }
 

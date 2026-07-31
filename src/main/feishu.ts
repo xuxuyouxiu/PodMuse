@@ -34,22 +34,37 @@ export class FeishuMonitor {
     // 获取活跃 AI 供应商配置，回退到旧 api_key 字段
     let providerConfig = getActiveProviderConfig(config.ai_provider, config.ai_providers)
     if (!providerConfig && config.api_key) {
-      providerConfig = { baseUrl: 'https://api.deepseek.com', apiKey: config.api_key, model: 'deepseek-chat' }
+      providerConfig = {
+        baseUrl: 'https://api.deepseek.com',
+        apiKey: config.api_key,
+        model: 'deepseek-chat',
+      }
     }
 
     const parser = new MessageParser()
     this.dispatcher = new PodcastDispatchService(
-      this.client, this.store, this.chatId,
-      providerConfig, config.ai_provider,
+      this.client,
+      this.store,
+      this.chatId,
+      providerConfig,
+      config.ai_provider,
       config.language,
-      config.obsidian_dir || '', config.audio_dir || '',
-      logFunc, stepFunc, processingFunc, stateChangedFunc,
+      config.obsidian_dir || '',
+      config.audio_dir || '',
+      logFunc,
+      stepFunc,
+      processingFunc,
+      stateChangedFunc,
       config.notification_enabled !== false,
     )
 
     this.poller = new MessagePoller(
-      this.client, parser, this.store, this.dispatcher,
-      this.chatId, logFunc,
+      this.client,
+      parser,
+      this.store,
+      this.dispatcher,
+      this.chatId,
+      logFunc,
       () => this.emitStatus(),
     )
   }

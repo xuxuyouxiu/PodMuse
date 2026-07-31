@@ -11,8 +11,8 @@ import type { ExportResult } from './exporter-types'
  */
 export function stripWikiLinks(content: string): string {
   return content
-    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')  // [[xxx|alias]] → alias
-    .replace(/\[\[([^\]]+)\]\]/g, '$1')              // [[xxx]] → xxx
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2') // [[xxx|alias]] → alias
+    .replace(/\[\[([^\]]+)\]\]/g, '$1') // [[xxx]] → xxx
 }
 
 /**
@@ -21,7 +21,9 @@ export function stripWikiLinks(content: string): string {
  * - 拿到 task.filename（相对于 obsidian_dir 的路径，可能含子目录）
  * - 用 path.join 拼接为绝对路径
  */
-export function getNotePathByTaskId(taskId: string): { absolutePath: string; relativePath: string } | null {
+export function getNotePathByTaskId(
+  taskId: string,
+): { absolutePath: string; relativePath: string } | null {
   try {
     const state = loadState()
     const allTasks = [...state.activeTasks, ...state.recentTasks]
@@ -53,7 +55,7 @@ interface CopyOptions {
 export async function copyNoteToDir(
   srcPath: string,
   targetDir: string,
-  options: CopyOptions = {}
+  options: CopyOptions = {},
 ): Promise<string> {
   // 1. 检查源文件可读
   await fs.promises.access(srcPath, fs.constants.R_OK)

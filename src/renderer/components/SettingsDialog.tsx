@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
-import { Link, FileText, Mic, Wrench, Settings, Layers, Download, type LucideIcon } from 'lucide-react'
+import {
+  Link,
+  FileText,
+  Mic,
+  Wrench,
+  Settings,
+  Layers,
+  Download,
+  type LucideIcon,
+} from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport } from './settings'
 
@@ -32,13 +41,22 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       notion: { token: '', database_id: '' },
     },
   }
-  
+
   const [form, setForm] = useState<PodcastConfig>(initialConfig)
   const [activeTab, setActiveTab] = useState<TabKey>('api')
-  const [models, setModels] = useState<Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }> | null>(null)
+  const [models, setModels] = useState<Array<{
+    id: string
+    label: string
+    size: string
+    downloaded: boolean
+    ramMinGB: number
+  }> | null>(null)
   const [scanningModels, setScanningModels] = useState(false)
   const [modelScanStatus, setModelScanStatus] = useState<string | null>(null)
-  const [hardwareWarn, setHardwareWarn] = useState<{ pass: boolean; warning: string | null } | null>(null)
+  const [hardwareWarn, setHardwareWarn] = useState<{
+    pass: boolean
+    warning: string | null
+  } | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isDirty, setIsDirty] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -53,12 +71,17 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     const hasChanges = Object.keys(form).some(key => {
       const formValue = form[key as keyof PodcastConfig]
       const initialValue = initialFormRef.current[key as keyof PodcastConfig]
-      
+
       // 对于对象类型（如 ai_providers），需要深度比较
-      if (typeof formValue === 'object' && formValue !== null && typeof initialValue === 'object' && initialValue !== null) {
+      if (
+        typeof formValue === 'object' &&
+        formValue !== null &&
+        typeof initialValue === 'object' &&
+        initialValue !== null
+      ) {
         return JSON.stringify(formValue) !== JSON.stringify(initialValue)
       }
-      
+
       return formValue !== initialValue
     })
     setIsDirty(hasChanges)
@@ -114,19 +137,19 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {}
-    
+
     // 验证当前活跃供应商的 API Key
     const currentProvider = form.ai_providers?.[form.ai_provider]
     if (!currentProvider?.apiKey?.trim()) {
       errors[`ai_providers.${form.ai_provider}.apiKey`] = 'API Key 不能为空'
     }
-    
+
     // 保留旧字段兼容验证
     if (!form.api_key.trim() && form.ai_provider === 'deepseek') {
       // 如果是 deepseek 且旧字段为空，使用新字段的值
       // 这里不做额外验证，因为已经验证了新字段
     }
-    
+
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -136,11 +159,11 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       setActiveTab('api')
       return
     }
-    
+
     // 同步旧字段 api_key 以保持兼容性
     const currentProvider = form.ai_providers?.[form.ai_provider]
     const apiKey = currentProvider?.apiKey?.trim() || form.api_key.trim()
-    
+
     onSave({
       ...form,
       api_key: apiKey, // 同步到旧字段
@@ -195,9 +218,13 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       onClick={handleClose}
       className="settings-dialog-overlay"
       style={{
-        position: 'fixed', inset: 0,
-        background: 'var(--overlay-bg)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'fixed',
+        inset: 0,
+        background: 'var(--overlay-bg)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         zIndex: 1000,
         animation: 'fadeIn 0.2s',
       }}
@@ -220,22 +247,39 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
         }}
       >
         {/* 左侧导航 */}
-        <div style={{
-          width: 180,
-          minWidth: 140,
-          flexShrink: 0,
-          background: 'var(--bg-card)',
-          borderRight: '1px solid var(--border)',
-          display: 'flex', flexDirection: 'column',
-          padding: '16px 0',
-          overflowY: 'auto',
-        }}>
-          <div style={{
-            padding: '0 16px 16px',
-            borderBottom: '1px solid var(--border)',
-            marginBottom: 8,
-          }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><Settings size={16} />设置</div>
+        <div
+          style={{
+            width: 180,
+            minWidth: 140,
+            flexShrink: 0,
+            background: 'var(--bg-card)',
+            borderRight: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '16px 0',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            style={{
+              padding: '0 16px 16px',
+              borderBottom: '1px solid var(--border)',
+              marginBottom: 8,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Settings size={16} />
+              设置
+            </div>
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
@@ -244,7 +288,9 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-sm)',
                   border: 'none',
@@ -265,31 +311,28 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
         </div>
 
         {/* 右侧内容 */}
-        <div style={{
-          flex: 1,
-          display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-          {/* 内容区域 */}
-          <div style={{
+        <div
+          style={{
             flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            padding: '20px 24px',
-          }}>
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          {/* 内容区域 */}
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              padding: '20px 24px',
+            }}
+          >
             {activeTab === 'api' && (
-              <TabApi
-                form={form}
-                update={update}
-                validationErrors={validationErrors}
-              />
+              <TabApi form={form} update={update} validationErrors={validationErrors} />
             )}
             {activeTab === 'transcribe' && (
-              <TabTranscribe
-                form={form}
-                update={update}
-                onBrowse={handleBrowse}
-              />
+              <TabTranscribe form={form} update={update} onBrowse={handleBrowse} />
             )}
             {activeTab === 'whisper' && (
               <TabWhisper
@@ -307,12 +350,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               />
             )}
             {activeTab === 'platforms' && <TabPlatforms />}
-            {activeTab === 'export' && (
-              <TabExport
-                form={form}
-                update={update}
-              />
-            )}
+            {activeTab === 'export' && <TabExport form={form} update={update} />}
             {activeTab === 'tools' && (
               <TabTools
                 cleaningTemp={cleaningTemp}
@@ -323,12 +361,16 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
           </div>
 
           {/* 底部操作栏 */}
-          <div style={{
-            padding: '12px 24px',
-            borderTop: '1px solid var(--border)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            background: 'var(--bg-card)',
-          }}>
+          <div
+            style={{
+              padding: '12px 24px',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--bg-card)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {isDirty && (
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• 未保存的更改</span>
@@ -338,7 +380,9 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleClose} className="tailbar-button">取消</button>
+              <button onClick={handleClose} className="tailbar-button">
+                取消
+              </button>
               <button
                 onClick={handleSave}
                 className="settings-save-button"

@@ -35,42 +35,48 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFiles = useCallback((fileList: FileList | File[]) => {
-    const files = Array.from(fileList)
-    if (files.length === 0) return
+  const handleFiles = useCallback(
+    (fileList: FileList | File[]) => {
+      const files = Array.from(fileList)
+      if (files.length === 0) return
 
-    // Validate all files
-    const validPaths: string[] = []
-    for (const file of files) {
-      const err = validateFile(file)
-      if (err) {
-        setError(err)
-        return
+      // Validate all files
+      const validPaths: string[] = []
+      for (const file of files) {
+        const err = validateFile(file)
+        if (err) {
+          setError(err)
+          return
+        }
+        const filePath = getFilePath(file)
+        if (!filePath) {
+          setError('无法获取文件路径，请重试')
+          return
+        }
+        validPaths.push(filePath)
       }
-      const filePath = getFilePath(file)
-      if (!filePath) {
-        setError('无法获取文件路径，请重试')
-        return
+
+      setError(null)
+      if (validPaths.length === 1) {
+        onProcessFile(validPaths[0])
+      } else if (validPaths.length > 1 && onBatchFiles) {
+        onBatchFiles(validPaths)
+      } else if (validPaths.length > 1) {
+        // No batch handler, process first file only
+        onProcessFile(validPaths[0])
       }
-      validPaths.push(filePath)
-    }
+    },
+    [onProcessFile, onBatchFiles],
+  )
 
-    setError(null)
-    if (validPaths.length === 1) {
-      onProcessFile(validPaths[0])
-    } else if (validPaths.length > 1 && onBatchFiles) {
-      onBatchFiles(validPaths)
-    } else if (validPaths.length > 1) {
-      // No batch handler, process first file only
-      onProcessFile(validPaths[0])
-    }
-  }, [onProcessFile, onBatchFiles])
-
-  const onDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!disabled) setDragOver(true)
-  }, [disabled])
+  const onDragOver = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!disabled) setDragOver(true)
+    },
+    [disabled],
+  )
 
   const onDragLeave = useCallback((e: DragEvent) => {
     e.preventDefault()
@@ -78,28 +84,34 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
     setDragOver(false)
   }, [])
 
-  const onDrop = useCallback((e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragOver(false)
-    if (disabled) return
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      handleFiles(files)
-    }
-  }, [disabled, handleFiles])
+  const onDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setDragOver(false)
+      if (disabled) return
+      const files = e.dataTransfer.files
+      if (files.length > 0) {
+        handleFiles(files)
+      }
+    },
+    [disabled, handleFiles],
+  )
 
   const onBrowseClick = useCallback(() => {
     fileInputRef.current?.click()
   }, [])
 
-  const onFileChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      handleFiles(files)
-    }
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }, [handleFiles])
+  const onFileChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        handleFiles(files)
+      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    },
+    [handleFiles],
+  )
 
   return (
     <motion.div
@@ -131,9 +143,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
         <div className="file-drop-zone__text">
           {dragOver ? '释放以添加文件' : '拖拽音视频文件到此处'}
         </div>
-        <div className="file-drop-zone__hint">
-          支持 {EXTENSION_LABELS} 格式
-        </div>
+        <div className="file-drop-zone__hint">支持 {EXTENSION_LABELS} 格式</div>
       </motion.div>
       <motion.button
         className="file-drop-browse"

@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Radio, MonitorPlay, PlayCircle, Headphones, Podcast, Music, Check, AlertTriangle, Clock, ExternalLink } from 'lucide-react'
+import {
+  Radio,
+  MonitorPlay,
+  PlayCircle,
+  Headphones,
+  Podcast,
+  Music,
+  Check,
+  AlertTriangle,
+  Clock,
+  ExternalLink,
+} from 'lucide-react'
 import { TabHeader } from './FieldComponents'
 
 interface PlatformRow {
@@ -12,12 +23,48 @@ interface PlatformRow {
 }
 
 const PLATFORMS: PlatformRow[] = [
-  { id: 'xiaoyuzhou', name: '小宇宙', icon: Radio, depType: 'ready', urlExample: 'xiaoyuzhoufm.com/episode/...' },
-  { id: 'bilibili', name: 'B 站', icon: MonitorPlay, depType: 'ready', urlExample: 'bilibili.com/video/BV...' },
-  { id: 'youtube', name: 'YouTube', icon: PlayCircle, depType: 'yt-dlp', urlExample: 'youtube.com/watch?v=...' },
-  { id: 'ximalaya', name: '喜马拉雅', icon: Headphones, depType: 'ready', urlExample: 'ximalaya.com/sound/...' },
-  { id: 'apple-podcasts', name: 'Apple Podcasts', icon: Podcast, depType: 'ready', urlExample: 'podcasts.apple.com/...' },
-  { id: 'direct-url', name: '直链音频', icon: Music, depType: 'ready', urlExample: '任意 .mp3/.m4a/.mp4 URL' },
+  {
+    id: 'xiaoyuzhou',
+    name: '小宇宙',
+    icon: Radio,
+    depType: 'ready',
+    urlExample: 'xiaoyuzhoufm.com/episode/...',
+  },
+  {
+    id: 'bilibili',
+    name: 'B 站',
+    icon: MonitorPlay,
+    depType: 'ready',
+    urlExample: 'bilibili.com/video/BV...',
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    icon: PlayCircle,
+    depType: 'yt-dlp',
+    urlExample: 'youtube.com/watch?v=...',
+  },
+  {
+    id: 'ximalaya',
+    name: '喜马拉雅',
+    icon: Headphones,
+    depType: 'ready',
+    urlExample: 'ximalaya.com/sound/...',
+  },
+  {
+    id: 'apple-podcasts',
+    name: 'Apple Podcasts',
+    icon: Podcast,
+    depType: 'ready',
+    urlExample: 'podcasts.apple.com/...',
+  },
+  {
+    id: 'direct-url',
+    name: '直链音频',
+    icon: Music,
+    depType: 'ready',
+    urlExample: '任意 .mp3/.m4a/.mp4 URL',
+  },
 ]
 
 const COMING_SOON = [
@@ -32,12 +79,17 @@ export default function TabPlatforms() {
   // 组件挂载时获取 yt-dlp 状态
   useEffect(() => {
     let cancelled = false
-    window.electronAPI.detectYtDlp().then(status => {
-      if (!cancelled) setYtDlp(status)
-    }).catch(() => {
-      if (!cancelled) setYtDlp({ available: false, path: null, version: null, outdated: false })
-    })
-    return () => { cancelled = true }
+    window.electronAPI
+      .detectYtDlp()
+      .then(status => {
+        if (!cancelled) setYtDlp(status)
+      })
+      .catch(() => {
+        if (!cancelled) setYtDlp({ available: false, path: null, version: null, outdated: false })
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function recheckYtDlp() {
@@ -55,7 +107,15 @@ export default function TabPlatforms() {
   function getStatusBadge(row: PlatformRow) {
     if (row.depType === 'coming') {
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 12,
+            color: 'var(--text-muted)',
+          }}
+        >
           <Clock size={13} /> 敬请期待
         </span>
       )
@@ -67,9 +127,24 @@ export default function TabPlatforms() {
       }
       if (ytDlp.available && !ytDlp.outdated) {
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success)' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              color: 'var(--success)',
+            }}
+          >
             <Check size={13} /> 可用
-            <span style={{ color: 'var(--text-muted)', marginLeft: 4, fontFamily: 'Consolas, monospace', fontSize: 11 }}>
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                marginLeft: 4,
+                fontFamily: 'Consolas, monospace',
+                fontSize: 11,
+              }}
+            >
               yt-dlp {ytDlp.version}
             </span>
           </span>
@@ -77,23 +152,55 @@ export default function TabPlatforms() {
       }
       if (ytDlp.available && ytDlp.outdated) {
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--warning, #e6a817)' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              color: 'var(--warning, #e6a817)',
+            }}
+          >
             <AlertTriangle size={13} /> 版本过旧
-            <span style={{ color: 'var(--text-muted)', marginLeft: 4, fontFamily: 'Consolas, monospace', fontSize: 11 }}>
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                marginLeft: 4,
+                fontFamily: 'Consolas, monospace',
+                fontSize: 11,
+              }}
+            >
               {ytDlp.version}
             </span>
           </span>
         )
       }
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--error)' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: 'var(--error)',
+          }}
+        >
           <AlertTriangle size={13} /> 需安装 yt-dlp
           <button
-            onClick={() => window.electronAPI.openExternal('https://github.com/yt-dlp/yt-dlp/releases/latest')}
+            onClick={() =>
+              window.electronAPI.openExternal('https://github.com/yt-dlp/yt-dlp/releases/latest')
+            }
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
-              background: 'none', border: 'none', color: 'var(--accent)',
-              cursor: 'pointer', fontSize: 12, padding: 0, textDecoration: 'underline',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent)',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: 0,
+              textDecoration: 'underline',
             }}
           >
             安装指南 <ExternalLink size={11} />
@@ -104,7 +211,15 @@ export default function TabPlatforms() {
 
     // depType === 'ready'
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success)' }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          fontSize: 12,
+          color: 'var(--success)',
+        }}
+      >
         <Check size={13} /> 可用
       </span>
     )
@@ -121,7 +236,9 @@ export default function TabPlatforms() {
             <div
               key={row.id}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 padding: '10px 12px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-card)',
@@ -131,13 +248,21 @@ export default function TabPlatforms() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <Icon size={16} style={{ color: 'var(--accent)', opacity: 0.8, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Consolas, monospace' }}>{row.urlExample}</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {row.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-muted)',
+                      fontFamily: 'Consolas, monospace',
+                    }}
+                  >
+                    {row.urlExample}
+                  </div>
                 </div>
               </div>
-              <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                {getStatusBadge(row)}
-              </div>
+              <div style={{ flexShrink: 0, marginLeft: 12 }}>{getStatusBadge(row)}</div>
             </div>
           )
         })}
@@ -145,7 +270,16 @@ export default function TabPlatforms() {
 
       {/* 即将支持 */}
       <div style={{ marginTop: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            marginBottom: 8,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+          }}
+        >
           即将支持
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -155,7 +289,9 @@ export default function TabPlatforms() {
               <div
                 key={p.name}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-card)',
@@ -167,7 +303,15 @@ export default function TabPlatforms() {
                   <Icon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{p.name}</div>
                 </div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 12,
+                    color: 'var(--text-muted)',
+                  }}
+                >
                   <Clock size={13} /> 敬请期待
                 </span>
               </div>
@@ -182,7 +326,9 @@ export default function TabPlatforms() {
           onClick={recheckYtDlp}
           disabled={checking}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
             padding: '6px 12px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)',

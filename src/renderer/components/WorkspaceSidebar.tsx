@@ -1,5 +1,14 @@
 import { motion } from 'motion/react'
-import { Settings, Info, Zap, Clock, CheckCircle2, Link2, LayoutDashboard, Search } from 'lucide-react'
+import {
+  Settings,
+  Info,
+  Zap,
+  Clock,
+  CheckCircle2,
+  Link2,
+  LayoutDashboard,
+  Search,
+} from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 
 export type SidebarView = 'workspace' | 'backlinks' | 'search'
@@ -13,7 +22,14 @@ interface Props {
   recentTasks: RecentTaskState[]
 }
 
-export default function WorkspaceSidebar({ activeView, onViewChange, onSettings, onAbout, activeTasks, recentTasks }: Props) {
+export default function WorkspaceSidebar({
+  activeView,
+  onViewChange,
+  onSettings,
+  onAbout,
+  activeTasks,
+  recentTasks,
+}: Props) {
   const runningCount = activeTasks.filter(t => t.status === 'running').length
   const completedToday = recentTasks.filter(t => {
     if (t.status !== 'completed') return false
@@ -87,7 +103,10 @@ export default function WorkspaceSidebar({ activeView, onViewChange, onSettings,
         </div>
       </div>
 
-      <div className="workspace-sidebar__system-ops" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div
+        className="workspace-sidebar__system-ops"
+        style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+      >
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"

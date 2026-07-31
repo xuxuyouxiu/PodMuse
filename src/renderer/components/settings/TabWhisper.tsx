@@ -2,10 +2,28 @@ import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
 import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown } from 'lucide-react'
 
-export default function TabWhisper({ form, update: _update, models, scanningModels, modelScanStatus, hardwareWarn, showAdvanced, setShowAdvanced, onScanModels, onModelChange, onBrowse }: {
+export default function TabWhisper({
+  form,
+  update: _update,
+  models,
+  scanningModels,
+  modelScanStatus,
+  hardwareWarn,
+  showAdvanced,
+  setShowAdvanced,
+  onScanModels,
+  onModelChange,
+  onBrowse,
+}: {
   form: PodcastConfig
   update: (key: keyof PodcastConfig, value: string | boolean) => void
-  models: Array<{ id: string; label: string; size: string; downloaded: boolean; ramMinGB: number }> | null
+  models: Array<{
+    id: string
+    label: string
+    size: string
+    downloaded: boolean
+    ramMinGB: number
+  }> | null
   scanningModels: boolean
   modelScanStatus: string | null
   hardwareWarn: { pass: boolean; warning: string | null } | null
@@ -55,24 +73,44 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
           </div>
           {models && models.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{
-                fontSize: 11, padding: '2px 8px', borderRadius: 999,
-                background: 'var(--bg-card)', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-light)',
-              }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-light)',
+                }}
+              >
                 已下载 {models.filter(m => m.downloaded).length}/{models.length}
               </span>
               {(() => {
                 const selected = models.find(m => m.id === form.whisper_model)
                 if (!selected) return null
-                return selected.downloaded
-                  ? <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 当前模型已就绪</span>
-                  : <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><ArrowDown size={11} />首次使用将自动下载 ~{selected.ramMinGB}GB</span>
+                return selected.downloaded ? (
+                  <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 当前模型已就绪</span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                    }}
+                  >
+                    <ArrowDown size={11} />
+                    首次使用将自动下载 ~{selected.ramMinGB}GB
+                  </span>
+                )
               })()}
             </div>
           )}
           {modelScanStatus && (
-            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{modelScanStatus}</div>
+            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+              {modelScanStatus}
+            </div>
           )}
         </div>
 
@@ -81,10 +119,15 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="settings-link-button"
             style={{
-              background: 'none', border: 'none',
-              color: 'var(--accent)', cursor: 'pointer',
-              fontSize: 12, padding: 0,
-              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent)',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
             }}
           >
             {showAdvanced ? '▼' : '▶'} 高级设置
@@ -92,7 +135,12 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
         </div>
 
         {showAdvanced && (
-          <DirField label="Whisper 可执行文件路径" value={form.whisper_exe_path} placeholder="选择 whisper 可执行文件（可选）" onBrowse={() => onBrowse('whisper_exe_path')} />
+          <DirField
+            label="Whisper 可执行文件路径"
+            value={form.whisper_exe_path}
+            placeholder="选择 whisper 可执行文件（可选）"
+            onBrowse={() => onBrowse('whisper_exe_path')}
+          />
         )}
 
         <div className="settings-field">
@@ -101,24 +149,46 @@ export default function TabWhisper({ form, update: _update, models, scanningMode
             Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。
             <br />
             <span
-              onClick={() => window.electronAPI.openExternal('https://github.com/Purfview/whisper-standalone-win/releases')}
+              onClick={() =>
+                window.electronAPI.openExternal(
+                  'https://github.com/Purfview/whisper-standalone-win/releases',
+                )
+              }
               style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ExternalLink size={12} />GitHub 下载 faster-whisper-xxl 模型</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <ExternalLink size={12} />
+                GitHub 下载 faster-whisper-xxl 模型
+              </span>
             </span>
           </div>
         </div>
       </div>
 
       {hardwareWarn && hardwareWarn.warning && (
-        <div style={{
-          marginTop: 8, padding: '8px 12px', borderRadius: 'var(--radius-sm)',
-          fontSize: 12, lineHeight: 1.5,
-          background: hardwareWarn.pass ? 'rgba(255,193,7,0.1)' : 'rgba(244,67,54,0.1)',
-          border: `1px solid ${hardwareWarn.pass ? 'rgba(255,193,7,0.3)' : 'rgba(244,67,54,0.3)'}`,
-          color: hardwareWarn.pass ? 'var(--text-secondary)' : 'var(--error)',
-        }}>
-          {hardwareWarn.pass ? <AlertTriangle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> : <AlertCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />}
+        <div
+          style={{
+            marginTop: 8,
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 12,
+            lineHeight: 1.5,
+            background: hardwareWarn.pass ? 'rgba(255,193,7,0.1)' : 'rgba(244,67,54,0.1)',
+            border: `1px solid ${hardwareWarn.pass ? 'rgba(255,193,7,0.3)' : 'rgba(244,67,54,0.3)'}`,
+            color: hardwareWarn.pass ? 'var(--text-secondary)' : 'var(--error)',
+          }}
+        >
+          {hardwareWarn.pass ? (
+            <AlertTriangle
+              size={13}
+              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
+            />
+          ) : (
+            <AlertCircle
+              size={13}
+              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
+            />
+          )}
           {hardwareWarn.warning}
         </div>
       )}

@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { StepInfo, PodcastConfig, FeishuStatus, RecentTaskState, BatchInput, BatchQueueSnapshot, BatchCompletionSummary, BatchTask } from '@shared/types'
+import {
+  StepInfo,
+  PodcastConfig,
+  FeishuStatus,
+  RecentTaskState,
+  BatchInput,
+  BatchQueueSnapshot,
+  BatchCompletionSummary,
+  BatchTask,
+} from '@shared/types'
 import { Zap, Clock } from 'lucide-react'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
@@ -36,8 +45,14 @@ export default function App() {
     return saved === 'light' ? 'light' : 'dark'
   })
   const [config, setConfig] = useState<PodcastConfig | null>(null)
-  const [feishuStatus, setFeishuStatus] = useState<FeishuStatus>({ connected: false, monitoring: false, chatId: '' })
-  const [steps, setSteps] = useState<StepInfo[]>(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+  const [feishuStatus, setFeishuStatus] = useState<FeishuStatus>({
+    connected: false,
+    monitoring: false,
+    chatId: '',
+  })
+  const [steps, setSteps] = useState<StepInfo[]>(
+    STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })),
+  )
   const [processing, setProcessing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -58,98 +73,147 @@ export default function App() {
   const [batchConfirmItems, setBatchConfirmItems] = useState<BatchInput[] | null>(null)
   const [batchQueueState, setBatchQueueState] = useState<BatchQueueSnapshot | null>(null)
   const [batchCompletion, setBatchCompletion] = useState<BatchCompletionSummary | null>(null)
-  const [recoveryInfo, setRecoveryInfo] = useState<{ pending: number; failed: number; total: number; allFailed: boolean } | null>(null)
+  const [recoveryInfo, setRecoveryInfo] = useState<{
+    pending: number
+    failed: number
+    total: number
+    allFailed: boolean
+  } | null>(null)
   const cancelFlag = useRef(false)
 
   const paused = !processing && steps.every(s => s.status === 'stopped')
-  const isBatchActive = batchQueueState && (batchQueueState.status === 'running' || batchQueueState.status === 'paused')
+  const isBatchActive =
+    batchQueueState && (batchQueueState.status === 'running' || batchQueueState.status === 'paused')
   const workflowStateLabel = isBatchActive
-    ? (batchQueueState!.status === 'paused' ? '批量已暂停' : '批量处理中')
-    : processing ? '处理中' : cancelling ? '停止中' : paused ? '已暂停' : '待命中'
+    ? batchQueueState!.status === 'paused'
+      ? '批量已暂停'
+      : '批量处理中'
+    : processing
+      ? '处理中'
+      : cancelling
+        ? '停止中'
+        : paused
+          ? '已暂停'
+          : '待命中'
 
   const step1 = steps[0]
   const PLACEHOLDER_TITLES = new Set(['提取音频链接', '提取音频'])
-  const currentTitle = (step1 && step1.status !== 'pending' && step1.subtitle && !PLACEHOLDER_TITLES.has(step1.subtitle))
-    ? step1.subtitle
-    : null
+  const currentTitle =
+    step1 && step1.status !== 'pending' && step1.subtitle && !PLACEHOLDER_TITLES.has(step1.subtitle)
+      ? step1.subtitle
+      : null
 
   useEffect(() => {
-    window.electronAPI.getConfig().then(setConfig).catch((e) => {
-      console.error('加载配置失败:', e)
-      showToast('加载配置失败', 'error')
-    })
-    window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
-      setActiveTasks(aTasks)
-      setRecentTasks(rTasks)
-      const latestPending = aTasks.find(task => task.status !== 'completed')
-      setLastUrl(latestPending?.url || aTasks[0]?.url || null)
-    }).catch((e) => {
-      console.error('加载任务列表失败:', e)
-      showToast('加载任务列表失败', 'error')
-    })
-
-    const cleanups: (() => void)[] = []
-    cleanups.push(window.electronAPI.onStepUpdate((step: StepInfo) => {
-      setSteps(prev => prev.map(s => s.step === step.step ? { ...s, ...step } : s))
-    }))
-    cleanups.push(window.electronAPI.onFeishuStatus((status: FeishuStatus) => {
-      setFeishuStatus(status)
-    }))
-    cleanups.push(window.electronAPI.onProcessingChange((p: boolean, url?: string) => {
-      setProcessing(p)
-      if (p && url) setLastUrl(url)
-      if (!p && cancelFlag.current) {
-        cancelFlag.current = false
-        setCancelling(false)
-      }
-    }))
-    cleanups.push(window.electronAPI.onTasksChanged(() => {
-      window.electronAPI.getTasks().then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
+    window.electronAPI
+      .getConfig()
+      .then(setConfig)
+      .catch(e => {
+        console.error('加载配置失败:', e)
+        showToast('加载配置失败', 'error')
+      })
+    window.electronAPI
+      .getTasks()
+      .then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
         setActiveTasks(aTasks)
         setRecentTasks(rTasks)
-        if (aTasks.length === 0 && !processing) {
-          setLastUrl(null)
+        const latestPending = aTasks.find(task => task.status !== 'completed')
+        setLastUrl(latestPending?.url || aTasks[0]?.url || null)
+      })
+      .catch(e => {
+        console.error('加载任务列表失败:', e)
+        showToast('加载任务列表失败', 'error')
+      })
+
+    const cleanups: (() => void)[] = []
+    cleanups.push(
+      window.electronAPI.onStepUpdate((step: StepInfo) => {
+        setSteps(prev => prev.map(s => (s.step === step.step ? { ...s, ...step } : s)))
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onFeishuStatus((status: FeishuStatus) => {
+        setFeishuStatus(status)
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onProcessingChange((p: boolean, url?: string) => {
+        setProcessing(p)
+        if (p && url) setLastUrl(url)
+        if (!p && cancelFlag.current) {
+          cancelFlag.current = false
+          setCancelling(false)
         }
-      }).catch(() => {})
-    }))
-    cleanups.push(window.electronAPI.onToast((t) => {
-      showToast(t.message, t.type)
-    }))
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onTasksChanged(() => {
+        window.electronAPI
+          .getTasks()
+          .then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
+            setActiveTasks(aTasks)
+            setRecentTasks(rTasks)
+            if (aTasks.length === 0 && !processing) {
+              setLastUrl(null)
+            }
+          })
+          .catch(() => {})
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onToast(t => {
+        showToast(t.message, t.type)
+      }),
+    )
 
     // Batch queue events
-    cleanups.push(window.electronAPI.onBatchQueueState((state: BatchQueueSnapshot) => {
-      setBatchQueueState(state)
-    }))
-    cleanups.push(window.electronAPI.onBatchTaskUpdate((index: number, task: BatchTask) => {
-      setBatchQueueState(prev => {
-        if (!prev) return prev
-        const tasks = [...prev.tasks]
-        if (index >= 0 && index < tasks.length) {
-          tasks[index] = task
-        }
-        return { ...prev, tasks }
-      })
-    }))
-    cleanups.push(window.electronAPI.onBatchQueueComplete((summary: BatchCompletionSummary) => {
-      setBatchCompletion(summary)
-    }))
+    cleanups.push(
+      window.electronAPI.onBatchQueueState((state: BatchQueueSnapshot) => {
+        setBatchQueueState(state)
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onBatchTaskUpdate((index: number, task: BatchTask) => {
+        setBatchQueueState(prev => {
+          if (!prev) return prev
+          const tasks = [...prev.tasks]
+          if (index >= 0 && index < tasks.length) {
+            tasks[index] = task
+          }
+          return { ...prev, tasks }
+        })
+      }),
+    )
+    cleanups.push(
+      window.electronAPI.onBatchQueueComplete((summary: BatchCompletionSummary) => {
+        setBatchCompletion(summary)
+      }),
+    )
 
     // Load initial batch state
-    window.electronAPI.batchGetState().then((state: BatchQueueSnapshot) => {
-      if (state.tasks.length > 0) setBatchQueueState(state)
-    }).catch(() => {})
+    window.electronAPI
+      .batchGetState()
+      .then((state: BatchQueueSnapshot) => {
+        if (state.tasks.length > 0) setBatchQueueState(state)
+      })
+      .catch(() => {})
 
     // Check for recoverable batch queue from previous session
-    window.electronAPI.batchCheckRecovery().then((info) => {
-      if (info) setRecoveryInfo(info)
-    }).catch(() => {})
+    window.electronAPI
+      .batchCheckRecovery()
+      .then(info => {
+        if (info) setRecoveryInfo(info)
+      })
+      .catch(() => {})
 
-    return () => { cleanups.forEach(fn => fn?.()) }
+    return () => {
+      cleanups.forEach(fn => fn?.())
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    window.electronAPI.startFeishu()
+    window.electronAPI
+      .startFeishu()
       .then(s => s && setFeishuStatus(s))
       .catch(() => {})
   }, [])
@@ -170,34 +234,40 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const handleProcessWithMode = useCallback(async (url: string, force: boolean, taskId?: string) => {
-    cancelFlag.current = false
-    setProcessing(true)
-    setLastUrl(url)
-    setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
-    const result = await window.electronAPI.processPodcast(url, force, taskId, false)
-    setProcessing(false)
-    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
-    setActiveTasks(aTasks)
-    setRecentTasks(rTasks)
-    const latestPending = aTasks.find((task: RecentTaskState) => task.status !== 'completed')
-    setLastUrl(latestPending?.url || aTasks[0]?.url || url)
-    if (cancelFlag.current) {
+  const handleProcessWithMode = useCallback(
+    async (url: string, force: boolean, taskId?: string) => {
       cancelFlag.current = false
-      setCancelling(false)
-    }
-    return result
-  }, [])
+      setProcessing(true)
+      setLastUrl(url)
+      setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+      const result = await window.electronAPI.processPodcast(url, force, taskId, false)
+      setProcessing(false)
+      const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
+      setActiveTasks(aTasks)
+      setRecentTasks(rTasks)
+      const latestPending = aTasks.find((task: RecentTaskState) => task.status !== 'completed')
+      setLastUrl(latestPending?.url || aTasks[0]?.url || url)
+      if (cancelFlag.current) {
+        cancelFlag.current = false
+        setCancelling(false)
+      }
+      return result
+    },
+    [],
+  )
 
-  const handleProcess = useCallback(async (url: string) => {
-    // Pre-check: has this URL been processed before?
-    const wasProcessed = await window.electronAPI.checkProcessed(url).catch(() => false)
-    if (wasProcessed) {
-      showToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"', 'error')
-      return { success: false, error: '该播客已处理过' }
-    }
-    return handleProcessWithMode(url, false)
-  }, [handleProcessWithMode])
+  const handleProcess = useCallback(
+    async (url: string) => {
+      // Pre-check: has this URL been processed before?
+      const wasProcessed = await window.electronAPI.checkProcessed(url).catch(() => false)
+      if (wasProcessed) {
+        showToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"', 'error')
+        return { success: false, error: '该播客已处理过' }
+      }
+      return handleProcessWithMode(url, false)
+    },
+    [handleProcessWithMode],
+  )
 
   const handleProcessFile = useCallback(async (filePath: string) => {
     cancelFlag.current = false
@@ -236,12 +306,15 @@ export default function App() {
     if (lastUrl) handleProcess(lastUrl)
   }, [lastUrl, handleProcess])
 
-  const handleReprocess = useCallback((task: RecentTaskState) => {
-    cancelFlag.current = false
-    setCancelling(false)
-    setLastUrl(task.url)
-    handleProcessWithMode(task.url, true, task.id)
-  }, [handleProcessWithMode])
+  const handleReprocess = useCallback(
+    (task: RecentTaskState) => {
+      cancelFlag.current = false
+      setCancelling(false)
+      setLastUrl(task.url)
+      handleProcessWithMode(task.url, true, task.id)
+    },
+    [handleProcessWithMode],
+  )
 
   // 显示删除确认对话框
   const handleTaskDelete = useCallback((taskId: string) => {
@@ -251,8 +324,9 @@ export default function App() {
   // 执行删除操作
   const confirmDeleteTask = useCallback(async () => {
     if (!deleteConfirmId) return
-    
-    const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.removeRecentTask(deleteConfirmId)
+
+    const { activeTasks: aTasks, recentTasks: rTasks } =
+      await window.electronAPI.removeRecentTask(deleteConfirmId)
     setActiveTasks(aTasks)
     setRecentTasks(rTasks)
     const latestPending = aTasks.find((task: RecentTaskState) => task.status !== 'completed')
@@ -266,7 +340,8 @@ export default function App() {
     showToast('保存成功')
     // 保存后自动重启飞书监听器，使用新凭据重新连接
     if (c.feishu_app_id && c.feishu_app_secret) {
-      window.electronAPI.startFeishu()
+      window.electronAPI
+        .startFeishu()
         .then(s => {
           if (s) {
             setFeishuStatus(s)
@@ -284,7 +359,7 @@ export default function App() {
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setTheme((current) => {
+    setTheme(current => {
       const nextTheme = current === 'dark' ? 'light' : 'dark'
       localStorage.setItem('podcast-theme', nextTheme)
       return nextTheme
@@ -317,7 +392,7 @@ export default function App() {
   }, [])
 
   const handleBatchRemoveItem = useCallback((index: number) => {
-    setBatchConfirmItems(prev => prev ? prev.filter((_, i) => i !== index) : null)
+    setBatchConfirmItems(prev => (prev ? prev.filter((_, i) => i !== index) : null))
   }, [])
 
   const handleBatchReorder = useCallback((from: number, to: number) => {
@@ -354,7 +429,7 @@ export default function App() {
   const handleBatchRetryAllFailed = useCallback(async () => {
     if (!batchQueueState) return
     const failedIndices = batchQueueState.tasks
-      .map((t, i) => t.status === 'failed' ? i : -1)
+      .map((t, i) => (t.status === 'failed' ? i : -1))
       .filter(i => i >= 0)
     for (const i of failedIndices) {
       await window.electronAPI.batchRetry(i)
@@ -443,127 +518,146 @@ export default function App() {
         <div className="workspace-main">
           <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
           {activeView === 'workspace' && (
-          <div className="workspace-body">
-            <div className="workspace-main-column">
-              <div className="workspace-content">
-                <section className="workspace-hero">
-                  <div className="workspace-hero__eyebrow">AI 播客工作区</div>
-                  <div className="workspace-hero__header">
-                    <div>
-                      <h1 className="workspace-hero__title">欢迎回来</h1>
-                      <p className="workspace-hero__description">
-                        粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。
-                      </p>
-                    </div>
-                    <div className="workspace-hero__badge">{workflowStateLabel}</div>
-                  </div>
-                  <div className="workspace-hero__footer">
-                    {currentTitle && (
-                      <div className="workspace-hero__meta">
-                        <span className="workspace-hero__meta-label">当前节目</span>
-                        <span className="workspace-hero__meta-value">{currentTitle}</span>
+            <div className="workspace-body">
+              <div className="workspace-main-column">
+                <div className="workspace-content">
+                  <section className="workspace-hero">
+                    <div className="workspace-hero__eyebrow">AI 播客工作区</div>
+                    <div className="workspace-hero__header">
+                      <div>
+                        <h1 className="workspace-hero__title">欢迎回来</h1>
+                        <p className="workspace-hero__description">
+                          粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </section>
-                <section className="workspace-input-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  <UrlInput
-                    onProcess={handleProcess}
-                    onBatchUrls={handleBatchUrls}
-                    disabled={processing || cancelling || !!isBatchActive}
-                  />
-                  <FileDropArea
-                    onProcessFile={handleProcessFile}
-                    onBatchFiles={handleBatchFiles}
-                    disabled={processing || cancelling || !!isBatchActive}
-                  />
-                </section>
-                {batchConfirmItems && (
-                  <BatchConfirmPanel
-                    items={batchConfirmItems}
-                    onConfirm={handleBatchConfirm}
-                    onCancel={handleBatchCancel}
-                    onRemoveItem={handleBatchRemoveItem}
-                    onReorder={handleBatchReorder}
-                  />
-                )}
-                {batchQueueState && batchQueueState.tasks.length > 0 && (
-                  <BatchQueuePanel
-                    queueState={batchQueueState}
-                    completionSummary={batchCompletion}
-                    obsidianDir={config?.obsidian_dir}
-                    onPause={handleBatchPause}
-                    onResume={handleBatchResume}
-                    onSkip={handleBatchSkip}
-                    onClear={handleBatchClear}
-                    onRetry={handleBatchRetry}
-                    onRetryAllFailed={handleBatchRetryAllFailed}
-                    onDismiss={handleBatchDismiss}
-                  />
-                )}
-                <section className="workspace-process-card">
-                  <StepPanel steps={steps} processing={processing} />
-                  <ControlBar
-                    processing={processing}
-                    cancelling={cancelling}
-                    paused={paused}
-                    onCancel={handleCancel}
-                    onResume={handleResume}
-                  />
-                </section>
-              </div>
-            </div>
-            <aside className="workspace-aside">
-              <div className="rp-tabs">
-                <div className="rp-tabs__bar">
-                  <button
-                    className={`rp-tabs__tab ${rpTab === 'active' ? 'is-active' : ''}`}
-                    onClick={() => setRpTab('active')}
+                      <div className="workspace-hero__badge">{workflowStateLabel}</div>
+                    </div>
+                    <div className="workspace-hero__footer">
+                      {currentTitle && (
+                        <div className="workspace-hero__meta">
+                          <span className="workspace-hero__meta-label">当前节目</span>
+                          <span className="workspace-hero__meta-value">{currentTitle}</span>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                  <section
+                    className="workspace-input-card"
+                    style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
                   >
-                    <Zap size={13} />
-                    活跃任务
-                    <span className="rp-tabs__count">{activeTasks.length + (batchQueueState?.tasks.length || 0)}</span>
-                  </button>
-                  <button
-                    className={`rp-tabs__tab ${rpTab === 'recent' ? 'is-active' : ''}`}
-                    onClick={() => setRpTab('recent')}
-                  >
-                    <Clock size={13} />
-                    历史记录
-                    <span className="rp-tabs__count">{recentTasks.length}</span>
-                  </button>
-                </div>
-                <div className="rp-tabs__content">
-                  {rpTab === 'active' && (
-                    <ActiveTasksPanel tasks={activeTasks} processing={processing} onResume={handleReprocess} onDelete={handleTaskDelete} batchTasks={batchQueueState?.tasks} batchStatus={batchQueueState?.status} onCancel={async (taskId: string) => {
-                      if (taskId) {
-                        const result = await window.electronAPI.cancelProcessing()
-                        const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
-                        setActiveTasks(aTasks)
-                        setRecentTasks(rTasks)
-                        if (!result) {
-                          cancelFlag.current = false
-                          setCancelling(false)
-                        }
-                      }
-                    }} />
-                  )}
-                  {rpTab === 'recent' && (
-                    <RecentTasksPanel
-                      tasks={recentTasks}
-                      processing={processing || cancelling}
-                      onResume={handleReprocess}
-                      onReplay={handleReprocess}
-                      onDelete={handleTaskDelete}
-                      logseqDir={config?.export?.logseq_dir || ''}
-                      notionConfigured={!!(config?.export?.notion?.token?.trim() && config?.export?.notion?.database_id?.trim())}
-                      onToast={showToast}
+                    <UrlInput
+                      onProcess={handleProcess}
+                      onBatchUrls={handleBatchUrls}
+                      disabled={processing || cancelling || !!isBatchActive}
+                    />
+                    <FileDropArea
+                      onProcessFile={handleProcessFile}
+                      onBatchFiles={handleBatchFiles}
+                      disabled={processing || cancelling || !!isBatchActive}
+                    />
+                  </section>
+                  {batchConfirmItems && (
+                    <BatchConfirmPanel
+                      items={batchConfirmItems}
+                      onConfirm={handleBatchConfirm}
+                      onCancel={handleBatchCancel}
+                      onRemoveItem={handleBatchRemoveItem}
+                      onReorder={handleBatchReorder}
                     />
                   )}
+                  {batchQueueState && batchQueueState.tasks.length > 0 && (
+                    <BatchQueuePanel
+                      queueState={batchQueueState}
+                      completionSummary={batchCompletion}
+                      obsidianDir={config?.obsidian_dir}
+                      onPause={handleBatchPause}
+                      onResume={handleBatchResume}
+                      onSkip={handleBatchSkip}
+                      onClear={handleBatchClear}
+                      onRetry={handleBatchRetry}
+                      onRetryAllFailed={handleBatchRetryAllFailed}
+                      onDismiss={handleBatchDismiss}
+                    />
+                  )}
+                  <section className="workspace-process-card">
+                    <StepPanel steps={steps} processing={processing} />
+                    <ControlBar
+                      processing={processing}
+                      cancelling={cancelling}
+                      paused={paused}
+                      onCancel={handleCancel}
+                      onResume={handleResume}
+                    />
+                  </section>
                 </div>
               </div>
-            </aside>
-          </div>
+              <aside className="workspace-aside">
+                <div className="rp-tabs">
+                  <div className="rp-tabs__bar">
+                    <button
+                      className={`rp-tabs__tab ${rpTab === 'active' ? 'is-active' : ''}`}
+                      onClick={() => setRpTab('active')}
+                    >
+                      <Zap size={13} />
+                      活跃任务
+                      <span className="rp-tabs__count">
+                        {activeTasks.length + (batchQueueState?.tasks.length || 0)}
+                      </span>
+                    </button>
+                    <button
+                      className={`rp-tabs__tab ${rpTab === 'recent' ? 'is-active' : ''}`}
+                      onClick={() => setRpTab('recent')}
+                    >
+                      <Clock size={13} />
+                      历史记录
+                      <span className="rp-tabs__count">{recentTasks.length}</span>
+                    </button>
+                  </div>
+                  <div className="rp-tabs__content">
+                    {rpTab === 'active' && (
+                      <ActiveTasksPanel
+                        tasks={activeTasks}
+                        processing={processing}
+                        onResume={handleReprocess}
+                        onDelete={handleTaskDelete}
+                        batchTasks={batchQueueState?.tasks}
+                        batchStatus={batchQueueState?.status}
+                        onCancel={async (taskId: string) => {
+                          if (taskId) {
+                            const result = await window.electronAPI.cancelProcessing()
+                            const { activeTasks: aTasks, recentTasks: rTasks } =
+                              await window.electronAPI.getTasks()
+                            setActiveTasks(aTasks)
+                            setRecentTasks(rTasks)
+                            if (!result) {
+                              cancelFlag.current = false
+                              setCancelling(false)
+                            }
+                          }
+                        }}
+                      />
+                    )}
+                    {rpTab === 'recent' && (
+                      <RecentTasksPanel
+                        tasks={recentTasks}
+                        processing={processing || cancelling}
+                        onResume={handleReprocess}
+                        onReplay={handleReprocess}
+                        onDelete={handleTaskDelete}
+                        logseqDir={config?.export?.logseq_dir || ''}
+                        notionConfigured={
+                          !!(
+                            config?.export?.notion?.token?.trim() &&
+                            config?.export?.notion?.database_id?.trim()
+                          )
+                        }
+                        onToast={showToast}
+                      />
+                    )}
+                  </div>
+                </div>
+              </aside>
+            </div>
           )}
           {activeView === 'backlinks' && (
             <div className="workspace-body">
@@ -592,22 +686,29 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
-      {aboutOpen && (
-        <AboutDialog onClose={() => setAboutOpen(false)} />
-      )}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {toast && (
-        <div style={{
-          position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--bg-elevated)',
-          border: `1px solid ${toast.type === 'error' ? 'var(--error)' : 'var(--success)'}`,
-          color: toast.type === 'error' ? 'var(--error)' : 'var(--success)',
-          padding: '10px 24px', borderRadius: 'var(--radius-md)',
-          fontSize: 13, fontWeight: 600, zIndex: 2000,
-          animation: 'toastIn 0.3s ease',
-          maxWidth: 'calc(100vw - 80px)',
-          wordBreak: 'break-word',
-        }}>
-          {toast.type === 'error' ? '✗ ' : '✓ '}{toast.message}
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 40,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--bg-elevated)',
+            border: `1px solid ${toast.type === 'error' ? 'var(--error)' : 'var(--success)'}`,
+            color: toast.type === 'error' ? 'var(--error)' : 'var(--success)',
+            padding: '10px 24px',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 13,
+            fontWeight: 600,
+            zIndex: 2000,
+            animation: 'toastIn 0.3s ease',
+            maxWidth: 'calc(100vw - 80px)',
+            wordBreak: 'break-word',
+          }}
+        >
+          {toast.type === 'error' ? '✗ ' : '✓ '}
+          {toast.message}
         </div>
       )}
       {deleteConfirmId && (

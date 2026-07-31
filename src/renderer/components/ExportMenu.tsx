@@ -4,8 +4,8 @@ import { Share, FileText, BookOpen, Globe, Loader2 } from 'lucide-react'
 
 interface Props {
   taskId: string
-  logseqDir: string                  // 配置中的 export.logseq_dir
-  notionConfigured: boolean          // export.notion.token 和 database_id 都有值
+  logseqDir: string // 配置中的 export.logseq_dir
+  notionConfigured: boolean // export.notion.token 和 database_id 都有值
   onToast: (msg: string, type: 'success' | 'error') => void
 }
 
@@ -47,8 +47,10 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
     const handleClick = (e: MouseEvent) => {
       const target = e.target as Node
       if (
-        containerRef.current && !containerRef.current.contains(target) &&
-        menuRef.current && !menuRef.current.contains(target)
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
       ) {
         setOpen(false)
       }
@@ -146,67 +148,82 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
   const notionEnabled = notionConfigured
   const isExporting = exporting !== null
 
-  const menu = open && menuPos ? createPortal(
-    <div
-      ref={menuRef}
-      style={{
-        position: 'fixed',
-        top: menuPos.top,
-        left: menuPos.left,
-        background: 'var(--bg-elevated)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-sm)',
-        boxShadow: 'var(--shadow-md)',
-        zIndex: 99999,
-        minWidth: 180,
-        overflow: 'hidden',
-      }}
-    >
-      <button
-        onClick={handleExportMarkdown}
-        disabled={isExporting}
-        style={menuItemStyle(false)}
-        onMouseEnter={e => !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        <FileText size={14} />
-        <span>Markdown…</span>
-      </button>
+  const menu =
+    open && menuPos
+      ? createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: menuPos.top,
+              left: menuPos.left,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-md)',
+              zIndex: 99999,
+              minWidth: 180,
+              overflow: 'hidden',
+            }}
+          >
+            <button
+              onClick={handleExportMarkdown}
+              disabled={isExporting}
+              style={menuItemStyle(false)}
+              onMouseEnter={e =>
+                !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')
+              }
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <FileText size={14} />
+              <span>Markdown…</span>
+            </button>
 
-      <button
-        onClick={handleExportLogseq}
-        disabled={isExporting || !logseqEnabled}
-        title={logseqEnabled ? '导出到 Logseq 目录' : '未配置 Logseq 目录，请在设置中配置'}
-        style={menuItemStyle(!logseqEnabled)}
-        onMouseEnter={e => logseqEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        <BookOpen size={14} />
-        <span>Logseq</span>
-        {!logseqEnabled && <span style={disabledHintStyle}>未配置</span>}
-      </button>
+            <button
+              onClick={handleExportLogseq}
+              disabled={isExporting || !logseqEnabled}
+              title={logseqEnabled ? '导出到 Logseq 目录' : '未配置 Logseq 目录，请在设置中配置'}
+              style={menuItemStyle(!logseqEnabled)}
+              onMouseEnter={e =>
+                logseqEnabled &&
+                !isExporting &&
+                (e.currentTarget.style.background = 'var(--bg-hover)')
+              }
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <BookOpen size={14} />
+              <span>Logseq</span>
+              {!logseqEnabled && <span style={disabledHintStyle}>未配置</span>}
+            </button>
 
-      <button
-        onClick={handleExportNotion}
-        disabled={isExporting || !notionEnabled}
-        title={notionEnabled ? '上传到 Notion database' : '未配置 Notion 集成，请在设置中配置'}
-        style={menuItemStyle(!notionEnabled)}
-        onMouseEnter={e => notionEnabled && !isExporting && (e.currentTarget.style.background = 'var(--bg-hover)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        <Globe size={14} />
-        <span>Notion</span>
-        {!notionEnabled && <span style={disabledHintStyle}>未配置</span>}
-      </button>
-    </div>,
-    document.body,
-  ) : null
+            <button
+              onClick={handleExportNotion}
+              disabled={isExporting || !notionEnabled}
+              title={
+                notionEnabled ? '上传到 Notion database' : '未配置 Notion 集成，请在设置中配置'
+              }
+              style={menuItemStyle(!notionEnabled)}
+              onMouseEnter={e =>
+                notionEnabled &&
+                !isExporting &&
+                (e.currentTarget.style.background = 'var(--bg-hover)')
+              }
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Globe size={14} />
+              <span>Notion</span>
+              {!notionEnabled && <span style={disabledHintStyle}>未配置</span>}
+            </button>
+          </div>,
+          document.body,
+        )
+      : null
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
         ref={btnRef}
-        onClick={() => open ? setOpen(false) : openMenu()}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         disabled={isExporting}
         className="recent-task-secondary"
         title="导出到其他平台"

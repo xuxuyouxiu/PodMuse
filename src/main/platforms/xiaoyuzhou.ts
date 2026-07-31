@@ -2,7 +2,8 @@
 
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
-const HEADERS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
+const HEADERS_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
 
 function findAudioInJSON(obj: unknown, depth = 0): string | null {
   if (depth > 12 || !obj) return null
@@ -12,7 +13,12 @@ function findAudioInJSON(obj: unknown, depth = 0): string | null {
     const record = obj as Record<string, unknown>
     for (const key of audioKeys) {
       const val = record[key]
-      if (typeof val === 'string' && val.startsWith('http') && hints.some(h => val.toLowerCase().includes(h))) return val
+      if (
+        typeof val === 'string' &&
+        val.startsWith('http') &&
+        hints.some(h => val.toLowerCase().includes(h))
+      )
+        return val
     }
     for (const val of Object.values(record)) {
       const found = findAudioInJSON(val, depth + 1)
@@ -56,8 +62,12 @@ export class XiaoyuzhouAdapter implements PlatformAdapter {
 
     // 2) Next.js __NEXT_DATA__
     if (!audioUrl) {
-      const nd = html.match(/<script\s+id="__NEXT_DATA__"[^>]*>\s*(\{.*?\})\s*<\/script>/si)
-      if (nd) { try { audioUrl = findAudioInJSON(JSON.parse(nd[1])) } catch {} }
+      const nd = html.match(/<script\s+id="__NEXT_DATA__"[^>]*>\s*(\{.*?\})\s*<\/script>/is)
+      if (nd) {
+        try {
+          audioUrl = findAudioInJSON(JSON.parse(nd[1]))
+        } catch {}
+      }
     }
 
     // 3) <audio> 标签
@@ -68,12 +78,15 @@ export class XiaoyuzhouAdapter implements PlatformAdapter {
 
     // 4) JSON-LD
     if (!audioUrl) {
-      const re = /<script\s+type="application\/ld\+json"[^>]*>\s*(.*?)\s*<\/script>/gsi
+      const re = /<script\s+type="application\/ld\+json"[^>]*>\s*(.*?)\s*<\/script>/gis
       let m: RegExpExecArray | null
       while ((m = re.exec(html)) !== null) {
         try {
           const d = JSON.parse(m[1])
-          if (d['@type'] === 'MediaObject' && d.contentUrl) { audioUrl = d.contentUrl; break }
+          if (d['@type'] === 'MediaObject' && d.contentUrl) {
+            audioUrl = d.contentUrl
+            break
+          }
         } catch {}
       }
     }

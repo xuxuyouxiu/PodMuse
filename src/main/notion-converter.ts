@@ -3,7 +3,11 @@
  * 不引入 @notionhq/client 官方 SDK，直接 fetch 调用 REST API
  */
 import { stripWikiLinks } from './exporter'
-import type { ExportResult, NotionTestConnectionParams, NotionTestConnectionResult } from './exporter-types'
+import type {
+  ExportResult,
+  NotionTestConnectionParams,
+  NotionTestConnectionResult,
+} from './exporter-types'
 
 // ===== Notion API 类型（精简，只覆盖本项目用到的） =====
 
@@ -22,12 +26,19 @@ type NotionBlock =
 interface NotionRichText {
   type: 'text'
   text: { content: string; link?: { url: string } | null }
-  annotations?: { bold: boolean; italic: boolean; strikethrough: boolean; underline: boolean; code: boolean; color: string }
+  annotations?: {
+    bold: boolean
+    italic: boolean
+    strikethrough: boolean
+    underline: boolean
+    code: boolean
+    color: string
+  }
 }
 
 interface NotionDatabaseSchema {
-  titleProperty?: string  // type=title 的列名
-  properties: Record<string, { type: string }>  // 列名 → type
+  titleProperty?: string // type=title 的列名
+  properties: Record<string, { type: string }> // 列名 → type
 }
 
 interface NotionPageResponse {
@@ -47,12 +58,15 @@ interface NotionApiError {
 const NOTION_API_BASE = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
 
-async function notionFetch(pathname: string, init: RequestInit & { token: string }): Promise<Response> {
+async function notionFetch(
+  pathname: string,
+  init: RequestInit & { token: string },
+): Promise<Response> {
   const { token, ...rest } = init
   return fetch(`${NOTION_API_BASE}${pathname}`, {
     ...rest,
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Notion-Version': NOTION_VERSION,
       'Content-Type': 'application/json',
       ...rest.headers,
@@ -69,7 +83,10 @@ function buildRichText(text: string): NotionRichText[] {
 
 // ===== frontmatter 解析（极简，复用 backlinks.ts 中的 parseFrontmatter 思路） =====
 
-function parseFrontmatter(markdown: string): { frontmatter: Record<string, unknown>; body: string } {
+function parseFrontmatter(markdown: string): {
+  frontmatter: Record<string, unknown>
+  body: string
+} {
   const fmMatch = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
   if (!fmMatch) {
     return { frontmatter: {}, body: markdown }
@@ -96,7 +113,10 @@ function parseFrontmatter(markdown: string): { frontmatter: Record<string, unkno
       if (!inner) {
         value = []
       } else {
-        value = inner.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)
+        value = inner
+          .split(',')
+          .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+          .filter(Boolean)
       }
     }
     frontmatter[key] = value
@@ -115,18 +135,20 @@ async function getDatabaseSchema(token: string, databaseId: string): Promise<Not
     throw err
   }
   if (res.status === 404) {
-    const err = new Error('Notion Database 不存在或集成未共享该 database') as Error & { status: number }
+    const err = new Error('Notion Database 不存在或集成未共享该 database') as Error & {
+      status: number
+    }
     err.status = 404
     throw err
   }
   if (!res.ok) {
-    const data = await res.json() as NotionApiError
+    const data = (await res.json()) as NotionApiError
     const err = new Error(`Notion API 错误: ${data.message}`) as Error & { status: number }
     err.status = res.status
     throw err
   }
 
-  const data = await res.json() as { properties: Record<string, { type: string }> }
+  const data = (await res.json()) as { properties: Record<string, { type: string }> }
   const properties: Record<string, { type: string }> = {}
   let titleProperty: string | undefined
   for (const [name, info] of Object.entries(data.properties)) {
@@ -140,7 +162,7 @@ async function getDatabaseSchema(token: string, databaseId: string): Promise<Not
 
 function frontmatterToNotionProperties(
   frontmatter: Record<string, unknown>,
-  schema: NotionDatabaseSchema
+  schema: NotionDatabaseSchema,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {}
 
@@ -149,7 +171,7 @@ function frontmatterToNotionProperties(
     const title = String(frontmatter.title || frontmatter.show || '')
     props[schema.titleProperty] = {
       type: 'title',
-      title: buildRichText(title)
+      title: buildRichText(title),
     }
   }
 
@@ -159,7 +181,7 @@ function frontmatterToNotionProperties(
     if (value !== undefined && value !== null && schema.properties[key]?.type === 'rich_text') {
       props[key] = {
         type: 'rich_text',
-        rich_text: buildRichText(String(value))
+        rich_text: buildRichText(String(value)),
       }
     }
   }
@@ -169,7 +191,7 @@ function frontmatterToNotionProperties(
   if (typeof dateValue === 'string' && dateValue && schema.properties.date?.type === 'date') {
     props.date = {
       type: 'date',
-      date: { start: dateValue }
+      date: { start: dateValue },
     }
   }
 
@@ -179,18 +201,22 @@ function frontmatterToNotionProperties(
     if (typeof value === 'string' && value && schema.properties[key]?.type === 'select') {
       props[key] = {
         type: 'select',
-        select: { name: value }
+        select: { name: value },
       }
     }
   }
 
   // multi_select 字段（tags）
   const tagsValue = frontmatter.tags
-  if (tagsValue !== undefined && tagsValue !== null && schema.properties.tags?.type === 'multi_select') {
+  if (
+    tagsValue !== undefined &&
+    tagsValue !== null &&
+    schema.properties.tags?.type === 'multi_select'
+  ) {
     const tags = Array.isArray(tagsValue) ? tagsValue : [tagsValue]
     props.tags = {
       type: 'multi_select',
-      multi_select: tags.map(t => ({ name: String(t) })).filter(t => t.name)
+      multi_select: tags.map(t => ({ name: String(t) })).filter(t => t.name),
     }
   }
 
@@ -219,8 +245,8 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
           type: 'code',
           code: {
             rich_text: buildRichText(codeBuffer.join('\n')),
-            language: codeLang
-          }
+            language: codeLang,
+          },
         })
         inCodeBlock = false
       }
@@ -261,7 +287,7 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
       const text = stripWikiLinks(line.substring(2))
       blocks.push({
         type: 'quote',
-        quote: { rich_text: buildRichText(text) }
+        quote: { rich_text: buildRichText(text) },
       })
       continue
     }
@@ -273,7 +299,7 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
       const text = stripWikiLinks(todoMatch[2])
       blocks.push({
         type: 'to_do',
-        to_do: { rich_text: buildRichText(text), checked }
+        to_do: { rich_text: buildRichText(text), checked },
       })
       continue
     }
@@ -283,7 +309,7 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
       const text = stripWikiLinks(line.replace(/^-\s+/, ''))
       blocks.push({
         type: 'bulleted_list_item',
-        bulleted_list_item: { rich_text: buildRichText(text) }
+        bulleted_list_item: { rich_text: buildRichText(text) },
       })
       continue
     }
@@ -293,7 +319,7 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
       const text = stripWikiLinks(line.replace(/^\d+\.\s+/, ''))
       blocks.push({
         type: 'numbered_list_item',
-        numbered_list_item: { rich_text: buildRichText(text) }
+        numbered_list_item: { rich_text: buildRichText(text) },
       })
       continue
     }
@@ -301,7 +327,7 @@ function markdownToNotionBlocks(markdown: string): NotionBlock[] {
     // 普通段落
     blocks.push({
       type: 'paragraph',
-      paragraph: { rich_text: buildRichText(stripWikiLinks(line)) }
+      paragraph: { rich_text: buildRichText(stripWikiLinks(line)) },
     })
   }
 
@@ -314,7 +340,7 @@ async function findExistingNotionPage(
   token: string,
   databaseId: string,
   titleProperty: string,
-  title: string
+  title: string,
 ): Promise<string | null> {
   try {
     const res = await notionFetch(`/databases/${databaseId}/query`, {
@@ -323,12 +349,12 @@ async function findExistingNotionPage(
       body: JSON.stringify({
         filter: {
           property: titleProperty,
-          title: { equals: title }
-        }
-      })
+          title: { equals: title },
+        },
+      }),
     })
     if (!res.ok) return null
-    const data = await res.json() as { results: Array<{ url: string }> }
+    const data = (await res.json()) as { results: Array<{ url: string }> }
     return data.results?.[0]?.url || null
   } catch {
     return null
@@ -349,8 +375,8 @@ async function createNotionPage(params: {
     body: JSON.stringify({
       parent: { database_id: params.databaseId },
       properties: params.properties,
-      children: params.children.slice(0, 100)  // Notion 单次最多 100 blocks
-    })
+      children: params.children.slice(0, 100), // Notion 单次最多 100 blocks
+    }),
   })
 
   if (res.status === 401) {
@@ -364,7 +390,7 @@ async function createNotionPage(params: {
     throw err
   }
   if (res.status === 400) {
-    const data = await res.json() as NotionApiError
+    const data = (await res.json()) as NotionApiError
     const err = new Error(`参数错误: ${data.message}`) as Error & { status: number }
     err.status = 400
     throw err
@@ -380,19 +406,21 @@ async function createNotionPage(params: {
     throw err
   }
   if (!res.ok) {
-    const data = await res.json() as NotionApiError
+    const data = (await res.json()) as NotionApiError
     const err = new Error(`Notion API 错误: ${data.message}`) as Error & { status: number }
     err.status = res.status
     throw err
   }
 
-  const data = await res.json() as NotionPageResponse
+  const data = (await res.json()) as NotionPageResponse
   return { pageId: data.id, pageUrl: data.url }
 }
 
 // ===== 测试连接 =====
 
-export async function testNotionConnection(params: NotionTestConnectionParams): Promise<NotionTestConnectionResult> {
+export async function testNotionConnection(
+  params: NotionTestConnectionParams,
+): Promise<NotionTestConnectionResult> {
   const { token, databaseId } = params
   if (!token?.trim() || !databaseId?.trim()) {
     return { success: false, error: 'Token 和 Database ID 不能为空' }
@@ -405,7 +433,7 @@ export async function testNotionConnection(params: NotionTestConnectionParams): 
     const res = await fetch(`${NOTION_API_BASE}/databases/${databaseId.trim()}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token.trim()}`,
+        Authorization: `Bearer ${token.trim()}`,
         'Notion-Version': NOTION_VERSION,
       },
       signal: controller.signal,
@@ -413,13 +441,14 @@ export async function testNotionConnection(params: NotionTestConnectionParams): 
     clearTimeout(timeoutId)
 
     if (res.status === 401) return { success: false, error: 'Integration Token 无效或已过期' }
-    if (res.status === 404) return { success: false, error: 'Database 不存在或集成未共享该 database' }
+    if (res.status === 404)
+      return { success: false, error: 'Database 不存在或集成未共享该 database' }
     if (!res.ok) {
-      const data = await res.json() as NotionApiError
+      const data = (await res.json()) as NotionApiError
       return { success: false, error: `Notion API 错误: ${data.message}` }
     }
 
-    const data = await res.json() as { title?: Array<{ plain_text: string }> }
+    const data = (await res.json()) as { title?: Array<{ plain_text: string }> }
     const title = data.title?.[0]?.plain_text || '未命名'
     return { success: true, databaseTitle: title }
   } catch (e) {
@@ -448,7 +477,12 @@ export async function exportToNotion(params: {
   const titleValue = String(frontmatter.title || frontmatter.show || '')
   const fallbackTitle = titleValue || relativePath.replace(/\.md$/, '')
   if (schema.titleProperty && titleValue) {
-    const existingUrl = await findExistingNotionPage(token, databaseId, schema.titleProperty, titleValue)
+    const existingUrl = await findExistingNotionPage(
+      token,
+      databaseId,
+      schema.titleProperty,
+      titleValue,
+    )
     if (existingUrl) {
       return {
         success: false,
@@ -464,7 +498,7 @@ export async function exportToNotion(params: {
   if (schema.titleProperty && !properties[schema.titleProperty]) {
     properties[schema.titleProperty] = {
       type: 'title',
-      title: buildRichText(fallbackTitle)
+      title: buildRichText(fallbackTitle),
     }
   }
   const children = markdownToNotionBlocks(body)

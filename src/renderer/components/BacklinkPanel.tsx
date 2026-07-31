@@ -1,5 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Users, FolderOpen, Lightbulb, Bookmark, RefreshCw, Search, ChevronRight, X, Check, Network } from 'lucide-react'
+import {
+  Users,
+  FolderOpen,
+  Lightbulb,
+  Bookmark,
+  RefreshCw,
+  Search,
+  ChevronRight,
+  X,
+  Check,
+  Network,
+} from 'lucide-react'
 
 // ── Entity type metadata ──
 
@@ -20,10 +31,7 @@ interface CoEntity {
   count: number
 }
 
-function computeCoEntities(
-  index: BacklinkEntry[],
-  selectedEntity: string
-): CoEntity[] {
+function computeCoEntities(index: BacklinkEntry[], selectedEntity: string): CoEntity[] {
   const target = index.find(e => e.entityName === selectedEntity)
   if (!target) return []
 
@@ -72,7 +80,7 @@ function computeGraph(
   index: BacklinkEntry[],
   selectedEntity: string,
   width: number,
-  height: number
+  height: number,
 ): GraphData {
   const target = index.find(e => e.entityName === selectedEntity)
   if (!target) return { nodes: [], edges: [] }
@@ -89,14 +97,16 @@ function computeGraph(
   const centerRef = target.podcastRefs.length
   const centerRadius = Math.max(12, Math.min(24, 8 + centerRef * 2))
 
-  const nodes: GraphNode[] = [{
-    name: selectedEntity,
-    type: target.entityType,
-    refCount: centerRef,
-    x: centerX,
-    y: centerY,
-    radius: centerRadius,
-  }]
+  const nodes: GraphNode[] = [
+    {
+      name: selectedEntity,
+      type: target.entityType,
+      refCount: centerRef,
+      x: centerX,
+      y: centerY,
+      radius: centerRadius,
+    },
+  ]
 
   // Surrounding nodes arranged in a circle
   const angleStep = topCo.length > 0 ? (2 * Math.PI) / topCo.length : 0
@@ -207,17 +217,25 @@ export default function BacklinkPanel() {
 
   useEffect(() => {
     let cancelled = false
-    window.electronAPI.getBacklinkIndex().then(data => {
-      if (!cancelled) {
-        setIndex(data || [])
-        setLoading(false)
-        const first = (data || []).find(e => e.entityType === 'people')
-        if (first) setSelectedEntity(first.entityName)
-      }
-    }).catch(() => {
-      if (!cancelled) { setIndex([]); setLoading(false) }
-    })
-    return () => { cancelled = true }
+    window.electronAPI
+      .getBacklinkIndex()
+      .then(data => {
+        if (!cancelled) {
+          setIndex(data || [])
+          setLoading(false)
+          const first = (data || []).find(e => e.entityType === 'people')
+          if (first) setSelectedEntity(first.entityName)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIndex([])
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function handleRefresh() {
@@ -285,7 +303,10 @@ export default function BacklinkPanel() {
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
-      '科技商业': 0, '每日资讯': 0, '社会心理': 0, '生活文化': 0,
+      科技商业: 0,
+      每日资讯: 0,
+      社会心理: 0,
+      生活文化: 0,
     }
     const seen = new Set<string>()
     for (const tag of tagIndex) {
@@ -320,23 +341,30 @@ export default function BacklinkPanel() {
   }, [tagIndex])
 
   function getTagFontSize(count: number): number {
-    const min = 12, max = 22
+    const min = 12,
+      max = 22
     const ratio = maxTagCount > 0 ? count / maxTagCount : 0
     return Math.round(min + (max - min) * ratio)
   }
 
   function handleTagClick(tagName: string) {
-    setSelectedTag(prev => prev === tagName ? null : tagName)
+    setSelectedTag(prev => (prev === tagName ? null : tagName))
   }
 
   function handleCategoryClick(cat: string) {
-    setActiveCategory(prev => prev === cat ? null : cat)
+    setActiveCategory(prev => (prev === cat ? null : cat))
     setSelectedTag(null)
   }
 
   // Related notes recommendation (US-003)
-  function findRelatedNotes(targetPath: string, targetTags: string[]): { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }[] {
-    const seen = new Map<string, { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }>()
+  function findRelatedNotes(
+    targetPath: string,
+    targetTags: string[],
+  ): { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }[] {
+    const seen = new Map<
+      string,
+      { path: string; title: string; date?: string; sharedTags: string[]; similarity: number }
+    >()
 
     for (const tag of tagIndex) {
       if (!targetTags.includes(tag.tagName)) continue
@@ -347,7 +375,13 @@ export default function BacklinkPanel() {
         const similarity = union > 0 ? shared.length / union : 0
         const existing = seen.get(ref.path)
         if (!existing || similarity > existing.similarity) {
-          seen.set(ref.path, { path: ref.path, title: ref.title, date: ref.date, sharedTags: shared, similarity })
+          seen.set(ref.path, {
+            path: ref.path,
+            title: ref.title,
+            date: ref.date,
+            sharedTags: shared,
+            similarity,
+          })
         }
       }
     }
@@ -431,10 +465,10 @@ export default function BacklinkPanel() {
   }
 
   const CATEGORY_COLORS: Record<string, string> = {
-    '科技商业': 'var(--accent)',
-    '每日资讯': 'var(--success)',
-    '社会心理': '#ec4899',
-    '生活文化': '#f59e0b',
+    科技商业: 'var(--accent)',
+    每日资讯: 'var(--success)',
+    社会心理: '#ec4899',
+    生活文化: '#f59e0b',
   }
 
   if (loading) {
@@ -468,7 +502,9 @@ export default function BacklinkPanel() {
           <button
             className={`backlink-topview__btn ${topView === 'entities' ? 'is-active' : ''}`}
             onClick={() => setTopView('entities')}
-          >实体</button>
+          >
+            实体
+          </button>
           <button
             className={`backlink-topview__btn ${topView === 'tags' ? 'is-active' : ''}`}
             onClick={() => {
@@ -477,7 +513,9 @@ export default function BacklinkPanel() {
                 window.electronAPI.getTagIndex().then(data => setTagIndex(data || []))
               }
             }}
-          >标签</button>
+          >
+            标签
+          </button>
         </div>
         <button className="backlink-panel__refresh" onClick={handleRefresh} title="刷新索引">
           <RefreshCw size={14} />
@@ -492,7 +530,9 @@ export default function BacklinkPanel() {
               <button
                 key={cat}
                 className={`tag-category-card ${activeCategory === cat ? 'is-active' : ''}`}
-                style={{ borderColor: activeCategory === cat ? CATEGORY_COLORS[cat] : 'transparent' }}
+                style={{
+                  borderColor: activeCategory === cat ? CATEGORY_COLORS[cat] : 'transparent',
+                }}
                 onClick={() => handleCategoryClick(cat)}
               >
                 <span className="tag-category-card__name">{cat}</span>
@@ -536,16 +576,29 @@ export default function BacklinkPanel() {
                     const related = findRelatedNotes(ref.path, ref.tags)
                     return (
                       <div key={ref.path} className="tag-detail__item">
-                        <div className="tag-detail__item-main" onClick={() => openNote(ref.path)} onContextMenu={(e) => handleContextMenu(e, ref.path)}>
+                        <div
+                          className="tag-detail__item-main"
+                          onClick={() => openNote(ref.path)}
+                          onContextMenu={e => handleContextMenu(e, ref.path)}
+                        >
                           <span className="tag-detail__item-title">{ref.title}</span>
                           <div className="tag-detail__item-meta">
                             {ref.date && <span>{ref.date}</span>}
                             {ref.show && <span>{ref.show}</span>}
-                            {ref.category && <span style={{ color: CATEGORY_COLORS[ref.category] || 'inherit' }}>{ref.category}</span>}
+                            {ref.category && (
+                              <span style={{ color: CATEGORY_COLORS[ref.category] || 'inherit' }}>
+                                {ref.category}
+                              </span>
+                            )}
                           </div>
                           <div className="tag-detail__item-tags">
                             {ref.tags.map(t => (
-                              <span key={t} className={`tag-detail__tag ${t === selectedTag ? 'is-highlight' : ''}`}>{t}</span>
+                              <span
+                                key={t}
+                                className={`tag-detail__tag ${t === selectedTag ? 'is-highlight' : ''}`}
+                              >
+                                {t}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -557,10 +610,12 @@ export default function BacklinkPanel() {
                                 key={r.path}
                                 className="tag-detail__related-item"
                                 onClick={() => openNote(r.path)}
-                                onContextMenu={(e) => handleContextMenu(e, r.path)}
+                                onContextMenu={e => handleContextMenu(e, r.path)}
                               >
                                 <span>{r.title}</span>
-                                <span className="tag-detail__related-shared">{r.sharedTags.length} 个共同标签</span>
+                                <span className="tag-detail__related-shared">
+                                  {r.sharedTags.length} 个共同标签
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -576,9 +631,13 @@ export default function BacklinkPanel() {
         <>
           {/* Stats bar */}
           <div className="backlink-panel__stats">
-            <span className="backlink-panel__stat"><strong>{totalEntities}</strong> 个实体</span>
+            <span className="backlink-panel__stat">
+              <strong>{totalEntities}</strong> 个实体
+            </span>
             <span className="backlink-panel__stat-sep">·</span>
-            <span className="backlink-panel__stat"><strong>{totalLinks}</strong> 条关联</span>
+            <span className="backlink-panel__stat">
+              <strong>{totalLinks}</strong> 条关联
+            </span>
           </div>
 
           {/* Search */}
@@ -615,172 +674,347 @@ export default function BacklinkPanel() {
 
           {/* Split: entity list + detail */}
           <div className="backlink-split">
-        {/* Left: entity list */}
-        <div className="backlink-split__left">
-          {filteredEntities.length === 0 ? (
-            <div className="backlink-split__empty">
-              {index.length === 0 ? (
-                <>
-                  <Lightbulb size={20} style={{ opacity: 0.3 }} />
-                  <span>处理播客后自动生成</span>
-                </>
-              ) : (
-                <span>未找到匹配</span>
-              )}
-            </div>
-          ) : (
-            filteredEntities.map(entry => {
-              const isActive = selectedEntity === entry.entityName
-              return (
-                <button
-                  key={`${entry.entityType}-${entry.entityName}`}
-                  className={`backlink-mini ${isActive ? 'is-active' : ''}`}
-                  onClick={() => handleEntityClick(entry.entityName)}
-                >
-                  <span className="backlink-mini__name">{entry.entityName}</span>
-                  <span className="backlink-mini__badge">{entry.podcastRefs.length}</span>
-                </button>
-              )
-            })
-          )}
-        </div>
-
-        {/* Right: detail, compare, or graph view */}
-        <div className="backlink-split__right">
-          {selectedEntry ? (
-            graphMode ? (
-              /* ── Graph View ── */
-              <div className="backlink-graph">
-                <div className="backlink-graph__header">
-                  <span className="backlink-graph__title">关系图谱 · {selectedEntity}</span>
-                  <button className="backlink-graph__close" onClick={toggleGraphMode}>
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="backlink-graph__canvas-wrap">
-                  <svg className="backlink-graph__svg" viewBox="0 0 400 320" width="100%" height="100%">
-                    {/* Edges */}
-                    {graphData.edges.map((edge, i) => {
-                      const sourceNode = graphData.nodes.find(n => n.name === edge.source)
-                      const targetNode = graphData.nodes.find(n => n.name === edge.target)
-                      if (!sourceNode || !targetNode) return null
-                      const isHighlighted = hoveredNode === edge.source || hoveredNode === edge.target
-                      const thickness = Math.max(1, Math.min(4, edge.count))
-                      return (
-                        <line
-                          key={`edge-${i}`}
-                          x1={sourceNode.x}
-                          y1={sourceNode.y}
-                          x2={targetNode.x}
-                          y2={targetNode.y}
-                          stroke={isHighlighted ? 'var(--accent)' : 'var(--border)'}
-                          strokeWidth={thickness}
-                          opacity={isHighlighted ? 0.8 : 0.3}
-                          className="backlink-graph__edge"
-                        />
-                      )
-                    })}
-                    {/* Nodes */}
-                    {graphData.nodes.map(node => {
-                      const meta = TYPE_META[node.type] || TYPE_META.concepts
-                      const isCenter = node.name === selectedEntity
-                      const isHovered = hoveredNode === node.name
-                      const isConnected = hoveredNode && graphData.edges.some(
-                        e => (e.source === hoveredNode && e.target === node.name) ||
-                             (e.target === hoveredNode && e.source === node.name)
-                      )
-                      const dimmed = hoveredNode && !isHovered && !isConnected && !isCenter
-                      return (
-                        <g
-                          key={`node-${node.name}`}
-                          className="backlink-graph__node"
-                          style={{ cursor: 'pointer', opacity: dimmed ? 0.2 : 1 }}
-                          onClick={() => handleGraphNodeClick(node.name)}
-                          onMouseEnter={() => setHoveredNode(node.name)}
-                          onMouseLeave={() => setHoveredNode(null)}
-                        >
-                          <circle
-                            cx={node.x}
-                            cy={node.y}
-                            r={node.radius}
-                            fill={isCenter ? 'var(--accent)' : 'var(--bg-card)'}
-                            stroke={meta.color}
-                            strokeWidth={isCenter ? 3 : 2}
-                          />
-                          <text
-                            x={node.x}
-                            y={node.y + node.radius + 14}
-                            textAnchor="middle"
-                            fill="var(--text-primary)"
-                            fontSize={isCenter ? 11 : 10}
-                            fontWeight={isCenter ? 600 : 400}
-                          >
-                            {node.name.length > 6 ? node.name.slice(0, 6) + '…' : node.name}
-                          </text>
-                          <text
-                            x={node.x}
-                            y={node.y + 4}
-                            textAnchor="middle"
-                            fill={isCenter ? '#fff' : 'var(--text-muted)'}
-                            fontSize={9}
-                            fontWeight={600}
-                          >
-                            {node.refCount}
-                          </text>
-                        </g>
-                      )
-                    })}
-                  </svg>
-                </div>
-                <div className="backlink-graph__legend">
-                  {TYPE_ORDER.map(type => {
-                    const meta = TYPE_META[type]
-                    return (
-                      <span key={type} className="backlink-graph__legend-item">
-                        <span className="backlink-graph__legend-dot" style={{ background: meta.color }} />
-                        {meta.label}
-                      </span>
-                    )
-                  })}
-                  <span className="backlink-graph__legend-item">
-                    <span className="backlink-graph__legend-line" />
-                    共现次数
-                  </span>
-                </div>
-                <div className="backlink-graph__tip">点击节点查看该实体详情</div>
-              </div>
-            ) : compareMode ? (
-              /* ── Compare View ── */
-              <div className="backlink-compare">
-                <div className="backlink-compare__header">
-                  <span className="backlink-compare__title">选择 2-3 期对比</span>
-                  <button className="backlink-compare__close" onClick={toggleCompareMode}>
-                    <X size={14} />
-                  </button>
-                </div>
-
-                {/* Selection bar */}
-                <div className="backlink-compare__bar">
-                  <span className="backlink-compare__bar-label">
-                    已选 <strong>{compareSelections.size}</strong> / 3
-                  </span>
-                  {compareSelections.size >= 2 && (
-                    <span className="backlink-compare__hint">选择完成，点击下方卡片查看对比</span>
+            {/* Left: entity list */}
+            <div className="backlink-split__left">
+              {filteredEntities.length === 0 ? (
+                <div className="backlink-split__empty">
+                  {index.length === 0 ? (
+                    <>
+                      <Lightbulb size={20} style={{ opacity: 0.3 }} />
+                      <span>处理播客后自动生成</span>
+                    </>
+                  ) : (
+                    <span>未找到匹配</span>
                   )}
                 </div>
+              ) : (
+                filteredEntities.map(entry => {
+                  const isActive = selectedEntity === entry.entityName
+                  return (
+                    <button
+                      key={`${entry.entityType}-${entry.entityName}`}
+                      className={`backlink-mini ${isActive ? 'is-active' : ''}`}
+                      onClick={() => handleEntityClick(entry.entityName)}
+                    >
+                      <span className="backlink-mini__name">{entry.entityName}</span>
+                      <span className="backlink-mini__badge">{entry.podcastRefs.length}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
 
-                {/* Selectable timeline */}
-                <div className="backlink-compare__list">
-                  {selectedEntry.podcastRefs.map(ref => {
-                    const isSelected = compareSelections.has(ref.path)
-                    return (
+            {/* Right: detail, compare, or graph view */}
+            <div className="backlink-split__right">
+              {selectedEntry ? (
+                graphMode ? (
+                  /* ── Graph View ── */
+                  <div className="backlink-graph">
+                    <div className="backlink-graph__header">
+                      <span className="backlink-graph__title">关系图谱 · {selectedEntity}</span>
+                      <button className="backlink-graph__close" onClick={toggleGraphMode}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="backlink-graph__canvas-wrap">
+                      <svg
+                        className="backlink-graph__svg"
+                        viewBox="0 0 400 320"
+                        width="100%"
+                        height="100%"
+                      >
+                        {/* Edges */}
+                        {graphData.edges.map((edge, i) => {
+                          const sourceNode = graphData.nodes.find(n => n.name === edge.source)
+                          const targetNode = graphData.nodes.find(n => n.name === edge.target)
+                          if (!sourceNode || !targetNode) return null
+                          const isHighlighted =
+                            hoveredNode === edge.source || hoveredNode === edge.target
+                          const thickness = Math.max(1, Math.min(4, edge.count))
+                          return (
+                            <line
+                              key={`edge-${i}`}
+                              x1={sourceNode.x}
+                              y1={sourceNode.y}
+                              x2={targetNode.x}
+                              y2={targetNode.y}
+                              stroke={isHighlighted ? 'var(--accent)' : 'var(--border)'}
+                              strokeWidth={thickness}
+                              opacity={isHighlighted ? 0.8 : 0.3}
+                              className="backlink-graph__edge"
+                            />
+                          )
+                        })}
+                        {/* Nodes */}
+                        {graphData.nodes.map(node => {
+                          const meta = TYPE_META[node.type] || TYPE_META.concepts
+                          const isCenter = node.name === selectedEntity
+                          const isHovered = hoveredNode === node.name
+                          const isConnected =
+                            hoveredNode &&
+                            graphData.edges.some(
+                              e =>
+                                (e.source === hoveredNode && e.target === node.name) ||
+                                (e.target === hoveredNode && e.source === node.name),
+                            )
+                          const dimmed = hoveredNode && !isHovered && !isConnected && !isCenter
+                          return (
+                            <g
+                              key={`node-${node.name}`}
+                              className="backlink-graph__node"
+                              style={{ cursor: 'pointer', opacity: dimmed ? 0.2 : 1 }}
+                              onClick={() => handleGraphNodeClick(node.name)}
+                              onMouseEnter={() => setHoveredNode(node.name)}
+                              onMouseLeave={() => setHoveredNode(null)}
+                            >
+                              <circle
+                                cx={node.x}
+                                cy={node.y}
+                                r={node.radius}
+                                fill={isCenter ? 'var(--accent)' : 'var(--bg-card)'}
+                                stroke={meta.color}
+                                strokeWidth={isCenter ? 3 : 2}
+                              />
+                              <text
+                                x={node.x}
+                                y={node.y + node.radius + 14}
+                                textAnchor="middle"
+                                fill="var(--text-primary)"
+                                fontSize={isCenter ? 11 : 10}
+                                fontWeight={isCenter ? 600 : 400}
+                              >
+                                {node.name.length > 6 ? node.name.slice(0, 6) + '…' : node.name}
+                              </text>
+                              <text
+                                x={node.x}
+                                y={node.y + 4}
+                                textAnchor="middle"
+                                fill={isCenter ? '#fff' : 'var(--text-muted)'}
+                                fontSize={9}
+                                fontWeight={600}
+                              >
+                                {node.refCount}
+                              </text>
+                            </g>
+                          )
+                        })}
+                      </svg>
+                    </div>
+                    <div className="backlink-graph__legend">
+                      {TYPE_ORDER.map(type => {
+                        const meta = TYPE_META[type]
+                        return (
+                          <span key={type} className="backlink-graph__legend-item">
+                            <span
+                              className="backlink-graph__legend-dot"
+                              style={{ background: meta.color }}
+                            />
+                            {meta.label}
+                          </span>
+                        )
+                      })}
+                      <span className="backlink-graph__legend-item">
+                        <span className="backlink-graph__legend-line" />
+                        共现次数
+                      </span>
+                    </div>
+                    <div className="backlink-graph__tip">点击节点查看该实体详情</div>
+                  </div>
+                ) : compareMode ? (
+                  /* ── Compare View ── */
+                  <div className="backlink-compare">
+                    <div className="backlink-compare__header">
+                      <span className="backlink-compare__title">选择 2-3 期对比</span>
+                      <button className="backlink-compare__close" onClick={toggleCompareMode}>
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Selection bar */}
+                    <div className="backlink-compare__bar">
+                      <span className="backlink-compare__bar-label">
+                        已选 <strong>{compareSelections.size}</strong> / 3
+                      </span>
+                      {compareSelections.size >= 2 && (
+                        <span className="backlink-compare__hint">
+                          选择完成，点击下方卡片查看对比
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Selectable timeline */}
+                    <div className="backlink-compare__list">
+                      {selectedEntry.podcastRefs.map(ref => {
+                        const isSelected = compareSelections.has(ref.path)
+                        return (
+                          <div
+                            key={ref.path}
+                            className={`backlink-tl ${isSelected ? 'backlink-tl--selected' : ''}`}
+                            onClick={() => toggleCompareSelection(ref.path)}
+                          >
+                            <div className="backlink-tl__checkbox">
+                              {isSelected && <Check size={12} />}
+                            </div>
+                            <div className="backlink-tl__body">
+                              <div className="backlink-tl__meta">
+                                {ref.date && <span className="backlink-tl__date">{ref.date}</span>}
+                                {ref.episode && (
+                                  <>
+                                    <span className="backlink-tl__sep">·</span>
+                                    <span className="backlink-tl__ep">{ref.episode}</span>
+                                  </>
+                                )}
+                                {ref.show && (
+                                  <>
+                                    <span className="backlink-tl__sep">·</span>
+                                    <span className="backlink-tl__show">{ref.show}</span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="backlink-tl__title">{ref.title}</div>
+                              {ref.context ? (
+                                <div className="backlink-tl__ctx">{ref.context}</div>
+                              ) : (
+                                <div className="backlink-tl__ctx backlink-tl__ctx--empty">
+                                  无法提取上下文
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Diff view when 2+ selected */}
+                    {compareRefs.length >= 2 && (
+                      <div className="backlink-compare__diff">
+                        <div className="backlink-detail__section-label">观点对比</div>
+                        <div
+                          className="backlink-compare__columns"
+                          style={{ gridTemplateColumns: `repeat(${compareRefs.length}, 1fr)` }}
+                        >
+                          {compareRefs.map((ref, i) => {
+                            const isLast = i === compareRefs.length - 1
+                            const prevRef = i > 0 ? compareRefs[i - 1] : null
+                            const segments =
+                              prevRef && prevRef.context && ref.context
+                                ? computeSentenceDiff(prevRef.context, ref.context)
+                                : null
+
+                            return (
+                              <div key={ref.path} className="backlink-compare__col">
+                                <div className="backlink-compare__col-header">
+                                  <span className="backlink-compare__col-date">{ref.date}</span>
+                                  {ref.episode && (
+                                    <span className="backlink-compare__col-ep">{ref.episode}</span>
+                                  )}
+                                </div>
+                                <div className="backlink-compare__col-title">{ref.title}</div>
+                                <div className="backlink-compare__col-meta-row">
+                                  {ref.show && <span>{ref.show}</span>}
+                                  {ref.category && (
+                                    <span
+                                      style={{
+                                        color: CATEGORY_COLORS[ref.category] || 'var(--text-muted)',
+                                      }}
+                                    >
+                                      {ref.category}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="backlink-compare__col-context">
+                                  {segments ? (
+                                    segments.map((seg, si) => (
+                                      <span
+                                        key={si}
+                                        className={`backlink-diff__seg backlink-diff__seg--${seg.type}`}
+                                      >
+                                        {seg.text}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="backlink-compare__col-ctx">
+                                      {ref.context || '无上下文'}
+                                    </span>
+                                  )}
+                                </div>
+                                {isLast && (
+                                  <button
+                                    className="backlink-compare__open-btn"
+                                    onClick={() => openNote(ref.path)}
+                                  >
+                                    打开笔记
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {compareRefs.length >= 2 && compareRefs.some(r => r.context) && (
+                          <div className="backlink-compare__legend-diff">
+                            <span className="backlink-compare__legend-item">
+                              <span className="backlink-diff__dot backlink-diff__dot--added" />
+                              新增观点
+                            </span>
+                            <span className="backlink-compare__legend-item">
+                              <span className="backlink-diff__dot backlink-diff__dot--removed" />
+                              上期提及
+                            </span>
+                            <span className="backlink-compare__legend-item">
+                              <span className="backlink-diff__dot backlink-diff__dot--common" />
+                              持续讨论
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* ── Normal Detail View ── */
+                  <>
+                    {/* Entity header */}
+                    <div className="backlink-detail__header">
+                      {(() => {
+                        const meta = TYPE_META[selectedEntry.entityType] || TYPE_META.concepts
+                        const Icon = meta.icon
+                        return <Icon size={16} style={{ color: meta.color }} />
+                      })()}
+                      <span className="backlink-detail__name">{selectedEntry.entityName}</span>
+                      <span className="backlink-detail__badge">
+                        {selectedEntry.podcastRefs.length}
+                      </span>
+                      {coEntities.length > 0 && (
+                        <button
+                          className="backlink-detail__graph-btn"
+                          onClick={toggleGraphMode}
+                          title="查看关系图谱"
+                        >
+                          <Network size={12} />
+                          图谱
+                        </button>
+                      )}
+                      {selectedEntry.podcastRefs.length >= 2 && (
+                        <button
+                          className="backlink-detail__compare-btn"
+                          onClick={toggleCompareMode}
+                          title="对比不同期的观点"
+                        >
+                          对比
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="backlink-detail__section-label">时间线</div>
+                    {selectedEntry.podcastRefs.map(ref => (
                       <div
                         key={ref.path}
-                        className={`backlink-tl ${isSelected ? 'backlink-tl--selected' : ''}`}
-                        onClick={() => toggleCompareSelection(ref.path)}
+                        className="backlink-tl"
+                        onClick={() => openNote(ref.path)}
+                        onContextMenu={e => handleContextMenu(e, ref.path)}
                       >
-                        <div className="backlink-tl__checkbox">
-                          {isSelected && <Check size={12} />}
+                        <div className="backlink-tl__dot-line">
+                          <span className="backlink-tl__dot" />
                         </div>
                         <div className="backlink-tl__body">
                           <div className="backlink-tl__meta">
@@ -797,212 +1031,86 @@ export default function BacklinkPanel() {
                                 <span className="backlink-tl__show">{ref.show}</span>
                               </>
                             )}
+                            {ref.category && (
+                              <span
+                                className="backlink-tl__cat"
+                                style={{
+                                  color: CATEGORY_COLORS[ref.category] || 'var(--text-muted)',
+                                }}
+                              >
+                                {ref.category}
+                              </span>
+                            )}
                           </div>
                           <div className="backlink-tl__title">{ref.title}</div>
                           {ref.context ? (
                             <div className="backlink-tl__ctx">{ref.context}</div>
                           ) : (
-                            <div className="backlink-tl__ctx backlink-tl__ctx--empty">无法提取上下文</div>
+                            <div className="backlink-tl__ctx backlink-tl__ctx--empty">
+                              无法提取上下文
+                            </div>
                           )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+                    ))}
 
-                {/* Diff view when 2+ selected */}
-                {compareRefs.length >= 2 && (
-                  <div className="backlink-compare__diff">
-                    <div className="backlink-detail__section-label">观点对比</div>
-                    <div className="backlink-compare__columns" style={{ gridTemplateColumns: `repeat(${compareRefs.length}, 1fr)` }}>
-                      {compareRefs.map((ref, i) => {
-                        const isLast = i === compareRefs.length - 1
-                        const prevRef = i > 0 ? compareRefs[i - 1] : null
-                        const segments = prevRef && prevRef.context && ref.context
-                          ? computeSentenceDiff(prevRef.context, ref.context)
-                          : null
-
-                        return (
-                          <div key={ref.path} className="backlink-compare__col">
-                            <div className="backlink-compare__col-header">
-                              <span className="backlink-compare__col-date">{ref.date}</span>
-                              {ref.episode && <span className="backlink-compare__col-ep">{ref.episode}</span>}
-                            </div>
-                            <div className="backlink-compare__col-title">{ref.title}</div>
-                            <div className="backlink-compare__col-meta-row">
-                              {ref.show && <span>{ref.show}</span>}
-                              {ref.category && <span style={{ color: CATEGORY_COLORS[ref.category] || 'var(--text-muted)' }}>{ref.category}</span>}
-                            </div>
-                            <div className="backlink-compare__col-context">
-                              {segments ? (
-                                segments.map((seg, si) => (
-                                  <span
-                                    key={si}
-                                    className={`backlink-diff__seg backlink-diff__seg--${seg.type}`}
-                                  >
-                                    {seg.text}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="backlink-compare__col-ctx">{ref.context || '无上下文'}</span>
-                              )}
-                            </div>
-                            {isLast && (
-                              <button className="backlink-compare__open-btn" onClick={() => openNote(ref.path)}>
-                                打开笔记
+                    {/* Co-occurrence */}
+                    {coEntities.length > 0 && (
+                      <>
+                        <div className="backlink-detail__section-label">共现实体</div>
+                        <div className="backlink-co">
+                          {displayedCo.map(co => {
+                            const coMeta = TYPE_META[co.type] || TYPE_META.concepts
+                            const CoIcon = coMeta.icon
+                            return (
+                              <button
+                                key={co.name}
+                                className="backlink-co__item"
+                                onClick={() => handleCoEntityClick(co.name, co.type)}
+                              >
+                                <CoIcon size={12} style={{ color: coMeta.color }} />
+                                <span>{co.name}</span>
+                                <span className="backlink-co__count">{co.count}</span>
+                                <ChevronRight size={10} style={{ opacity: 0.3 }} />
                               </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {compareRefs.length >= 2 && compareRefs.some(r => r.context) && (
-                      <div className="backlink-compare__legend-diff">
-                        <span className="backlink-compare__legend-item">
-                          <span className="backlink-diff__dot backlink-diff__dot--added" />
-                          新增观点
-                        </span>
-                        <span className="backlink-compare__legend-item">
-                          <span className="backlink-diff__dot backlink-diff__dot--removed" />
-                          上期提及
-                        </span>
-                        <span className="backlink-compare__legend-item">
-                          <span className="backlink-diff__dot backlink-diff__dot--common" />
-                          持续讨论
-                        </span>
-                      </div>
+                            )
+                          })}
+                          {!showAllCo && coEntities.length > 5 && (
+                            <button
+                              className="backlink-co__more"
+                              onClick={() => setShowAllCo(true)}
+                            >
+                              查看更多（{coEntities.length - 5}）
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* ── Normal Detail View ── */
-              <>
-                {/* Entity header */}
-                <div className="backlink-detail__header">
-                  {(() => {
-                    const meta = TYPE_META[selectedEntry.entityType] || TYPE_META.concepts
-                    const Icon = meta.icon
-                    return <Icon size={16} style={{ color: meta.color }} />
-                  })()}
-                  <span className="backlink-detail__name">{selectedEntry.entityName}</span>
-                  <span className="backlink-detail__badge">{selectedEntry.podcastRefs.length}</span>
-                  {coEntities.length > 0 && (
-                    <button className="backlink-detail__graph-btn" onClick={toggleGraphMode} title="查看关系图谱">
-                      <Network size={12} />
-                      图谱
-                    </button>
-                  )}
-                  {selectedEntry.podcastRefs.length >= 2 && (
-                    <button className="backlink-detail__compare-btn" onClick={toggleCompareMode} title="对比不同期的观点">
-                      对比
-                    </button>
-                  )}
-                </div>
-
-                {/* Timeline */}
-                <div className="backlink-detail__section-label">时间线</div>
-                {selectedEntry.podcastRefs.map(ref => (
-                  <div
-                    key={ref.path}
-                    className="backlink-tl"
-                    onClick={() => openNote(ref.path)}
-                    onContextMenu={e => handleContextMenu(e, ref.path)}
-                  >
-                    <div className="backlink-tl__dot-line">
-                      <span className="backlink-tl__dot" />
-                    </div>
-                    <div className="backlink-tl__body">
-                      <div className="backlink-tl__meta">
-                        {ref.date && <span className="backlink-tl__date">{ref.date}</span>}
-                        {ref.episode && (
-                          <>
-                            <span className="backlink-tl__sep">·</span>
-                            <span className="backlink-tl__ep">{ref.episode}</span>
-                          </>
-                        )}
-                        {ref.show && (
-                          <>
-                            <span className="backlink-tl__sep">·</span>
-                            <span className="backlink-tl__show">{ref.show}</span>
-                          </>
-                        )}
-                        {ref.category && (
-                          <span
-                            className="backlink-tl__cat"
-                            style={{ color: CATEGORY_COLORS[ref.category] || 'var(--text-muted)' }}
-                          >
-                            {ref.category}
-                          </span>
-                        )}
-                      </div>
-                      <div className="backlink-tl__title">{ref.title}</div>
-                      {ref.context ? (
-                        <div className="backlink-tl__ctx">{ref.context}</div>
-                      ) : (
-                        <div className="backlink-tl__ctx backlink-tl__ctx--empty">无法提取上下文</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Co-occurrence */}
-                {coEntities.length > 0 && (
-                  <>
-                    <div className="backlink-detail__section-label">共现实体</div>
-                    <div className="backlink-co">
-                      {displayedCo.map(co => {
-                        const coMeta = TYPE_META[co.type] || TYPE_META.concepts
-                        const CoIcon = coMeta.icon
-                        return (
-                          <button
-                            key={co.name}
-                            className="backlink-co__item"
-                            onClick={() => handleCoEntityClick(co.name, co.type)}
-                          >
-                            <CoIcon size={12} style={{ color: coMeta.color }} />
-                            <span>{co.name}</span>
-                            <span className="backlink-co__count">{co.count}</span>
-                            <ChevronRight size={10} style={{ opacity: 0.3 }} />
-                          </button>
-                        )
-                      })}
-                      {!showAllCo && coEntities.length > 5 && (
-                        <button
-                          className="backlink-co__more"
-                          onClick={() => setShowAllCo(true)}
-                        >
-                          查看更多（{coEntities.length - 5}）
-                        </button>
-                      )}
-                    </div>
                   </>
-                )}
-              </>
-            )
-          ) : (
-            <div className="backlink-split__empty">
-              <Lightbulb size={24} style={{ opacity: 0.2 }} />
-              <span>选择左侧实体查看详情</span>
+                )
+              ) : (
+                <div className="backlink-split__empty">
+                  <Lightbulb size={24} style={{ opacity: 0.2 }} />
+                  <span>选择左侧实体查看详情</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Legend */}
-      <div className="backlink-panel__legend">
-        {TYPE_ORDER.map(type => {
-          const meta = TYPE_META[type]
-          const Icon = meta.icon
-          return (
-            <span key={type} className="backlink-panel__legend-item">
-              <Icon size={10} style={{ color: meta.color }} />
-              {meta.label} {typeCounts[type]}
-            </span>
-          )
-        })}
-      </div>
-      </>
+          {/* Legend */}
+          <div className="backlink-panel__legend">
+            {TYPE_ORDER.map(type => {
+              const meta = TYPE_META[type]
+              const Icon = meta.icon
+              return (
+                <span key={type} className="backlink-panel__legend-item">
+                  <Icon size={10} style={{ color: meta.color }} />
+                  {meta.label} {typeCounts[type]}
+                </span>
+              )
+            })}
+          </div>
+        </>
       )}
 
       <style>{`

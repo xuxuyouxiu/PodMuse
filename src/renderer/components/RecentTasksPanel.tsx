@@ -21,7 +21,16 @@ const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
   completed: { label: '已完成' },
 }
 
-export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, processing, logseqDir, notionConfigured, onToast }: Props) {
+export default function RecentTasksPanel({
+  tasks,
+  onResume,
+  onReplay,
+  onDelete,
+  processing,
+  logseqDir,
+  notionConfigured,
+  onToast,
+}: Props) {
   return (
     <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
@@ -35,7 +44,9 @@ export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, 
       <div className="task-panel-list">
         {tasks.length === 0 && (
           <div className="task-panel-empty">
-            <div className="task-panel-empty-icon"><Clock size={24} /></div>
+            <div className="task-panel-empty-icon">
+              <Clock size={24} />
+            </div>
             <div className="task-panel-empty-title">暂无历史记录</div>
             <div className="task-panel-empty-copy">已结束的任务会归档到这里</div>
           </div>
@@ -49,13 +60,32 @@ export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, 
             <article key={task.id} className="task-card">
               <div className="task-card-header">
                 <div className="task-card-copy">
-                  <div className="task-card-title">{cleanTitle(task.title || '') || cleanTitle(task.url || '') || task.url}</div>
+                  <div className="task-card-title">
+                    {cleanTitle(task.title || '') || cleanTitle(task.url || '') || task.url}
+                  </div>
+                  {task.status === 'error' && task.error && (
+                    <div className="task-card-error">{task.error}</div>
+                  )}
                 </div>
                 <span className={`task-status-badge ${task.status}`}>{meta.label}</span>
               </div>
               <div className="task-card-actions">
-                {canResume && <button onClick={() => onResume(task)} disabled={processing} className="recent-task-primary"><Play size={12} /> 恢复</button>}
-                <button onClick={() => onReplay(task)} disabled={processing} className="recent-task-secondary"><RotateCcw size={12} /> 重新处理</button>
+                {canResume && (
+                  <button
+                    onClick={() => onResume(task)}
+                    disabled={processing}
+                    className="recent-task-primary"
+                  >
+                    <Play size={12} /> 恢复
+                  </button>
+                )}
+                <button
+                  onClick={() => onReplay(task)}
+                  disabled={processing}
+                  className="recent-task-secondary"
+                >
+                  <RotateCcw size={12} /> 重新处理
+                </button>
                 {canExport && (
                   <ExportMenu
                     taskId={task.id}
@@ -64,7 +94,13 @@ export default function RecentTasksPanel({ tasks, onResume, onReplay, onDelete, 
                     onToast={onToast}
                   />
                 )}
-                <button onClick={() => onDelete(task.id)} disabled={processing} className="recent-task-danger"><Trash2 size={12} /> 删除</button>
+                <button
+                  onClick={() => onDelete(task.id)}
+                  disabled={processing}
+                  className="recent-task-danger"
+                >
+                  <Trash2 size={12} /> 删除
+                </button>
               </div>
             </article>
           )

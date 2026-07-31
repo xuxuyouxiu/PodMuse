@@ -25,9 +25,10 @@ export class ProcessedMessageStore {
   hasIncompleteRecentTask(url: string, episodeId: string | null): boolean {
     const state = loadState()
     const allTasks = [...(state.activeTasks || []), ...(state.recentTasks || [])]
-    const matched = allTasks.some(task =>
-      task.status !== 'completed'
-      && ((episodeId && task.episodeId === episodeId) || task.url === url),
+    const matched = allTasks.some(
+      task =>
+        task.status !== 'completed' &&
+        ((episodeId && task.episodeId === episodeId) || task.url === url),
     )
     return matched
   }

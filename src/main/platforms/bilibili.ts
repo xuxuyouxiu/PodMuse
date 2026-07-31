@@ -2,7 +2,8 @@
 
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
 interface BiliViewData {
   bvid: string
@@ -53,7 +54,7 @@ export class BilibiliAdapter implements PlatformAdapter {
         ...(viewData.desc ? { description: viewData.desc.slice(0, 500) } : {}),
       },
       headers: {
-        'Referer': 'https://www.bilibili.com',
+        Referer: 'https://www.bilibili.com',
         'User-Agent': UA,
       },
     }
@@ -69,12 +70,23 @@ export class BilibiliAdapter implements PlatformAdapter {
   }
 
   private async fetchViewInfo(bvId: string, signal?: AbortSignal): Promise<BiliViewData> {
-    const resp = await fetch(
-      `https://api.bilibili.com/x/web-interface/view?bvid=${bvId}`,
-      { headers: { 'User-Agent': UA, 'Referer': 'https://www.bilibili.com' }, signal },
-    )
+    const resp = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvId}`, {
+      headers: { 'User-Agent': UA, Referer: 'https://www.bilibili.com' },
+      signal,
+    })
     if (!resp.ok) throw new Error(`B 站 API 请求失败: HTTP ${resp.status}`)
-    const json = await resp.json() as { code: number; message: string; data: { bvid: string; title: string; duration: number; pages: { cid: number }[]; owner?: { name: string }; desc?: string } }
+    const json = (await resp.json()) as {
+      code: number
+      message: string
+      data: {
+        bvid: string
+        title: string
+        duration: number
+        pages: { cid: number }[]
+        owner?: { name: string }
+        desc?: string
+      }
+    }
     if (json.code !== 0) throw new Error(`B 站 API 错误: ${json.message} (code=${json.code})`)
 
     const d = json.data
@@ -84,24 +96,41 @@ export class BilibiliAdapter implements PlatformAdapter {
     let title = d.title || bvId
     title = title.replace(/[_\-|]\s*(哔哩哔哩|bilibili|B站).*$/i, '').trim() || title
 
-    return { bvid: d.bvid, title, duration: d.duration, cid: d.pages[0].cid, ownerName: d.owner?.name, desc: d.desc }
+    return {
+      bvid: d.bvid,
+      title,
+      duration: d.duration,
+      cid: d.pages[0].cid,
+      ownerName: d.owner?.name,
+      desc: d.desc,
+    }
   }
 
-  private async fetchDashAudio(bvId: string, cid: number, signal?: AbortSignal): Promise<BiliAudioStream> {
+  private async fetchDashAudio(
+    bvId: string,
+    cid: number,
+    signal?: AbortSignal,
+  ): Promise<BiliAudioStream> {
     // fnval=16 → DASH 格式, fnver=0, fourk=1
     const resp = await fetch(
       `https://api.bilibili.com/x/player/playurl?bvid=${bvId}&cid=${cid}&fnval=16&fnver=0&fourk=1`,
-      { headers: { 'User-Agent': UA, 'Referer': 'https://www.bilibili.com' }, signal },
+      { headers: { 'User-Agent': UA, Referer: 'https://www.bilibili.com' }, signal },
     )
     if (!resp.ok) throw new Error(`B 站 playurl API 失败: HTTP ${resp.status}`)
-    const json = await resp.json() as { code: number; message: string; data: { dash?: { audio?: { id: number; baseUrl: string; bandwidth: number; codecs: string }[] } } }
+    const json = (await resp.json()) as {
+      code: number
+      message: string
+      data: {
+        dash?: { audio?: { id: number; baseUrl: string; bandwidth: number; codecs: string }[] }
+      }
+    }
     if (json.code !== 0) throw new Error(`B 站 playurl 错误: ${json.message}`)
 
     const audios = json.data?.dash?.audio
     if (!audios?.length) throw new Error('B 站视频无音频流（可能需要登录）')
 
     // 选带宽最高的音频流（音质最好）
-    const best = audios.reduce((a, b) => a.bandwidth > b.bandwidth ? a : b)
+    const best = audios.reduce((a, b) => (a.bandwidth > b.bandwidth ? a : b))
     return { id: best.id, baseUrl: best.baseUrl, bandwidth: best.bandwidth, codecs: best.codecs }
   }
 

@@ -20,7 +20,12 @@ interface FeishuApiResponse {
   tenant_access_token?: string
 }
 
-async function feishuApi(method: string, url: string, token: string | null, body?: unknown): Promise<FeishuApiResponse> {
+async function feishuApi(
+  method: string,
+  url: string,
+  token: string | null,
+  body?: unknown,
+): Promise<FeishuApiResponse> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   try {
@@ -30,10 +35,10 @@ async function feishuApi(method: string, url: string, token: string | null, body
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(15000),
     })
-    return await resp.json() as FeishuApiResponse
+    return (await resp.json()) as FeishuApiResponse
   } catch (e: unknown) {
     const isTimeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
-    const msg = isTimeout ? '请求超时（15s）' : (e instanceof Error ? e.message : String(e))
+    const msg = isTimeout ? '请求超时（15s）' : e instanceof Error ? e.message : String(e)
     return { code: -1, msg: `网络请求失败: ${msg}` }
   }
 }
@@ -58,7 +63,10 @@ export class FeishuClient {
       this.logFunc('⚠ 飞书连接失败: App ID 或 App Secret 未配置，请在设置中填写飞书凭据')
       return false
     }
-    const result = await feishuApi('POST', FEISHU_AUTH_URL, null, { app_id: this.appId, app_secret: this.appSecret })
+    const result = await feishuApi('POST', FEISHU_AUTH_URL, null, {
+      app_id: this.appId,
+      app_secret: this.appSecret,
+    })
     if (result.code === 0) {
       this.token = result.tenant_access_token ?? null
       this.tokenExpires = Date.now() + TOKEN_TTL
@@ -86,7 +94,12 @@ export class FeishuClient {
       msg_type: 'text',
       content: JSON.stringify({ text }),
     }
-    const result = await feishuApi('POST', `${FEISHU_SEND_URL}?receive_id_type=chat_id`, this.token, body)
+    const result = await feishuApi(
+      'POST',
+      `${FEISHU_SEND_URL}?receive_id_type=chat_id`,
+      this.token,
+      body,
+    )
     if (result.code !== 0) {
       this.logFunc(`sendMessage 失败: code=${result.code} msg=${result.msg || '无'}`)
       return false

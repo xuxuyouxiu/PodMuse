@@ -2,7 +2,10 @@ import { ipcMain, BrowserWindow } from 'electron'
 import type { BatchQueueService } from '../batch-queue'
 import type { BatchInput } from '@shared/types'
 
-export function registerBatchIPC(mainWindow: BrowserWindow | null, service: BatchQueueService): void {
+export function registerBatchIPC(
+  mainWindow: BrowserWindow | null,
+  service: BatchQueueService,
+): void {
   ipcMain.handle('batch:add', (_e, items: BatchInput[]) => {
     service.addTasks(items)
     return service.getState()

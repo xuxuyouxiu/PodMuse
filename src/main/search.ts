@@ -21,9 +21,9 @@ export interface SearchParams {
     category?: string
     tags?: string[]
     show?: string
-    dateFrom?: string  // YYYY-MM-DD inclusive
-    dateTo?: string    // YYYY-MM-DD inclusive
-    entityRefs?: string[]  // entity names, max 3, OR
+    dateFrom?: string // YYYY-MM-DD inclusive
+    dateTo?: string // YYYY-MM-DD inclusive
+    entityRefs?: string[] // entity names, max 3, OR
   }
   sortBy?: 'score' | 'date_desc' | 'date_asc'
   limit?: number
@@ -37,7 +37,7 @@ export interface SearchResult {
   category?: string
   show?: string
   tags: string[]
-  excerpt: string                // HTML-escaped with <mark>...</mark>
+  excerpt: string // HTML-escaped with <mark>...</mark>
   matchType: ('title' | 'content' | 'tags')[]
   score: number
 }
@@ -58,9 +58,9 @@ export interface SearchResponse {
 
 interface NoteRecord {
   path: string
-  fileName: string                 // without extension
+  fileName: string // without extension
   meta: FrontmatterMeta
-  content: string                  // full content (cached per scan)
+  content: string // full content (cached per scan)
   contentLower: string
   titleLower: string
   tagsLower: string[]
@@ -112,7 +112,9 @@ function buildExcerpt(content: string, contentLower: string, tokens: string[]): 
     // No keyword: show first 160 chars of body (after frontmatter)
     const fmEnd = content.indexOf('\n---', 3)
     const body = fmEnd >= 0 ? content.substring(fmEnd + 4) : content
-    return escapeHtml(body.replace(/\n/g, ' ').trim().slice(0, 160)) + (body.length > 160 ? '...' : '')
+    return (
+      escapeHtml(body.replace(/\n/g, ' ').trim().slice(0, 160)) + (body.length > 160 ? '...' : '')
+    )
   }
 
   // Find first hit position in contentLower
@@ -126,7 +128,9 @@ function buildExcerpt(content: string, contentLower: string, tokens: string[]): 
     // No content hit (only title/tags matched): show first 160 chars of body
     const fmEnd = content.indexOf('\n---', 3)
     const body = fmEnd >= 0 ? content.substring(fmEnd + 4) : content
-    return escapeHtml(body.replace(/\n/g, ' ').trim().slice(0, 160)) + (body.length > 160 ? '...' : '')
+    return (
+      escapeHtml(body.replace(/\n/g, ' ').trim().slice(0, 160)) + (body.length > 160 ? '...' : '')
+    )
   }
 
   const ctxStart = Math.max(0, firstHit - 80)
@@ -173,7 +177,10 @@ function escapeRegex(s: string): string {
 
 // ── Scoring ──
 
-function scoreNote(note: NoteRecord, tokens: string[]): {
+function scoreNote(
+  note: NoteRecord,
+  tokens: string[],
+): {
   score: number
   matchType: ('title' | 'content' | 'tags')[]
 } {
@@ -186,7 +193,10 @@ function scoreNote(note: NoteRecord, tokens: string[]): {
   for (const tok of tokens) {
     if (note.titleLower.includes(tok)) titleHits++
     for (const tag of note.tagsLower) {
-      if (tag.includes(tok)) { tagHits++; break }
+      if (tag.includes(tok)) {
+        tagHits++
+        break
+      }
     }
     // Count content hits (cap at 5 per token to avoid spam)
     let idx = 0
@@ -229,13 +239,17 @@ function scanAllNotes(obsidianDir: string): NoteRecord[] {
               if (rec) notes.push(rec)
             }
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         const rec = readNoteRecord(path.join(obsidianDir, entry.name))
         if (rec) notes.push(rec)
       }
     }
-  } catch { /* obsidianDir unreadable */ }
+  } catch {
+    /* obsidianDir unreadable */
+  }
 
   return notes
 }
@@ -323,9 +337,15 @@ function buildFacetsFromNotes(notes: NoteRecord[], obsidianDir: string): SearchF
     .slice(0, 20)
 
   return {
-    categories: [...categories.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
-    tags: [...tags.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
-    shows: [...shows.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
+    categories: [...categories.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count),
+    tags: [...tags.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count),
+    shows: [...shows.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count),
     dateRange: { earliest, latest },
     topEntities,
   }
@@ -380,7 +400,11 @@ export function searchEnhanced(obsidianDir: string, params: SearchParams): Searc
       }
     }
   } else {
-    scored = filteredNotes.map(note => ({ note, score: 0, matchType: [] as ('title' | 'content' | 'tags')[] }))
+    scored = filteredNotes.map(note => ({
+      note,
+      score: 0,
+      matchType: [] as ('title' | 'content' | 'tags')[],
+    }))
   }
 
   // Step 3: sort

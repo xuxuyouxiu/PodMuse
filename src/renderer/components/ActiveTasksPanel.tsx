@@ -27,7 +27,15 @@ const BATCH_STATUS_META: Record<BatchTask['status'], { label: string; className:
   skipped: { label: '已跳过', className: 'stopped' },
 }
 
-export default function ActiveTasksPanel({ tasks, processing: _processing, onCancel, onResume, onDelete, batchTasks, batchStatus }: Props) {
+export default function ActiveTasksPanel({
+  tasks,
+  processing: _processing,
+  onCancel,
+  onResume,
+  onDelete,
+  batchTasks,
+  batchStatus,
+}: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const hasBatch = batchTasks && batchTasks.length > 0
   const batchPending = hasBatch ? batchTasks.filter(t => t.status === 'pending').length : 0
@@ -49,9 +57,7 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
         <div>
           <div className="task-panel-title">活跃任务</div>
           <div className="task-panel-subtitle">
-            {isActive
-              ? `批量处理中 — 剩余 ${batchPending} 项`
-              : '正在处理或排队中的任务'}
+            {isActive ? `批量处理中 — 剩余 ${batchPending} 项` : '正在处理或排队中的任务'}
           </div>
         </div>
         <div className="task-panel-count">{totalVisible}</div>
@@ -60,7 +66,9 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
       <div className="task-panel-list">
         {totalVisible === 0 && (
           <div className="task-panel-empty">
-            <div className="task-panel-empty-icon"><Zap size={24} /></div>
+            <div className="task-panel-empty-icon">
+              <Zap size={24} />
+            </div>
             <div className="task-panel-empty-title">暂无活跃任务</div>
             <div className="task-panel-empty-copy">新发起的任务会显示在这里</div>
           </div>
@@ -89,22 +97,24 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
                     disabled={isStopping}
                     className="recent-task-danger"
                   >
-                    {isStopping ? <><Loader2 size={12} className="animate-spin" /> 停止中...</> : <><Square size={12} /> 停止</>}
+                    {isStopping ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" /> 停止中...
+                      </>
+                    ) : (
+                      <>
+                        <Square size={12} /> 停止
+                      </>
+                    )}
                   </button>
                 )}
                 {canResume && onResume && (
-                  <button
-                    onClick={() => onResume(task)}
-                    className="recent-task-primary"
-                  >
+                  <button onClick={() => onResume(task)} className="recent-task-primary">
                     <Play size={12} /> 重新处理
                   </button>
                 )}
                 {canDelete && onDelete && (
-                  <button
-                    onClick={() => onDelete(task.id)}
-                    className="recent-task-danger"
-                  >
+                  <button onClick={() => onDelete(task.id)} className="recent-task-danger">
                     <Trash2 size={12} /> 删除
                   </button>
                 )}
@@ -128,7 +138,10 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
               const isFailed = task.status === 'failed'
 
               return (
-                <article key={task.id} className={`task-card task-card--batch ${isProcessing ? 'task-card--active' : ''}`}>
+                <article
+                  key={task.id}
+                  className={`task-card task-card--batch ${isProcessing ? 'task-card--active' : ''}`}
+                >
                   <div className="task-card-header">
                     <div className="task-card-copy">
                       <span className="batch-task-index">{i + 1}</span>
@@ -145,8 +158,18 @@ export default function ActiveTasksPanel({ tasks, processing: _processing, onCan
                   {isProcessing && task.steps && task.steps.length > 0 && (
                     <div className="batch-task-steps">
                       {task.steps.map((step, si) => (
-                        <span key={si} className={`batch-step-dot batch-step-dot--${step.status}`} title={step.title}>
-                          {step.status === 'done' ? '✓' : step.status === 'running' ? '◉' : step.status === 'error' ? '✗' : '○'}
+                        <span
+                          key={si}
+                          className={`batch-step-dot batch-step-dot--${step.status}`}
+                          title={step.title}
+                        >
+                          {step.status === 'done'
+                            ? '✓'
+                            : step.status === 'running'
+                              ? '◉'
+                              : step.status === 'error'
+                                ? '✗'
+                                : '○'}
                         </span>
                       ))}
                     </div>

@@ -2,12 +2,15 @@ import type { FeishuState, RecentTaskState } from '../shared/types.ts'
 
 const MAX_RECENT_TASKS = 5
 
-export function startRecentTask(state: FeishuState, input: {
-  id?: string
-  url: string
-  episodeId: string | null
-  title?: string | null
-}): FeishuState {
+export function startRecentTask(
+  state: FeishuState,
+  input: {
+    id?: string
+    url: string
+    episodeId: string | null
+    title?: string | null
+  },
+): FeishuState {
   const current = findRecentTask(state, input)
   const nextTask: RecentTaskState = {
     id: current?.id || input.id || createTaskId(),
@@ -35,27 +38,33 @@ export function stopRecentTask(state: FeishuState): FeishuState {
   return {
     ...state,
     activeTasks: state.activeTasks.map(task =>
-      task.id === activeTask.id ? { ...task, status: 'stopped' as const, updatedAt: Date.now() } : task
+      task.id === activeTask.id
+        ? { ...task, status: 'stopped' as const, updatedAt: Date.now() }
+        : task,
     ),
   }
 }
 
-export function failRecentTask(state: FeishuState): FeishuState {
-  return withRecentStatus(state, 'error')
+export function failRecentTask(state: FeishuState, error?: string): FeishuState {
+  return withRecentStatus(state, 'error', error)
 }
 
-export function completeRecentTask(state: FeishuState, input: {
-  taskId?: string
-  url?: string
-  episodeId?: string | null
-  filename: string
-}): FeishuState {
+export function completeRecentTask(
+  state: FeishuState,
+  input: {
+    taskId?: string
+    url?: string
+    episodeId?: string | null
+    filename: string
+  },
+): FeishuState {
   const activeTask = findTaskByIdentityInActive(state, input)
   if (!activeTask) return state
 
-  const processedUrls = activeTask.episodeId && !state.processedUrls.includes(activeTask.episodeId)
-    ? [...state.processedUrls, activeTask.episodeId]
-    : state.processedUrls
+  const processedUrls =
+    activeTask.episodeId && !state.processedUrls.includes(activeTask.episodeId)
+      ? [...state.processedUrls, activeTask.episodeId]
+      : state.processedUrls
 
   return {
     ...state,
@@ -72,7 +81,10 @@ export function shouldAutoResumeRecentTask(_state: FeishuState): boolean {
   return false
 }
 
-export function recoverOrphanedRunningTasks(state: FeishuState): { state: FeishuState; recovered: { id: string; url: string; title: string | null | undefined }[] } {
+export function recoverOrphanedRunningTasks(state: FeishuState): {
+  state: FeishuState
+  recovered: { id: string; url: string; title: string | null | undefined }[]
+} {
   const orphaned = state.activeTasks.filter(t => t.status === 'running')
   if (orphaned.length === 0) return { state, recovered: [] }
 
@@ -94,10 +106,12 @@ export function getRecentTasks(state: FeishuState): RecentTaskState[] {
 
 export function removeRecentTask(state: FeishuState, taskId: string): FeishuState {
   // Find the task being deleted to preserve its episodeId in dedup tracking
-  const task = state.activeTasks.find(t => t.id === taskId) || state.recentTasks.find(t => t.id === taskId)
-  const processedUrls = task?.episodeId && !state.processedUrls.includes(task.episodeId)
-    ? [...state.processedUrls, task.episodeId]
-    : state.processedUrls
+  const task =
+    state.activeTasks.find(t => t.id === taskId) || state.recentTasks.find(t => t.id === taskId)
+  const processedUrls =
+    task?.episodeId && !state.processedUrls.includes(task.episodeId)
+      ? [...state.processedUrls, task.episodeId]
+      : state.processedUrls
 
   return {
     ...state,
@@ -107,14 +121,18 @@ export function removeRecentTask(state: FeishuState, taskId: string): FeishuStat
   }
 }
 
-function withRecentStatus(state: FeishuState, status: RecentTaskState['status']): FeishuState {
+function withRecentStatus(
+  state: FeishuState,
+  status: RecentTaskState['status'],
+  error?: string,
+): FeishuState {
   const activeTask = state.activeTasks[0]
   if (!activeTask) return state
   return {
     ...state,
     activeTasks: state.activeTasks.filter(task => task.id !== activeTask.id),
     recentTasks: normalizeRecentTasks([
-      { ...activeTask, status, updatedAt: Date.now() },
+      { ...activeTask, status, ...(error ? { error } : {}), updatedAt: Date.now() },
       ...state.recentTasks,
     ]),
   }
@@ -128,19 +146,24 @@ function normalizeRecentTasks(tasks: RecentTaskState[]): RecentTaskState[] {
 }
 
 function findRecentTask(state: FeishuState, input: { url: string; episodeId: string | null }) {
-  const matchCondition = (task: RecentTaskState) => (input.episodeId && task.episodeId === input.episodeId) || task.url === input.url
+  const matchCondition = (task: RecentTaskState) =>
+    (input.episodeId && task.episodeId === input.episodeId) || task.url === input.url
   return state.activeTasks.find(matchCondition) || state.recentTasks.find(matchCondition)
 }
 
-function findTaskByIdentityInActive(state: FeishuState, input: {
-  taskId?: string
-  url?: string
-  episodeId?: string | null
-}) {
-  return state.activeTasks.find(task =>
-    (input.taskId && task.id === input.taskId)
-    || (input.episodeId && task.episodeId === input.episodeId)
-    || (input.url && task.url === input.url),
+function findTaskByIdentityInActive(
+  state: FeishuState,
+  input: {
+    taskId?: string
+    url?: string
+    episodeId?: string | null
+  },
+) {
+  return state.activeTasks.find(
+    task =>
+      (input.taskId && task.id === input.taskId) ||
+      (input.episodeId && task.episodeId === input.episodeId) ||
+      (input.url && task.url === input.url),
   ) // No fallback — return undefined if no match found
 }
 

@@ -9,16 +9,17 @@ function getIcon(): Electron.NativeImage | undefined {
   if (iconResolved) return appIcon
   iconResolved = true
   try {
-    const baseDirs = [
-      process.resourcesPath,
-      join(__dirname, '..', '..'),
-      app.getAppPath(),
-    ].filter(Boolean)
+    const baseDirs = [process.resourcesPath, join(__dirname, '..', '..'), app.getAppPath()].filter(
+      Boolean,
+    )
     const candidates = ['build/icon.png', '播客笔记_256.png', '播客笔记.png']
     for (const base of baseDirs) {
       for (const c of candidates) {
         const p = join(base, c)
-        if (fs.existsSync(p)) { appIcon = nativeImage.createFromPath(p); return appIcon }
+        if (fs.existsSync(p)) {
+          appIcon = nativeImage.createFromPath(p)
+          return appIcon
+        }
       }
     }
   } catch {}

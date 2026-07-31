@@ -21,12 +21,15 @@ export function runWhisper(
   progressFunc?: (status: WhisperProgressDisplay) => void,
   signal?: AbortSignal,
 ): Promise<string | null> {
-  const log = (m: string) => { logFunc?.(m); console.log(m) }
+  const log = (m: string) => {
+    logFunc?.(m)
+    console.log(m)
+  }
   const cfg = loadConfig()
   const WHISPER_EXE = cfg.whisper_exe_path
   const WHISPER_MODEL = cfg.whisper_model
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     let settled = false
     let _onAbort: (() => void) | null = null
     let tickHandle: ReturnType<typeof setInterval> | null = null
@@ -60,9 +63,12 @@ export function runWhisper(
     const args = [
       '--ff_speechnorm',
       audioPath,
-      '--model', WHISPER_MODEL,
-      '--output_format', 'txt',
-      '--output_dir', dir,
+      '--model',
+      WHISPER_MODEL,
+      '--output_format',
+      'txt',
+      '--output_dir',
+      dir,
     ]
 
     if (language !== 'auto') {
@@ -87,7 +93,9 @@ export function runWhisper(
         } else {
           proc.kill('SIGKILL')
         }
-      } catch { proc.kill() }
+      } catch {
+        proc.kill()
+      }
       finish(null)
     }
     signal?.addEventListener('abort', _onAbort, { once: true })
@@ -141,7 +149,10 @@ export function runWhisper(
       if (!trimmed) return null
 
       if (!hasRealActivity) {
-        const hasContent = trimmed.replace(/^\[\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\s*-->\s*\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\]\s*/, '')
+        const hasContent = trimmed.replace(
+          /^\[\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\s*-->\s*\d{1,3}:\d{2}:\d{2}(?:\.\d+)?\]\s*/,
+          '',
+        )
         if (hasContent && hasContent !== trimmed && hasContent.length > 2) {
           hasRealActivity = true
           const elapsed = (Date.now() - spawnAt) / 1000
@@ -214,7 +225,7 @@ export function runWhisper(
       handleData(text)
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', code => {
       clearTick()
       if (settled || signal?.aborted) {
         finish(null)
@@ -224,13 +235,19 @@ export function runWhisper(
       advancePhase('finalizing', 100)
 
       let allFiles: string[] = []
-      try { allFiles = fs.readdirSync(dir) } catch {}
+      try {
+        allFiles = fs.readdirSync(dir)
+      } catch {}
 
       const txtFiles = allFiles
         .filter(f => f.endsWith('.txt'))
         .map(f => path.join(dir, f))
         .sort((a, b) => {
-          try { return fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs } catch { return 0 }
+          try {
+            return fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs
+          } catch {
+            return 0
+          }
         })
 
       for (const f of txtFiles) {
@@ -246,13 +263,15 @@ export function runWhisper(
       if (code !== 0) {
         log(`❌ Whisper 退出码 ${code}: ${stderrText.trim().substring(0, 400)}`)
       } else {
-        log(`⚠ Whisper exit 0 but no valid txt found in ${dir}. Files: ${allFiles.filter(f => f.endsWith('.txt')).join(', ') || '(none)'}`)
+        log(
+          `⚠ Whisper exit 0 but no valid txt found in ${dir}. Files: ${allFiles.filter(f => f.endsWith('.txt')).join(', ') || '(none)'}`,
+        )
         if (stderrText.trim()) log(`  stderr: ${stderrText.trim().substring(0, 300)}`)
       }
       finish(null)
     })
 
-    proc.on('error', (err) => {
+    proc.on('error', err => {
       clearTick()
       if (settled) return
       log(`❌ Whisper 启动失败: ${err.message}`)

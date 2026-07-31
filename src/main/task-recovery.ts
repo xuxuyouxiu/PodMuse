@@ -64,7 +64,9 @@ export function runConsistencyCheck(
           detail: `一致性巡检发现任务状态异常（标记为运行中但无活跃进程），已自动修复`,
         }
         addLog(entry)
-        logFunc?.(`⚠ [一致性修复] ${item.title || item.url || item.id} — 状态与进程不一致，已自动纠正`)
+        logFunc?.(
+          `⚠ [一致性修复] ${item.title || item.url || item.id} — 状态与进程不一致，已自动纠正`,
+        )
       }
     }
     return recovered.length

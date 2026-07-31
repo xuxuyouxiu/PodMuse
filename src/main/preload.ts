@@ -12,9 +12,11 @@ try {
     startFeishu: () => ipcRenderer.invoke('feishu:start'),
     stopFeishu: () => ipcRenderer.invoke('feishu:stop'),
     getFeishuStatus: () => ipcRenderer.invoke('feishu:status'),
-    testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) => ipcRenderer.invoke('feishu:testConnection', params),
+    testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) =>
+      ipcRenderer.invoke('feishu:testConnection', params),
 
-    processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) => ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),
+    processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) =>
+      ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),
     checkProcessed: (url: string) => ipcRenderer.invoke('podcast:checkProcessed', url),
     cancelProcessing: () => ipcRenderer.invoke('podcast:cancel'),
     getRecoveryLogs: () => ipcRenderer.invoke('task:getRecoveryLogs'),
@@ -22,32 +24,45 @@ try {
     onStepUpdate: (callback: (step: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, step: unknown) => callback(step)
       ipcRenderer.on('podcast:step', handler)
-      return () => { ipcRenderer.removeListener('podcast:step', handler) }
+      return () => {
+        ipcRenderer.removeListener('podcast:step', handler)
+      }
     },
     onLog: (callback: (msg: string) => void) => {
       const handler = (_e: IpcRendererEvent, msg: string) => callback(msg)
       ipcRenderer.on('log', handler)
-      return () => { ipcRenderer.removeListener('log', handler) }
+      return () => {
+        ipcRenderer.removeListener('log', handler)
+      }
     },
     onFeishuStatus: (callback: (status: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, status: unknown) => callback(status)
       ipcRenderer.on('feishu:status', handler)
-      return () => { ipcRenderer.removeListener('feishu:status', handler) }
+      return () => {
+        ipcRenderer.removeListener('feishu:status', handler)
+      }
     },
     onProcessingChange: (callback: (processing: boolean, url?: string) => void) => {
       const handler = (_e: IpcRendererEvent, p: boolean, url?: string) => callback(p, url)
       ipcRenderer.on('podcast:processing', handler)
-      return () => { ipcRenderer.removeListener('podcast:processing', handler) }
+      return () => {
+        ipcRenderer.removeListener('podcast:processing', handler)
+      }
     },
     onTasksChanged: (callback: () => void) => {
       const handler = () => callback()
       ipcRenderer.on('task:state-changed', handler)
-      return () => { ipcRenderer.removeListener('task:state-changed', handler) }
+      return () => {
+        ipcRenderer.removeListener('task:state-changed', handler)
+      }
     },
     onToast: (callback: (toast: { message: string; type: 'success' | 'error' }) => void) => {
-      const handler = (_e: unknown, toast: { message: string; type: 'success' | 'error' }) => callback(toast)
+      const handler = (_e: unknown, toast: { message: string; type: 'success' | 'error' }) =>
+        callback(toast)
       ipcRenderer.on('toast', handler)
-      return () => { ipcRenderer.removeListener('toast', handler) }
+      return () => {
+        ipcRenderer.removeListener('toast', handler)
+      }
     },
 
     cleanTemp: () => ipcRenderer.invoke('app:cleanTemp'),
@@ -60,17 +75,23 @@ try {
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
     scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
-    fetchAIModels: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
+    fetchAIModels: (baseUrl: string, apiKey: string) =>
+      ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
     detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
     getBacklinkIndex: () => ipcRenderer.invoke('backlinks:index'),
     getTagIndex: () => ipcRenderer.invoke('tags:getIndex'),
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:showInFolder', filePath),
 
     // 导出
-    exportToMarkdown: (params: { taskId: string; targetDir: string; stripObsidianSyntax?: boolean }) => ipcRenderer.invoke('export:toMarkdown', params),
+    exportToMarkdown: (params: {
+      taskId: string
+      targetDir: string
+      stripObsidianSyntax?: boolean
+    }) => ipcRenderer.invoke('export:toMarkdown', params),
     exportToLogseq: (taskId: string) => ipcRenderer.invoke('export:toLogseq', { taskId }),
     exportToNotion: (taskId: string) => ipcRenderer.invoke('export:toNotion', { taskId }),
-    testNotionConnection: (params: { token: string; databaseId: string }) => ipcRenderer.invoke('export:notion:testConnection', params),
+    testNotionConnection: (params: { token: string; databaseId: string }) =>
+      ipcRenderer.invoke('export:notion:testConnection', params),
 
     // 批量处理
     batchAdd: (items: unknown[]) => ipcRenderer.invoke('batch:add', items),
@@ -87,17 +108,23 @@ try {
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)
-      return () => { ipcRenderer.removeListener('batch:task-update', handler) }
+      return () => {
+        ipcRenderer.removeListener('batch:task-update', handler)
+      }
     },
     onBatchQueueState: (callback: (state: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, state: unknown) => callback(state)
       ipcRenderer.on('batch:queue-state', handler)
-      return () => { ipcRenderer.removeListener('batch:queue-state', handler) }
+      return () => {
+        ipcRenderer.removeListener('batch:queue-state', handler)
+      }
     },
     onBatchQueueComplete: (callback: (summary: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, summary: unknown) => callback(summary)
       ipcRenderer.on('batch:queue-complete', handler)
-      return () => { ipcRenderer.removeListener('batch:queue-complete', handler) }
+      return () => {
+        ipcRenderer.removeListener('batch:queue-complete', handler)
+      }
     },
 
     minimizeWindow: () => ipcRenderer.invoke('window:minimize'),

@@ -2,7 +2,12 @@ import { processPodcast, fetchPodcastTitle } from './podcast'
 import { FeishuClient } from './feishu-client'
 import { ProcessedMessageStore } from './processed-message-store'
 import { loadState, saveState } from './config'
-import { completeRecentTask, failRecentTask, startRecentTask, stopRecentTask } from './recent-task-state'
+import {
+  completeRecentTask,
+  failRecentTask,
+  startRecentTask,
+  stopRecentTask,
+} from './recent-task-state'
 import { sendNotification } from './notify'
 import type { StepInfo } from '@shared/types'
 
@@ -13,10 +18,16 @@ export class PodcastDispatchService {
   private _batchMode = false
   abortRef: AbortController | null = null
 
-  get batchMode(): boolean { return this._batchMode }
-  set batchMode(v: boolean) { this._batchMode = v }
+  get batchMode(): boolean {
+    return this._batchMode
+  }
+  set batchMode(v: boolean) {
+    this._batchMode = v
+  }
 
-  private updateRecentState(updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>) {
+  private updateRecentState(
+    updater: (state: ReturnType<typeof loadState>) => ReturnType<typeof loadState>,
+  ) {
     const current = loadState()
     saveState(updater(current))
     this.onStateChanged?.()
@@ -53,21 +64,43 @@ export class PodcastDispatchService {
     this.processingFunc?.(true, url)
     this.abortRef = new AbortController()
     const signal = this.abortRef.signal
+    let lastErrorDetail: string | null = null
+    const wrappedStepFunc = (step: StepInfo) => {
+      if (step.status === 'error') {
+        lastErrorDetail = step.detail || step.subtitle
+      }
+      this.stepFunc?.(step)
+    }
     try {
       await this.client.sendMessage(this.chatId, '收到！开始处理播客...')
-      const filename = await processPodcast(url, this.providerConfig, this.providerId, this.language, this.obsidianDir, this.audioDir, this.stepFunc, this.logFunc, signal, false)
+      const filename = await processPodcast(
+        url,
+        this.providerConfig,
+        this.providerId,
+        this.language,
+        this.obsidianDir,
+        this.audioDir,
+        wrappedStepFunc,
+        this.logFunc,
+        signal,
+        false,
+      )
       if (filename) {
         if (episodeId) this.store.markUrl(episodeId)
         this.updateRecentState(state => completeRecentTask(state, { url, episodeId, filename }))
-        await this.client.sendMessage(this.chatId, `笔记已生成！\n文件：${filename}\n位置：Obsidian → 小宇宙播客`)
+        await this.client.sendMessage(
+          this.chatId,
+          `笔记已生成！\n文件：${filename}\n位置：Obsidian → 小宇宙播客`,
+        )
         if (this.notificationEnabled) {
           sendNotification('播客笔记助手', `笔记已生成：${filename}`)
         }
       } else {
-        this.updateRecentState(state => failRecentTask(state))
-        await this.client.sendMessage(this.chatId, '处理失败，请检查日志。')
+        const errorReason = lastErrorDetail || '处理失败，请检查日志'
+        this.updateRecentState(state => failRecentTask(state, errorReason))
+        await this.client.sendMessage(this.chatId, `❌ 处理失败：${errorReason}`)
         if (this.notificationEnabled) {
-          sendNotification('播客笔记助手', '处理失败，请检查日志')
+          sendNotification('播客笔记助手', `处理失败：${errorReason}`)
         }
       }
     } catch (e: unknown) {
@@ -75,11 +108,17 @@ export class PodcastDispatchService {
         this.updateRecentState(state => stopRecentTask(state))
         this.logFunc('■ 处理已取消')
         for (let i = 1; i <= 5; i++) {
-          this.stepFunc?.({ step: i, title: STEP_TITLES[i - 1], subtitle: '已取消', status: 'stopped' as const, detail: '用户取消了处理' })
+          this.stepFunc?.({
+            step: i,
+            title: STEP_TITLES[i - 1],
+            subtitle: '已取消',
+            status: 'stopped' as const,
+            detail: '用户取消了处理',
+          })
         }
       } else {
         const msg = e instanceof Error ? e.message : String(e)
-        this.updateRecentState(state => failRecentTask(state))
+        this.updateRecentState(state => failRecentTask(state, msg))
         this.logFunc(`处理异常: ${msg}`)
         await this.client.sendMessage(this.chatId, `❌ 处理出错: ${msg}`)
         if (this.notificationEnabled) {

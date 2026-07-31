@@ -1,9 +1,23 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Pause, Play, SkipForward, Trash2, RotateCcw, Check, X, AlertCircle,
-  Loader2, FileAudio, Link, ChevronDown, ChevronUp, ExternalLink,
-  CheckCheck, ClipboardCheck, FileText,
+  Pause,
+  Play,
+  SkipForward,
+  Trash2,
+  RotateCcw,
+  Check,
+  X,
+  AlertCircle,
+  Loader2,
+  FileAudio,
+  Link,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  CheckCheck,
+  ClipboardCheck,
+  FileText,
 } from 'lucide-react'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
@@ -57,10 +71,7 @@ function CompactSteps({ steps }: { steps: StepInfo[] }) {
   return (
     <div className="batch-queue-steps">
       {steps.map((step, i) => (
-        <div
-          key={i}
-          className={`batch-queue-step batch-queue-step--${step.status}`}
-        >
+        <div key={i} className={`batch-queue-step batch-queue-step--${step.status}`}>
           {step.status === 'running' && <Loader2 size={10} className="batch-queue-spin" />}
           {step.status === 'done' && <Check size={10} />}
           {step.status === 'error' && <X size={10} />}
@@ -72,7 +83,15 @@ function CompactSteps({ steps }: { steps: StepInfo[] }) {
   )
 }
 
-function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry, onRetryAllFailed, onDismiss }: {
+function SummaryView({
+  summary,
+  failedTasks,
+  successTasks,
+  obsidianDir,
+  onRetry,
+  onRetryAllFailed,
+  onDismiss,
+}: {
   summary: BatchCompletionSummary
   failedTasks: BatchTask[]
   successTasks: BatchTask[]
@@ -93,7 +112,9 @@ function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry,
       <div className="bq-report__header">
         <div className="bq-report__eyebrow">处理报告</div>
         <div className="bq-report__title">{allSuccess ? '全部处理完成' : '处理完成'}</div>
-        <div className="bq-report__sub">共 {total} 个任务 · 耗时 {minutes} 分钟</div>
+        <div className="bq-report__sub">
+          共 {total} 个任务 · 耗时 {minutes} 分钟
+        </div>
       </div>
 
       {/* Stats pills */}
@@ -114,9 +135,7 @@ function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry,
             {summary.skipped} 跳过
           </div>
         )}
-        <div className="bq-report__pill">
-          {rate}% 成功率
-        </div>
+        <div className="bq-report__pill">{rate}% 成功率</div>
       </div>
 
       {/* Progress bar */}
@@ -140,7 +159,7 @@ function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry,
             </tr>
           </thead>
           <tbody>
-            {successTasks.map((t) => (
+            {successTasks.map(t => (
               <tr key={t.id} className="bq-report__row">
                 <td className="bq-report__td bq-report__td--status">
                   <span className="bq-report__dot bq-report__dot--ok" />
@@ -167,7 +186,7 @@ function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry,
                 </td>
               </tr>
             ))}
-            {failedTasks.map((t) => (
+            {failedTasks.map(t => (
               <tr key={t.id} className="bq-report__row bq-report__row--err">
                 <td className="bq-report__td bq-report__td--status">
                   <span className="bq-report__dot bq-report__dot--err" />
@@ -224,7 +243,16 @@ function SummaryView({ summary, failedTasks, successTasks, obsidianDir, onRetry,
 }
 
 export default function BatchQueuePanel({
-  queueState, onPause, onResume, onSkip, onClear, onRetry, onRetryAllFailed, onDismiss, completionSummary, obsidianDir,
+  queueState,
+  onPause,
+  onResume,
+  onSkip,
+  onClear,
+  onRetry,
+  onRetryAllFailed,
+  onDismiss,
+  completionSummary,
+  obsidianDir,
 }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const { tasks, status, completed, failed, skipped, total } = queueState
@@ -246,7 +274,7 @@ export default function BatchQueuePanel({
           failedTasks={failedTasks}
           successTasks={successTasks}
           obsidianDir={obsidianDir}
-          onRetry={(taskListIndex) => {
+          onRetry={taskListIndex => {
             // Find the actual index in the full tasks array
             const task = [...successTasks, ...failedTasks][taskListIndex]
             if (task) {
@@ -537,7 +565,7 @@ export default function BatchQueuePanel({
       <div className="batch-queue-progress-bar">
         <div
           className="batch-queue-progress-fill"
-          style={{ width: `${total > 0 ? ((completed + failed + skipped) / total * 100) : 0}%` }}
+          style={{ width: `${total > 0 ? ((completed + failed + skipped) / total) * 100 : 0}%` }}
         />
       </div>
 
@@ -564,7 +592,11 @@ export default function BatchQueuePanel({
                     </button>
                   )}
                   {task.status === 'failed' && (
-                    <button className="batch-queue-task-btn" onClick={() => onRetry(i)} title="重试">
+                    <button
+                      className="batch-queue-task-btn"
+                      onClick={() => onRetry(i)}
+                      title="重试"
+                    >
                       <RotateCcw size={12} />
                     </button>
                   )}
@@ -581,7 +613,7 @@ export default function BatchQueuePanel({
 
               {/* Expanded steps or failure reason */}
               <AnimatePresence>
-                {(isExpanded && hasSteps) && (
+                {isExpanded && hasSteps && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}

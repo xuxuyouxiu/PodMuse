@@ -5,7 +5,10 @@ import { getRecoveryLogs } from '../task-recovery'
 import { processedEpisodeIds } from '../dedup-store'
 import type { FeishuMonitor } from '../feishu'
 
-export function registerTaskIPC(mainWindow?: BrowserWindow | null, monitor?: FeishuMonitor | null): void {
+export function registerTaskIPC(
+  mainWindow?: BrowserWindow | null,
+  monitor?: FeishuMonitor | null,
+): void {
   ipcMain.handle('task:getRecent', () => {
     return getRecentTasks(loadState())
   })
@@ -14,14 +17,16 @@ export function registerTaskIPC(mainWindow?: BrowserWindow | null, monitor?: Fei
     const state = loadState()
     return {
       activeTasks: state.activeTasks,
-      recentTasks: state.recentTasks
+      recentTasks: state.recentTasks,
     }
   })
 
   ipcMain.handle('task:removeRecent', (_event, taskId: string) => {
     const current = loadState()
     // Find the task being deleted so we can sync its episodeId
-    const deletedTask = current.activeTasks.find(t => t.id === taskId) || current.recentTasks.find(t => t.id === taskId)
+    const deletedTask =
+      current.activeTasks.find(t => t.id === taskId) ||
+      current.recentTasks.find(t => t.id === taskId)
     const updated = removeRecentTask(current, taskId)
     saveState(updated)
     // Sync in-memory dedup set with the newly persisted processedUrls
@@ -32,11 +37,13 @@ export function registerTaskIPC(mainWindow?: BrowserWindow | null, monitor?: Fei
     if (deletedTask?.episodeId && monitor) {
       monitor.addProcessedUrl(deletedTask.episodeId)
     }
-    try { mainWindow?.webContents.send('task:state-changed') } catch {}
+    try {
+      mainWindow?.webContents.send('task:state-changed')
+    } catch {}
     const state = loadState()
     return {
       activeTasks: state.activeTasks,
-      recentTasks: state.recentTasks
+      recentTasks: state.recentTasks,
     }
   })
 

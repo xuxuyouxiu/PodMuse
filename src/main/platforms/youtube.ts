@@ -73,7 +73,7 @@ export class YouTubeAdapter implements PlatformAdapter {
       const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
       const resp = await fetch(oembedUrl, { signal: signal || AbortSignal.timeout(5000) })
       if (!resp.ok) return undefined
-      const data = await resp.json() as { author_name?: string }
+      const data = (await resp.json()) as { author_name?: string }
       return data.author_name || undefined
     } catch {
       return undefined

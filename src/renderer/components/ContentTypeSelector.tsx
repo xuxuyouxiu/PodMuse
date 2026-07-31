@@ -16,7 +16,11 @@ const CONTENT_TYPES = [
   { value: 'tutorial', label: '教程/课程', desc: '保留细节' },
 ]
 
-export default function ContentTypeSelector({ contentType, onContentTypeChange, disabled = false }: Props) {
+export default function ContentTypeSelector({
+  contentType,
+  onContentTypeChange,
+  disabled = false,
+}: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -44,8 +48,10 @@ export default function ContentTypeSelector({ contentType, onContentTypeChange, 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        btnRef.current &&
+        !btnRef.current.contains(e.target as Node)
       ) {
         setShowMenu(false)
       }

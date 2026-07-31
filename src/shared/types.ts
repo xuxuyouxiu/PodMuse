@@ -1,5 +1,13 @@
 // AI 供应商类型
-export type AIProviderId = 'deepseek' | 'openai' | 'moonshot' | 'zhipu' | 'qwen' | 'yi' | 'minimax' | 'custom'
+export type AIProviderId =
+  | 'deepseek'
+  | 'openai'
+  | 'moonshot'
+  | 'zhipu'
+  | 'qwen'
+  | 'yi'
+  | 'minimax'
+  | 'custom'
 
 // 供应商模型配置
 export interface AIModelConfig {
@@ -83,6 +91,7 @@ export interface RecentTaskState {
   status: RecentTaskStatus
   title?: string | null
   filename?: string | null
+  error?: string | null
   updatedAt: number
 }
 

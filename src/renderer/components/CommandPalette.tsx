@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  Sun, Moon, Settings, Info, Zap, Play, Trash2,
-  FileText, Headphones, Keyboard,
+  Sun,
+  Moon,
+  Settings,
+  Info,
+  Zap,
+  Play,
+  Trash2,
+  FileText,
+  Headphones,
+  Keyboard,
 } from 'lucide-react'
 
 export interface Command {
@@ -49,24 +57,27 @@ function PalettePanel({ commands, onClose }: { commands: Command[]; onClose: () 
     el?.scrollIntoView({ block: 'nearest' })
   }, [selectedIndex])
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedIndex(i => Math.min(i + 1, filtered.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (filtered[selectedIndex]) {
-        filtered[selectedIndex].action()
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedIndex(i => Math.min(i + 1, filtered.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedIndex(i => Math.max(i - 1, 0))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        if (filtered[selectedIndex]) {
+          filtered[selectedIndex].action()
+          onClose()
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
         onClose()
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      onClose()
-    }
-  }, [filtered, selectedIndex, onClose])
+    },
+    [filtered, selectedIndex, onClose],
+  )
 
   return (
     <div className="cmd-overlay" onClick={onClose}>
@@ -78,21 +89,25 @@ function PalettePanel({ commands, onClose }: { commands: Command[]; onClose: () 
             className="cmd-input"
             type="text"
             value={query}
-            onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
+            onChange={e => {
+              setQuery(e.target.value)
+              setSelectedIndex(0)
+            }}
             onKeyDown={handleKeyDown}
             placeholder="输入命令..."
           />
           <kbd className="cmd-esc-hint">ESC</kbd>
         </div>
         <div className="cmd-list" ref={listRef}>
-          {filtered.length === 0 && (
-            <div className="cmd-empty">没有匹配的命令</div>
-          )}
+          {filtered.length === 0 && <div className="cmd-empty">没有匹配的命令</div>}
           {filtered.map((cmd, i) => (
             <div
               key={cmd.id}
               className={`cmd-item ${i === selectedIndex ? 'is-selected' : ''}`}
-              onClick={() => { cmd.action(); onClose() }}
+              onClick={() => {
+                cmd.action()
+                onClose()
+              }}
               onMouseEnter={() => setSelectedIndex(i)}
             >
               <span className="cmd-item-icon">{cmd.icon}</span>

@@ -41,7 +41,11 @@ export function registerSearchIPC(_mainWindow?: BrowserWindow | null): void {
           } else if (entry.name.endsWith('.md')) {
             const nameLower = entry.name.toLowerCase()
             let content = ''
-            try { content = await fs.readFile(fullPath, 'utf-8') } catch { continue }
+            try {
+              content = await fs.readFile(fullPath, 'utf-8')
+            } catch {
+              continue
+            }
             const contentLower = content.toLowerCase()
 
             if (nameLower.includes(query) || contentLower.includes(query)) {
@@ -50,7 +54,10 @@ export function registerSearchIPC(_mainWindow?: BrowserWindow | null): void {
               if (idx >= 0) {
                 const start = Math.max(0, idx - 40)
                 const end = Math.min(content.length, idx + query.length + 80)
-                excerpt = (start > 0 ? '...' : '') + content.slice(start, end).replace(/\n/g, ' ').trim() + (end < content.length ? '...' : '')
+                excerpt =
+                  (start > 0 ? '...' : '') +
+                  content.slice(start, end).replace(/\n/g, ' ').trim() +
+                  (end < content.length ? '...' : '')
               } else {
                 excerpt = content.slice(0, 120).replace(/\n/g, ' ').trim()
               }

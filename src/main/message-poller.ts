@@ -27,7 +27,7 @@ export class MessagePoller {
   }
 
   async start(): Promise<void> {
-    if (!await this.client.ensureToken()) {
+    if (!(await this.client.ensureToken())) {
       this.logFunc('⚠ 飞书连接失败，监听未启动。请检查设置中的飞书 App ID 和 App Secret 是否正确')
       this.onStatusChange()
       return
@@ -54,7 +54,7 @@ export class MessagePoller {
     if (this.scanning) return
     this.scanning = true
     try {
-      if (!await this.client.ensureToken()) {
+      if (!(await this.client.ensureToken())) {
         this.logFunc('ensureToken 失败，跳过本次扫描')
         return
       }

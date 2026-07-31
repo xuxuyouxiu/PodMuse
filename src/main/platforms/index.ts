@@ -8,5 +8,11 @@ export { YouTubeAdapter } from './youtube'
 export { XimalayaAdapter } from './ximalaya'
 export { ApplePodcastsAdapter } from './apple-podcasts'
 export { DirectUrlAdapter } from './direct-url'
-export { detectYtDlp, autoDownloadYtDlp, extractAudioWithYtDlp, extractSubtitles, parseSubtitleToText } from './yt-dlp'
+export {
+  detectYtDlp,
+  autoDownloadYtDlp,
+  extractAudioWithYtDlp,
+  extractSubtitles,
+  parseSubtitleToText,
+} from './yt-dlp'
 export type { YtDlpStatus } from './yt-dlp'

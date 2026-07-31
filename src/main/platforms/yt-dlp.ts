@@ -33,10 +33,7 @@ function findYtDlpPath(): string | null {
   try {
     const home = process.env.USERPROFILE || process.env.HOME || ''
     if (home) {
-      const userDirs = [
-        path.join(home, 'tools'),
-        path.join(home, '.local', 'bin'),
-      ]
+      const userDirs = [path.join(home, 'tools'), path.join(home, '.local', 'bin')]
       const candidates = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
       for (const dir of userDirs) {
         for (const name of candidates) {
@@ -51,7 +48,9 @@ function findYtDlpPath(): string | null {
   try {
     const isWin = process.platform === 'win32'
     const cmd = isWin ? 'where yt-dlp' : 'which yt-dlp'
-    const result = require('child_process').execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim()
+    const result = require('child_process')
+      .execSync(cmd, { encoding: 'utf-8', timeout: 5000 })
+      .trim()
     if (result) return result.split('\n')[0].trim()
   } catch {}
 
@@ -96,7 +95,10 @@ export async function autoDownloadYtDlp(
     signal,
   })
   if (!apiResp.ok) throw new Error(`GitHub API 请求失败: ${apiResp.status}`)
-  const release = await apiResp.json() as { tag_name: string; assets: { name: string; browser_download_url: string; size: number }[] }
+  const release = (await apiResp.json()) as {
+    tag_name: string
+    assets: { name: string; browser_download_url: string; size: number }[]
+  }
   const asset = release.assets.find((a: { name: string }) => a.name === binaryName)
   if (!asset) throw new Error(`未找到 ${binaryName} 下载资源`)
 
@@ -132,17 +134,23 @@ export async function autoDownloadYtDlp(
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    if (signal?.aborted) { writer.close(); fs.unlinkSync(tmpPath); throw new Error('已取消') }
+    if (signal?.aborted) {
+      writer.close()
+      fs.unlinkSync(tmpPath)
+      throw new Error('已取消')
+    }
     writer.write(value)
     downloaded += value.length
     if (totalSize > 0) {
       const pct = Math.round((downloaded / totalSize) * 100)
-      onProgress?.(`下载中 ${pct}% (${(downloaded / 1048576).toFixed(1)}/${(totalSize / 1048576).toFixed(1)} MB)`)
+      onProgress?.(
+        `下载中 ${pct}% (${(downloaded / 1048576).toFixed(1)}/${(totalSize / 1048576).toFixed(1)} MB)`,
+      )
     }
   }
 
   await new Promise<void>((resolve, reject) => {
-    writer.end((err?: Error) => err ? reject(err) : resolve())
+    writer.end((err?: Error) => (err ? reject(err) : resolve()))
   })
 
   // 4) 替换旧文件
@@ -168,9 +176,12 @@ export function extractAudioWithYtDlp(
     const outputTemplate = path.join(outputDir, `${outputName}.%(ext)s`)
     const args = [
       '--extract-audio',
-      '--audio-format', 'mp3',
-      '--audio-quality', '0',
-      '-o', outputTemplate,
+      '--audio-format',
+      'mp3',
+      '--audio-quality',
+      '0',
+      '-o',
+      outputTemplate,
       '--no-playlist',
       videoUrl,
     ]
@@ -182,8 +193,8 @@ export function extractAudioWithYtDlp(
       const line = data.toString().trim()
       onLog?.(line)
       // 捕获输出文件路径
-      const match = line.match(/\[Merger\] Merging formats into "(.+)"/)
-        || line.match(/Destination: (.+)/)
+      const match =
+        line.match(/\[Merger\] Merging formats into "(.+)"/) || line.match(/Destination: (.+)/)
       if (match) outputPath = match[1]
     })
 
@@ -198,7 +209,7 @@ export function extractAudioWithYtDlp(
       })
     }
 
-    proc.on('close', (code) => {
+    proc.on('close', code => {
       if (code !== 0) {
         reject(new Error(`yt-dlp 退出码 ${code}`))
         return
@@ -216,7 +227,7 @@ export function extractAudioWithYtDlp(
       resolve(outputPath)
     })
 
-    proc.on('error', (err) => {
+    proc.on('error', err => {
       reject(new Error(`yt-dlp 启动失败: ${err.message}`))
     })
   })
@@ -232,12 +243,21 @@ export function getYtDlpMetadata(
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
 
-    proc.stdout?.on('data', (data: Buffer) => { stdout += data.toString() })
-    proc.on('close', (code) => {
-      if (code !== 0) { reject(new Error(`yt-dlp metadata 退出码 ${code}`)); return }
-      try { resolve(JSON.parse(stdout)) } catch { reject(new Error('yt-dlp metadata JSON 解析失败')) }
+    proc.stdout?.on('data', (data: Buffer) => {
+      stdout += data.toString()
     })
-    proc.on('error', (err) => reject(err))
+    proc.on('close', code => {
+      if (code !== 0) {
+        reject(new Error(`yt-dlp metadata 退出码 ${code}`))
+        return
+      }
+      try {
+        resolve(JSON.parse(stdout))
+      } catch {
+        reject(new Error('yt-dlp metadata JSON 解析失败'))
+      }
+    })
+    proc.on('error', err => reject(err))
   })
 }
 
@@ -251,14 +271,18 @@ export function extractSubtitles(
   onLog?: (msg: string) => void,
   signal?: AbortSignal,
 ): Promise<string | null> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const outputTemplate = path.join(outputDir, `${outputName}.%(ext)s`)
     const args = [
-      '--write-auto-sub', '--write-sub',
-      '--sub-lang', langs.join(','),
-      '--sub-format', 'vtt/srt/best',
+      '--write-auto-sub',
+      '--write-sub',
+      '--sub-lang',
+      langs.join(','),
+      '--sub-format',
+      'vtt/srt/best',
       '--skip-download',
-      '-o', outputTemplate,
+      '-o',
+      outputTemplate,
       '--no-playlist',
       videoUrl,
     ]
@@ -285,7 +309,10 @@ export function extractSubtitles(
     })
 
     if (signal) {
-      signal.addEventListener('abort', () => { proc.kill('SIGTERM'); resolve(null) })
+      signal.addEventListener('abort', () => {
+        proc.kill('SIGTERM')
+        resolve(null)
+      })
     }
 
     proc.on('close', () => {
@@ -298,7 +325,10 @@ export function extractSubtitles(
       for (const lang of langs) {
         for (const ext of ['vtt', 'srt']) {
           const p = path.join(outputDir, `${outputName}.${lang}.${ext}`)
-          if (fs.existsSync(p)) { resolve(p); return }
+          if (fs.existsSync(p)) {
+            resolve(p)
+            return
+          }
         }
       }
       resolve(null)
@@ -319,7 +349,8 @@ export function parseSubtitleToText(filePath: string): string | null {
       const trimmed = line.trim()
       // 跳过空行、时间轴行、序号行、VTT 头
       if (!trimmed) continue
-      if (trimmed === 'WEBVTT' || trimmed.startsWith('Kind:') || trimmed.startsWith('Language:')) continue
+      if (trimmed === 'WEBVTT' || trimmed.startsWith('Kind:') || trimmed.startsWith('Language:'))
+        continue
       if (/^\d+$/.test(trimmed)) continue
       if (/^\d{2}:\d{2}/.test(trimmed) && trimmed.includes('-->')) continue
       if (/^NOTE/.test(trimmed)) continue

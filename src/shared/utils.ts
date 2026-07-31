@@ -4,15 +4,19 @@
  */
 export function cleanTitle(title: string): string {
   if (!title) return ''
-  
+
   let cleaned = title
-  
+
   // URL 链接不做路径分割
   const isUrl = /^https?:\/\//.test(cleaned)
-  
+
   if (!isUrl) {
     // 如果是文件路径，提取文件名（不含扩展名）
-    const isFilePath = /^[a-zA-Z]:\\/.test(cleaned) || /^\//.test(cleaned) || cleaned.includes('\\') || cleaned.includes('/')
+    const isFilePath =
+      /^[a-zA-Z]:\\/.test(cleaned) ||
+      /^\//.test(cleaned) ||
+      cleaned.includes('\\') ||
+      cleaned.includes('/')
     if (isFilePath) {
       // 提取文件名部分（最后一个路径段）
       const parts = cleaned.split(/[\\\/]/)
@@ -23,10 +27,10 @@ export function cleanTitle(title: string): string {
       cleaned = cleaned.replace(/[_\-]?(music|audio|sound|podcast)$/i, '')
     }
   }
-  
+
   // 移除日期前缀：2026-05-18_、2024-01-01-、2024.01.01_ 等
   cleaned = cleaned.replace(/^\d{4}[-.]?\d{2}[-.]?\d{2}[_\-\s]+/, '')
-  
+
   cleaned = cleaned
     // 移除期数前缀：第X期、第X季、EP01、Episode 1、Vol5、Vol.5 等
     .replace(/^(第\d+[期季集部季]\s*[-|：:]?\s*)/i, '')
@@ -35,6 +39,11 @@ export function cleanTitle(title: string): string {
     .replace(/^(Vol\.?\s*\d+\s*[-|：:.]?\s*)/i, '')
     .replace(/^(Volume\s*\d+\s*[-|：:.]?\s*)/i, '')
     .replace(/^(V\d+\s*[-|：:.]?\s*)/i, '')
+    // 移除裸数字前缀：04.、01、、01 - 、#01 等（播客常见编号格式）
+    .replace(/^\d+\.\s*/, '')
+    .replace(/^\d+、\s*/, '')
+    .replace(/^#\d+\s*[-|：:.]?\s*/, '')
+    .replace(/^\d+\s*[-|：:]\s*/, '')
     // 移除日期：2024-01-01、2024.01.01、20240101 等
     .replace(/\s*[-|：:]?\s*\d{4}[-.]?\d{2}[-.]?\d{2}\s*$/, '')
     .replace(/\s*[-|：:]?\s*\d{4}年\d{1,2}月\d{1,2}日\s*$/, '')
@@ -42,7 +51,7 @@ export function cleanTitle(title: string): string {
     .replace(/^[\s\-|：:]+/, '')
     .replace(/[\s\-|：:]+$/, '')
     .trim()
-  
+
   // 如果标题太长（超过50个字符），截取前50个字符并添加省略号
   if (cleaned.length > 50) {
     cleaned = cleaned.substring(0, 50) + '...'

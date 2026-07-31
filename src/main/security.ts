@@ -23,8 +23,10 @@ export function isPathWithinBase(targetPath: string, baseDirs: string[]): boolea
   const resolved = resolve(targetPath)
   return baseDirs.some(base => {
     const resolvedBase = resolve(base)
-    return resolved.toLowerCase().startsWith(resolvedBase.toLowerCase() + '\\') ||
-           resolved.toLowerCase() === resolvedBase.toLowerCase()
+    return (
+      resolved.toLowerCase().startsWith(resolvedBase.toLowerCase() + '\\') ||
+      resolved.toLowerCase() === resolvedBase.toLowerCase()
+    )
   })
 }
 
@@ -39,7 +41,11 @@ function hasPathTraversal(p: string): boolean {
 /**
  * 检查文件路径是否安全（在允许目录内 + 扩展名白名单）
  */
-export function isSafeFilePath(filePath: string, allowedBaseDirs: string[], allowedExtensions: string[]): boolean {
+export function isSafeFilePath(
+  filePath: string,
+  allowedBaseDirs: string[],
+  allowedExtensions: string[],
+): boolean {
   if (!filePath || typeof filePath !== 'string') return false
   if (hasPathTraversal(filePath)) return false
   const ext = extname(filePath).toLowerCase()

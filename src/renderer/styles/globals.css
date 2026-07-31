@@ -1,6 +1,6 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -101,10 +101,20 @@ body[data-theme='dark'] {
   --select-option-hover: #2d2d44;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
-  font-family: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-family:
+    'Geist Variable',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Microsoft YaHei',
+    sans-serif;
   background: var(--bg-base);
   color: var(--text-primary);
   overflow: hidden;
@@ -125,7 +135,7 @@ body {
   display: flex;
   width: 100%;
   min-height: 100vh;
-  background: 
+  background:
     radial-gradient(ellipse at top left, rgba(var(--accent-rgb), 0.06), transparent 50%),
     radial-gradient(ellipse at top right, rgba(168, 85, 247, 0.04), transparent 50%),
     radial-gradient(ellipse at bottom, rgba(var(--success-rgb), 0.03), transparent 50%),
@@ -257,11 +267,19 @@ body {
   flex-shrink: 0;
 }
 
-.sidebar-stat__icon--active { color: var(--accent); }
-.sidebar-stat__icon--queued { color: var(--warning); }
-.sidebar-stat__icon--done { color: var(--success); }
+.sidebar-stat__icon--active {
+  color: var(--accent);
+}
+.sidebar-stat__icon--queued {
+  color: var(--warning);
+}
+.sidebar-stat__icon--done {
+  color: var(--success);
+}
 
-.sidebar-stat__label { flex: 1; }
+.sidebar-stat__label {
+  flex: 1;
+}
 
 .sidebar-stat__value {
   font-weight: 600;
@@ -432,7 +450,9 @@ body {
 .workspace-input-card:hover,
 .workspace-process-card:hover {
   border-color: var(--border-light);
-  box-shadow: var(--panel-shadow), 0 0 0 1px rgba(var(--accent-rgb), 0.05);
+  box-shadow:
+    var(--panel-shadow),
+    0 0 0 1px rgba(var(--accent-rgb), 0.05);
 }
 
 .workspace-hero {
@@ -620,7 +640,9 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-card);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   cursor: text;
 }
 
@@ -633,7 +655,9 @@ body {
   opacity: 0.35;
   flex-shrink: 0;
   color: var(--text-muted);
-  transition: color 0.2s, opacity 0.2s;
+  transition:
+    color 0.2s,
+    opacity 0.2s;
 }
 
 .url-input-field-wrap.is-focused .url-input-icon {
@@ -686,7 +710,9 @@ body {
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .url-input-clear:hover {
@@ -1281,6 +1307,14 @@ body {
   color: var(--text-primary);
 }
 
+.task-card-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--error);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
 .task-card {
   display: flex;
   flex-direction: column;
@@ -1374,8 +1408,8 @@ body {
 /* Batch tasks in ActiveTasksPanel */
 .task-status-badge.pending {
   color: var(--text-tertiary);
-  background: rgba(var(--text-tertiary-rgb, 128,128,128), 0.1);
-  border-color: rgba(var(--text-tertiary-rgb, 128,128,128), 0.2);
+  background: rgba(var(--text-tertiary-rgb, 128, 128, 128), 0.1);
+  border-color: rgba(var(--text-tertiary-rgb, 128, 128, 128), 0.2);
 }
 
 .batch-section-header {
@@ -1394,7 +1428,7 @@ body {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: rgba(var(--warning-rgb, 234,179,8), 0.12);
+  background: rgba(var(--warning-rgb, 234, 179, 8), 0.12);
   color: var(--warning, #eab308);
   font-weight: 500;
   text-transform: none;
@@ -1444,9 +1478,15 @@ body {
   line-height: 1;
   color: var(--text-tertiary);
 }
-.batch-step-dot--done { color: var(--success); }
-.batch-step-dot--running { color: var(--accent); }
-.batch-step-dot--error { color: var(--error); }
+.batch-step-dot--done {
+  color: var(--success);
+}
+.batch-step-dot--running {
+  color: var(--accent);
+}
+.batch-step-dot--error {
+  color: var(--error);
+}
 
 .settings-dialog {
   position: relative;
@@ -1702,7 +1742,7 @@ input {
   border: none;
 }
 
-.recent-task-primary:hover:not(:disabled) { 
+.recent-task-primary:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px var(--accent-glow);
 }
@@ -1725,7 +1765,7 @@ input {
   color: var(--error);
 }
 
-.recent-task-danger:hover:not(:disabled) { 
+.recent-task-danger:hover:not(:disabled) {
   background: rgba(var(--error-rgb), 0.15);
 }
 
@@ -1743,11 +1783,15 @@ input {
   flex-shrink: 0;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { 
-  background: rgba(255, 255, 255, 0.1); 
-  border-radius: 3px; 
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
@@ -2037,13 +2081,23 @@ input {
    ============================================ */
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalSlide {
-  from { opacity: 0; transform: translateY(20px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .confirm-dialog-overlay {
@@ -2217,7 +2271,9 @@ input {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-card);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   cursor: text;
 }
 
@@ -2230,7 +2286,9 @@ input {
   flex-shrink: 0;
   opacity: 0.35;
   color: var(--text-muted);
-  transition: color 0.2s, opacity 0.2s;
+  transition:
+    color 0.2s,
+    opacity 0.2s;
 }
 
 .topbar-search-box.is-focused .topbar-search-icon {
@@ -2278,7 +2336,9 @@ input {
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .topbar-search-clear:hover {
@@ -2475,13 +2535,24 @@ input {
    ============================================ */
 
 @keyframes step-node-pulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.35); }
-  50% { box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.5), 0 0 64px rgba(var(--accent-rgb), 0.2); }
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 32px rgba(var(--accent-rgb), 0.5),
+      0 0 64px rgba(var(--accent-rgb), 0.2);
+  }
 }
 
 @keyframes step-connector-flow {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .step-panel-card {
@@ -2501,8 +2572,9 @@ input {
 .step-panel-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 50%, rgba(var(--accent-rgb), 0.03), transparent 60%),
-              radial-gradient(circle at 80% 50%, rgba(var(--success-rgb), 0.03), transparent 60%);
+  background:
+    radial-gradient(circle at 20% 50%, rgba(var(--accent-rgb), 0.03), transparent 60%),
+    radial-gradient(circle at 80% 50%, rgba(var(--success-rgb), 0.03), transparent 60%);
   pointer-events: none;
 }
 
@@ -2697,11 +2769,21 @@ input {
   transition: color 0.4s;
 }
 
-.step-node-label--running { color: var(--accent); }
-.step-node-label--done { color: var(--success); }
-.step-node-label--stopped { color: var(--accent); }
-.step-node-label--error { color: var(--error); }
-.step-node-label--pending { color: var(--text-muted); }
+.step-node-label--running {
+  color: var(--accent);
+}
+.step-node-label--done {
+  color: var(--success);
+}
+.step-node-label--stopped {
+  color: var(--accent);
+}
+.step-node-label--error {
+  color: var(--error);
+}
+.step-node-label--pending {
+  color: var(--text-muted);
+}
 
 .step-connector {
   width: clamp(10px, 3vw, 32px);
@@ -2859,7 +2941,8 @@ input {
 
 /* 脉冲动画 - 用于运行状态 */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 var(--accent-glow);
   }
   50% {
@@ -2985,7 +3068,8 @@ input {
 
 /* 骨架屏脉冲 */
 @keyframes skeleton-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
@@ -3024,7 +3108,9 @@ input {
   border-radius: inherit;
   padding: 1px;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -3122,8 +3208,12 @@ a:focus-visible {
    ============================================ */
 
 @keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton {
