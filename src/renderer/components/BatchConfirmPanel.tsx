@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { motion } from 'motion/react'
-import { X, Play, FileAudio, Link, GripVertical, AlertTriangle } from 'lucide-react'
+import { X, Play, FileAudio, Link, AlertTriangle } from 'lucide-react'
 import type { BatchInput } from '@shared/types'
 
 interface Props {

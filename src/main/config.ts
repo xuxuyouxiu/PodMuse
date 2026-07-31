@@ -129,7 +129,7 @@ function migrateEncryptedFields(config: PodcastConfig): PodcastConfig {
 
     // 迁移 AI 供应商的 apiKey
     if (result.ai_providers) {
-      for (const [id, provider] of Object.entries(result.ai_providers)) {
+      for (const [, provider] of Object.entries(result.ai_providers)) {
         const p = provider as unknown as Record<string, unknown>
         if (p.apiKey) continue
         const encVal = p['_apiKey_enc']

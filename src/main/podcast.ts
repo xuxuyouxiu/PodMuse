@@ -14,7 +14,7 @@ import {
 import { isSubPathOf } from './security'
 import {
   platformRegistry,
-  fetchOgTitle,
+  fetchOgTitle, // eslint-disable-line @typescript-eslint/no-unused-vars
   extractAudioWithYtDlp,
   extractSubtitles,
   parseSubtitleToText,
@@ -498,12 +498,11 @@ export async function processPodcast(
   log('  [3/5] 语音转文字 (Whisper)...')
 
   let transcript: string | null = null
-  let usedTranscriptCache = false
 
   // 如果已从平台获取字幕/转写文本，直接使用
   if (preTranscript) {
     transcript = preTranscript
-    usedTranscriptCache = true
+    
     step({
       step: 3,
       title: '语音转文字',
@@ -527,7 +526,7 @@ export async function processPodcast(
           log(`  🔄 历史转写文件内容过短（${cached.text.length} 字），重新转写`)
         } else {
           transcript = cached.text
-          usedTranscriptCache = true
+          
           log(
             `  ✅ 复用历史转写结果（${transcript.length} 字，文件: ${path.basename(transcriptPath)}）`,
           )
@@ -564,7 +563,7 @@ export async function processPodcast(
             log(`  🔄 Whisper .txt 内容过短（${txtContent.length} 字），重新转写`)
           } else {
             transcript = txtContent
-            usedTranscriptCache = true
+            
             log(
               `  ✅ 复用 Whisper 原始转写结果（${transcript.length} 字，文件: ${path.basename(txtPath)}）`,
             )

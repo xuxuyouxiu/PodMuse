@@ -535,6 +535,7 @@ const SEGMENT_SIZE = 22000
 const SEGMENT_OVERLAP = 500
 const MAX_SEGMENTS = 3
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SegmentResult {
   index: number
   content: string

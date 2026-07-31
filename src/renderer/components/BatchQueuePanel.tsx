@@ -15,9 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  CheckCheck,
-  ClipboardCheck,
-  FileText,
 } from 'lucide-react'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 

@@ -141,7 +141,6 @@ function buildExcerpt(content: string, contentLower: string, tokens: string[]): 
 
   // HTML-escape first, then insert <mark> for each token occurrence
   let escaped = escapeHtml(excerpt)
-  const escapedLower = escaped.toLowerCase()
 
   // Replace tokens with <mark> (longest tokens first to avoid double-wrapping)
   const sortedTokens = [...tokens].sort((a, b) => b.length - a.length)
