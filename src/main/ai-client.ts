@@ -353,9 +353,11 @@ async function callAI(
     }
 
     try {
+      const timeoutSignal = AbortSignal.timeout(120_000)
+      const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
       const resp = await fetch(apiUrl, {
         method: 'POST',
-        signal,
+        signal: mergedSignal,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${providerConfig.apiKey}`,

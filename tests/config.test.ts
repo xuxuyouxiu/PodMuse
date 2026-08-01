@@ -11,6 +11,7 @@ const {
   mockReadFileSync,
   mockWriteFileSync,
   mockMkdirSync,
+  mockStatSync,
   mockIsSafeDirectoryPath,
   mockIsSafeExecutablePath,
   mockDecryptField,
@@ -20,6 +21,7 @@ const {
   mockReadFileSync: vi.fn(),
   mockWriteFileSync: vi.fn(),
   mockMkdirSync: vi.fn(),
+    mockStatSync: vi.fn().mockReturnValue({ mtimeMs: 0 }),
   mockIsSafeDirectoryPath: vi.fn().mockReturnValue(true),
   mockIsSafeExecutablePath: vi.fn().mockReturnValue(true),
   mockDecryptField: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock('fs', async () => {
     readFileSync: mockReadFileSync,
     writeFileSync: mockWriteFileSync,
     mkdirSync: mockMkdirSync,
+    statSync: mockStatSync,
   }
 })
 
@@ -344,7 +347,7 @@ describe('loadConfig', () => {
       return ''
     })
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const result = loadConfig()
 
     expect(result.api_key).toBe('sk-test123')
@@ -357,7 +360,7 @@ describe('loadConfig', () => {
       return ''
     })
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const result = loadConfig()
 
     expect(result.api_key).toBe('sk-test')
@@ -379,7 +382,7 @@ describe('loadConfig', () => {
       return ''
     })
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const result = loadConfig()
 
     expect(result.api_key).toBe('')
@@ -390,7 +393,7 @@ describe('loadConfig', () => {
   it('returns defaults when no config files exist', async () => {
     mockExistsSync.mockReturnValue(false)
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const result = loadConfig()
 
     expect(result.ai_provider).toBe('deepseek')
@@ -406,7 +409,7 @@ describe('loadConfig', () => {
       return ''
     })
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const result = loadConfig()
 
     expect(result.ai_provider).toBe('deepseek')
@@ -416,7 +419,7 @@ describe('loadConfig', () => {
   it('returns a fresh object each time (no shared reference)', async () => {
     mockExistsSync.mockReturnValue(false)
 
-    const { loadConfig } = await import('../src/main/config')
+    const { loadConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
     const c1 = loadConfig()
     const c2 = loadConfig()
 

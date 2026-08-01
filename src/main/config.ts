@@ -195,15 +195,24 @@ export function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
   return result
 }
 
+let configCache: { mtime: number; data: PodcastConfig } | null = null
+export function clearConfigCache(): void { configCache = null }
+
 export function loadConfig(): PodcastConfig {
   // 1. 优先加载用户配置文件（已持久化的用户设置）
   try {
     const userPath = getUserConfigPath()
     if (fs.existsSync(userPath)) {
+      const stat = fs.statSync(userPath)
+      if (configCache && configCache.mtime === stat.mtimeMs) {
+        return configCache.data
+      }
       const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       const merged = { ...DEFAULTS, ...data }
       const cleaned = stripPlaceholderValues(merged)
-      return migrateEncryptedFields(cleaned)
+      const config = migrateEncryptedFields(cleaned)
+      configCache = { mtime: stat.mtimeMs, data: config }
+      return config
     }
   } catch {}
 
@@ -233,6 +242,7 @@ function prepareConfigForSave(config: PodcastConfig): Record<string, unknown> {
 
 export function saveConfig(config: PodcastConfig) {
   try {
+    configCache = null // 写入前清除缓存
     const p = getUserConfigPath()
     const dir = path.dirname(p)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
