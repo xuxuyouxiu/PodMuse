@@ -50,6 +50,12 @@ const PLATFORM_DETECTORS: Array<{ id: string; name: string; pattern: RegExp; ico
       icon: MonitorPlay,
     },
     {
+      id: 'douyin',
+      name: '抖音',
+      pattern: /^https?:\/\/(www\.|v\.)?(douyin\.com|iesdouyin\.com|v\.douyin\.com)\//i,
+      icon: PlayCircle,
+    },
+    {
       id: 'youtube',
       name: 'YouTube',
       pattern: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)/i,
