@@ -193,6 +193,38 @@ function setupIPC() {
   })
   registerBatchIPC(mainWindow, batchQueueService)
 
+  // ---- 抖音下载器安装检查 ----
+  ipcMain.handle('douyin:setup', async () => {
+    const { execSync } = await import('child_process')
+    const downloadPath = process.env.DOUYIN_DOWNLOADER_PATH || 'G:\\douyin-downloader-main'
+    const scriptPath = join(downloadPath, 'douyin-cli.py')
+
+    // 检查 Python
+    let pythonOk = false
+    try {
+      const ver = execSync('python --version', { encoding: 'utf-8' }).trim()
+      pythonOk = ver.includes('3.')
+    } catch {}
+
+    if (!pythonOk) {
+      return { success: false, error: '请先安装 Python 3.8+：https://www.python.org/downloads/\n安装时勾选 Add Python to PATH' }
+    }
+
+    // 检查 douyin-downloader 是否存在
+    if (!fs.existsSync(scriptPath)) {
+      return { success: false, error: '请下载抖音下载器并解压到 ' + downloadPath + '\n下载地址: https://github.com/jiji262/douyin-downloader/archive/refs/heads/main.zip' }
+    }
+
+    // 安装依赖
+    try {
+      execSync('pip install -r requirements.txt', { cwd: downloadPath, encoding: 'utf-8', timeout: 120000 })
+    } catch (e: any) {
+      return { success: false, error: '安装依赖失败: ' + (e.message || e) }
+    }
+
+    return { success: true, path: downloadPath }
+  })
+
   // ---- 抖音 Cookie 登录 ----
   ipcMain.handle('douyin:login', async () => {
     return new Promise((resolve, reject) => {

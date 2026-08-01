@@ -428,7 +428,24 @@ export default function TabApi({
               resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            <button
+              className="settings-browse-button"
+              onClick={async () => {
+                try {
+                  const result = await window.electronAPI.douyinSetup()
+                  if (result.success) {
+                    alert('环境检查通过！Python 和依赖已就绪。')
+                  } else {
+                    alert('环境检查失败：\n\n' + result.error)
+                  }
+                } catch (e: any) {
+                  alert('检查失败: ' + (e.message || e))
+                }
+              }}
+            >
+              检查环境
+            </button>
             <button
               className="settings-browse-button"
               onClick={async () => {
@@ -455,8 +472,8 @@ export default function TabApi({
             )}
           </div>
           <p className="settings-hint" style={{ marginTop: 8 }}>
-            点击按钮会打开抖音登录页面，登录成功后自动获取 Cookie 并填入。
-            如需手动获取：浏览器登录抖音 → F12 → Application → Cookies → 复制所有值。
+            首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击"检查环境" ④ 点击"自动获取 Cookie"。<br/>
+            下载地址：<a href="#" onClick={e => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/jiji262/douyin-downloader') }}>github.com/jiji262/douyin-downloader</a>
           </p>
         </div>
       </div>

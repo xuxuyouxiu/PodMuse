@@ -15,6 +15,7 @@ try {
     testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) =>
       ipcRenderer.invoke('feishu:testConnection', params),
     douyinLogin: () => ipcRenderer.invoke('douyin:login'),
+    douyinSetup: () => ipcRenderer.invoke('douyin:setup'),
 
     processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) =>
       ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),

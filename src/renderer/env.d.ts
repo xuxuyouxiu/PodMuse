@@ -161,6 +161,7 @@ declare global {
         chatId: string
       }) => Promise<{ success: boolean; message: string }>
       douyinLogin: () => Promise<string>
+      douyinSetup: () => Promise<{ success: boolean; error?: string; path?: string }>
       processPodcast: (
         url: string,
         force?: boolean,
