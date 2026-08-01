@@ -12,6 +12,8 @@ extraResources:
     to: obsidian_templates
   - from: build/icon.png
     to: build/icon.png
+  - from: resources/douyin/douyin-cli.exe
+    to: douyin/douyin-cli.exe
 extraFiles:
   - from: node_modules/electron/dist/ffmpeg.dll
     to: ffmpeg.dll
