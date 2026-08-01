@@ -247,9 +247,8 @@ function setupIPC() {
       const checkInterval = setInterval(async () => {
         try {
           const cookies = await session.defaultSession.cookies.get({ domain: '.douyin.com' })
-          const hasSidGuard = cookies.some(c => c.name === 'sid_guard')
-          const hasTtwid = cookies.some(c => c.name === 'ttwid')
-          if (hasSidGuard || hasTtwid) {
+          const hasLogin = cookies.some(c => c.name === 'sid_guard' || c.name === 'sessionid')
+          if (hasLogin) {
             clearInterval(checkInterval)
             // 收集所有抖音 cookie
             const allCookies = await session.defaultSession.cookies.get({})
