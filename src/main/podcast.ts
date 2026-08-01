@@ -409,7 +409,22 @@ export async function processPodcast(
         const audioName = cleanTitleForFilename(title || 'episode')
         audioPath = path.join(tmp, `${audioName}.${ext}`)
 
-        if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 1024) {
+        // 如果 audioUrl 是本地文件路径，直接复制而非下载
+        if (fs.existsSync(audioUrl)) {
+          log('  ⏭ 音频为本地文件，直接使用')
+          const localExt = audioUrl.split('.').pop()?.toLowerCase() || 'mp4'
+          audioPath = path.join(tmp, `${audioName}.${localExt}`)
+          if (!fs.existsSync(audioPath)) {
+            fs.copyFileSync(audioUrl, audioPath)
+          }
+          step({
+            step: 2,
+            title: '下载音频',
+            subtitle: `${(fs.statSync(audioPath).size / 1048576).toFixed(1)} MB (本地)`,
+            status: 'done',
+            progress: 100,
+          })
+        } else if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 1024) {
           log('  ⏭ 音频已存在，跳过下载')
           step({
             step: 2,
