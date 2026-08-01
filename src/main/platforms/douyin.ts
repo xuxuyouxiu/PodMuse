@@ -1,18 +1,21 @@
-/** 抖音（Douyin）平台适配器 — 通过打包的 douyin-cli.exe 下载音频 */
+/** 抖音（Douyin）平台适配器 — 通过 Python 脚本调用 douyin-downloader */
 
 import { spawn } from 'child_process'
 import * as path from 'path'
-import { app } from 'electron'
 import * as fs from 'fs'
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
-/** 获取 douyin-cli.exe 路径（打包后在 resources/douyin/ 下） */
-function getDouyinCliPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'douyin', 'douyin-cli.exe')
-  }
-  // 开发模式：从项目根目录找
-  return path.join(__dirname, '..', '..', '..', 'resources', 'douyin', 'douyin-cli.exe')
+/** douyin-downloader 项目路径 */
+function getDownloaderPath(): string {
+  // 优先用环境变量
+  if (process.env.DOUYIN_DOWNLOADER_PATH) return process.env.DOUYIN_DOWNLOADER_PATH
+  // 默认路径
+  return 'G:\\douyin-downloader-main'
+}
+
+/** 获取 Python 可执行文件 */
+function getPythonPath(): string {
+  return process.env.DOUYIN_PYTHON || 'python'
 }
 
 /** 从输出目录找最新的音频文件 */
@@ -51,30 +54,28 @@ export class DouyinAdapter implements PlatformAdapter {
   }
 
   async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
-    const cliPath = getDouyinCliPath()
+    const downloaderPath = getDownloaderPath()
+    const scriptPath = path.join(downloaderPath, 'douyin-cli.py')
 
-    // 检查 exe 是否存在
-    if (!fs.existsSync(cliPath)) {
+    // 检查脚本是否存在
+    if (!fs.existsSync(scriptPath)) {
       throw new Error(
-        '抖音下载组件未找到。请重新安装播客笔记助手，或联系开发者。'
+        `抖音下载脚本未找到。请设置环境变量 DOUYIN_DOWNLOADER_PATH 指向 douyin-downloader 目录，\n` +
+        `或将项目放在 G:\\douyin-downloader-main。\n` +
+        `需要 Python 3.8+ 和依赖：pip install -r requirements.txt`
       )
     }
 
-    // 准备输出目录（放在 userData 下）
-    const downloadDir = path.join(app.getPath('userData'), '_douyin_temp')
+    // 准备输出目录
+    const downloadDir = path.join(downloaderPath, 'Downloaded')
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir, { recursive: true })
     }
 
-    // 记录下载前的文件列表
-    const beforeFiles = new Set<string>()
-    try {
-      for (const e of fs.readdirSync(downloadDir)) beforeFiles.add(e)
-    } catch {}
-
-    // 调用 douyin-cli.exe
+    // 调用 Python 脚本
     const result = await new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
-      const proc = spawn(cliPath, [url, '--output', downloadDir], {
+      const proc = spawn(getPythonPath(), [scriptPath, url, '--output', downloadDir], {
+        cwd: downloaderPath,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
 
@@ -93,19 +94,16 @@ export class DouyinAdapter implements PlatformAdapter {
       })
 
       proc.on('error', (err) => {
-        reject(new Error(`启动抖音下载组件失败: ${err.message}`))
+        reject(new Error(`启动 Python 失败: ${err.message}。请确认已安装 Python 3.8+ 和依赖。`))
       })
     })
 
     // 解析 JSON 输出
     let downloadResult: { success?: boolean; error?: string } = {}
     try {
-      // stdout 的最后一行是 JSON
       const lines = result.stdout.trim().split('\n')
       downloadResult = JSON.parse(lines[lines.length - 1])
-    } catch {
-      // JSON 解析失败，尝试找文件
-    }
+    } catch {}
 
     if (!downloadResult.success) {
       throw new Error(downloadResult.error || `抖音下载失败 (exit ${result.code}): ${result.stderr.slice(0, 200)}`)
