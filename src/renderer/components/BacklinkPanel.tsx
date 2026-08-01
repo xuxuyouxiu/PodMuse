@@ -1192,7 +1192,6 @@ export default function BacklinkPanel() {
         }
         .backlink-panel__search-input:focus {
           border-color: var(--accent);
-          box-shadow: 0 0 0 2px var(--accent-glow);
         }
         .backlink-panel__search:has(.backlink-panel__search-input:focus) .backlink-panel__search-icon {
           color: var(--accent);
