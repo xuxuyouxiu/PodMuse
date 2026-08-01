@@ -216,12 +216,24 @@ function scoreNote(
   return { score, matchType }
 }
 
-// ── Scan all podcast notes ──
+// ── Scan all podcast notes (with mtime cache) ──
+
+let notesCache: { dir: string; mtime: number; notes: NoteRecord[] } | null = null
 
 function scanAllNotes(obsidianDir: string): NoteRecord[] {
-  const notes: NoteRecord[] = []
-  if (!obsidianDir) return notes
+  if (!obsidianDir) return []
 
+  // 检查缓存：目录未变化则直接返回
+  try {
+    const stat = fs.statSync(obsidianDir)
+    if (notesCache && notesCache.dir === obsidianDir && notesCache.mtime === stat.mtimeMs) {
+      return notesCache.notes
+    }
+  } catch {
+    return []
+  }
+
+  const notes: NoteRecord[] = []
   try {
     const topEntries = fs.readdirSync(obsidianDir, { withFileTypes: true })
     for (const entry of topEntries) {
@@ -248,6 +260,14 @@ function scanAllNotes(obsidianDir: string): NoteRecord[] {
     }
   } catch {
     /* obsidianDir unreadable */
+  }
+
+  // 更新缓存
+  try {
+    const stat = fs.statSync(obsidianDir)
+    notesCache = { dir: obsidianDir, mtime: stat.mtimeMs, notes }
+  } catch {
+    notesCache = { dir: obsidianDir, mtime: 0, notes }
   }
 
   return notes

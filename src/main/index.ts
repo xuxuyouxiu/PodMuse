@@ -627,6 +627,7 @@ app.on('before-quit', () => {
   if (batchQueueService?.isRunning) {
     batchQueueService.pause()
   }
+  batchQueueService?.forceFlush?.()
   monitor?.cancelProcessing()
   monitor?.stop()
   tray?.destroy()

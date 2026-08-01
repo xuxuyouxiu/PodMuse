@@ -489,7 +489,26 @@ export class BatchQueueService {
 
   // ---- Persistence ----
 
+  private persistTimer: ReturnType<typeof setTimeout> | null = null
+
   private persist(): void {
+    if (this.persistTimer) clearTimeout(this.persistTimer)
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      this._doPersist()
+    }, 300)
+  }
+
+  /** 应用退出时强制同步写入 */
+  forceFlush(): void {
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+    }
+    this._doPersist()
+  }
+
+  private _doPersist(): void {
     try {
       const data: PersistedQueue = {
         tasks: this.tasks.map(t => ({
@@ -504,7 +523,7 @@ export class BatchQueueService {
         })),
         status: this.status === 'running' ? 'paused' : this.status, // Running → paused on restart
       }
-      fs.writeFileSync(getQueuePath(), JSON.stringify(data, null, 2), 'utf-8')
+      fs.writeFileSync(getQueuePath(), JSON.stringify(data), 'utf-8')
     } catch (e) {
       console.error('Failed to persist batch queue:', e)
     }

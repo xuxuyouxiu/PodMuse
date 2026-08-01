@@ -76,6 +76,10 @@ export class ProcessedMessageStore {
       processedUrls = processedUrls.slice(-MAX_URL_IDS)
     }
 
+    // 同步截断内存 Set，防止无限增长
+    this.messageIds = new Set(processed)
+    this.urlIds = new Set(processedUrls)
+
     saveState({
       ...currentState,
       processed,

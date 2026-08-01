@@ -436,13 +436,14 @@ export async function processPodcast(
               return null
             }
             const reader = audioResp.body.getReader()
-            const chunks: Uint8Array[] = []
+            const { createWriteStream } = await import('fs')
+            const ws = createWriteStream(audioPath)
             let received = 0
             const total = parseInt(audioResp.headers.get('content-length') || '0')
             while (true) {
               const { done, value } = await reader.read()
               if (done) break
-              chunks.push(value)
+              ws.write(value)
               received += value.length
               if (total > 0) {
                 step({
@@ -455,12 +456,12 @@ export async function processPodcast(
                 })
               }
             }
+            ws.end()
             if (received === 0) {
               step({ step: 2, title: '下载音频', subtitle: '空文件', status: 'error' })
               log('  ❌ 下载内容为空')
               return null
             }
-            fs.writeFileSync(audioPath, Buffer.concat(chunks))
             step({
               step: 2,
               title: '下载音频',

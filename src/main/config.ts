@@ -175,7 +175,7 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
 }
 
 /** 清理旧版 example config 遗留的占位值（以"你的"开头的中文提示） */
-function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
+export function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
   const result = { ...config }
   const placeholderPattern = /^你的/
   const fieldsToClean: (keyof PodcastConfig)[] = [
@@ -259,17 +259,25 @@ export function loadSafeConfig(): PodcastConfig {
   return loadConfig()
 }
 
+let stateCache: { mtime: number; data: FeishuState } | null = null
+
 export function loadState(): FeishuState {
   try {
     const p = getUserStatePath()
     if (fs.existsSync(p)) {
+      const stat = fs.statSync(p)
+      if (stateCache && stateCache.mtime === stat.mtimeMs) {
+        return stateCache.data
+      }
       const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
-      return {
+      const state: FeishuState = {
         processed: data.processed || [],
         processedUrls: data.processedUrls || [],
         activeTasks: data.activeTasks || [],
         recentTasks: data.recentTasks || (data.recentTask ? [data.recentTask] : []),
       }
+      stateCache = { mtime: stat.mtimeMs, data: state }
+      return state
     }
   } catch {}
   return { processed: [], processedUrls: [], activeTasks: [], recentTasks: [] }
@@ -277,6 +285,7 @@ export function loadState(): FeishuState {
 
 export function saveState(state: FeishuState) {
   try {
+    stateCache = null // 写入前清除缓存，确保下次 loadState 读到最新
     const p = getUserStatePath()
     const dir = path.dirname(p)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
