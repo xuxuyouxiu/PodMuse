@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.15.1] - 2026-08-01
+
+### 性能优化
+- 音频下载改用流式写入（createWriteStream），大文件不再撑爆内存
+- 搜索笔记扫描结果加 mtime 缓存，连续搜索零磁盘 I/O
+- 批量队列持久化改为 300ms debounce，减少 99% 磁盘写入
+- loadState / loadConfig 加 mtime 缓存，避免重复读盘解析 JSON
+- ProcessedMessageStore flush 后同步截断内存 Set，防止长时间运行内存膨胀
+- AI API 调用添加 120s 独立超时，防止接口挂起导致任务无限等待
+
 ## [1.15.0] - 2026-07-31
 
 ### 修复
