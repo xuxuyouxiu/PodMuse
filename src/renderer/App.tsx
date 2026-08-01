@@ -138,7 +138,11 @@ export default function App() {
     cleanups.push(
       window.electronAPI.onProcessingChange((p: boolean, url?: string) => {
         setProcessing(p)
-        if (p && url) setLastUrl(url)
+        if (p) {
+          // 新任务开始，重置步骤面板
+          setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+          if (url) setLastUrl(url)
+        }
         if (!p && cancelFlag.current) {
           cancelFlag.current = false
           setCancelling(false)
