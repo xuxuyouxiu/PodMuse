@@ -52,6 +52,9 @@ export default function TabApi({
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsStatus, setFetchModelsStatus] = useState<string | null>(null)
   const [feishuTesting, setFeishuTesting] = useState(false)
+  const [douyinSetupChecking, setDouyinSetupChecking] = useState(false)
+  const [douyinSetupResult, setDouyinSetupResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [douyinLoginLoading, setDouyinLoginLoading] = useState(false)
   const [feishuTestResult, setFeishuTestResult] = useState<{
     success: boolean
     message: string
@@ -428,27 +431,42 @@ export default function TabApi({
               resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               className="settings-browse-button"
+              disabled={douyinSetupChecking}
+              style={{ opacity: douyinSetupChecking ? 0.6 : 1 }}
               onClick={async () => {
+                setDouyinSetupChecking(true)
+                setDouyinSetupResult(null)
                 try {
                   const result = await window.electronAPI.douyinSetup()
-                  if (result.success) {
-                    alert('环境检查通过！Python 和依赖已就绪。')
-                  } else {
-                    alert('环境检查失败：\n\n' + result.error)
-                  }
+                  setDouyinSetupResult({
+                    success: result.success,
+                    message: result.success ? '环境检查通过！' : result.error || '检查失败',
+                  })
                 } catch (e: any) {
-                  alert('检查失败: ' + (e.message || e))
+                  setDouyinSetupResult({ success: false, message: e.message || '检查失败' })
+                } finally {
+                  setDouyinSetupChecking(false)
                 }
               }}
             >
-              检查环境
+              {douyinSetupChecking ? '检查中…' : '检查环境'}
             </button>
+            {douyinSetupResult && (
+              <span className={douyinSetupResult.success ? 'settings-test-result--success' : 'settings-test-result--error'}>
+                {douyinSetupResult.success ? '✓ ' : '✗ '}{douyinSetupResult.message}
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               className="settings-browse-button"
+              disabled={douyinLoginLoading}
+              style={{ opacity: douyinLoginLoading ? 0.6 : 1 }}
               onClick={async () => {
+                setDouyinLoginLoading(true)
                 try {
                   const cookie = await window.electronAPI.douyinLogin()
                   if (cookie) {
@@ -456,10 +474,12 @@ export default function TabApi({
                   }
                 } catch (e: any) {
                   // 错误处理在 App.tsx 的 toast 中
+                } finally {
+                  setDouyinLoginLoading(false)
                 }
               }}
             >
-              自动获取 Cookie
+              {douyinLoginLoading ? '获取中…' : '自动获取 Cookie'}
             </button>
             {form.douyin_cookie && (
               <button
