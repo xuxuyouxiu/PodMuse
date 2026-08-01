@@ -42,10 +42,12 @@ import { BilibiliAdapter } from './bilibili'
 import { YouTubeAdapter } from './youtube'
 import { XimalayaAdapter } from './ximalaya'
 import { ApplePodcastsAdapter } from './apple-podcasts'
+import { DouyinAdapter } from './douyin'
 import { DirectUrlAdapter } from './direct-url'
 
 platformRegistry.register(new XiaoyuzhouAdapter())
 platformRegistry.register(new BilibiliAdapter())
+platformRegistry.register(new DouyinAdapter())
 platformRegistry.register(new YouTubeAdapter())
 platformRegistry.register(new XimalayaAdapter())
 platformRegistry.register(new ApplePodcastsAdapter())

@@ -4,6 +4,7 @@ export type { PlatformAdapter, AudioExtractResult, PlatformInfo, ExtractType } f
 export { platformRegistry } from './registry'
 export { XiaoyuzhouAdapter, fetchOgTitle } from './xiaoyuzhou'
 export { BilibiliAdapter } from './bilibili'
+export { DouyinAdapter } from './douyin'
 export { YouTubeAdapter } from './youtube'
 export { XimalayaAdapter } from './ximalaya'
 export { ApplePodcastsAdapter } from './apple-podcasts'
