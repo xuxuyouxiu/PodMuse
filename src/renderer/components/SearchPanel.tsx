@@ -469,7 +469,7 @@ export default function SearchPanel() {
         .search-panel__header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); }
         .search-panel__search-bar { flex: 1; display: flex; align-items: center; gap: 8px; height: 44px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0 14px; transition: border-color 0.2s, box-shadow 0.2s; }
         .search-panel__search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-        .search-panel__search-icon { color: var(--text-muted); flex-shrink: 0; }
+        .search-panel__search-icon { color: var(--text-muted); flex-shrink: 0; transition: color 0.2s; } .search-panel__search-bar:focus-within .search-panel__search-icon { color: var(--accent); opacity: 0.7; }
         .search-panel__search-input { flex: 1; background: transparent; border: none; outline: none; font-size: var(--fs-base); color: var(--text-primary); }
         .search-panel__clear-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px; border-radius: 3px; display: flex; }
         .search-panel__clear-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
