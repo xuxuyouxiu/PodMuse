@@ -5,6 +5,8 @@ import { platformRegistry } from './platforms'
 const URL_PATTERNS = [
   /https?:\/\/[^\s]*xiaoyuzhoufm\.com\/[^\s]*/i,
   /https?:\/\/(www\.|m\.)?(bilibili\.com\/video\/|b23\.tv\/)[^\s]*/i,
+  /https?:\/\/v\.douyin\.com\/[^\s]*/i,
+  /https?:\/\/(www\.)?douyin\.com\/video\/[^\s]*/i,
   /https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)[^\s]*/i,
   /https?:\/\/[^\s]*ximalaya\.com\/sound\/[^\s]*/i,
   /https?:\/\/[^\s]*podcasts\.apple\.com\/[^\s]*/i,
