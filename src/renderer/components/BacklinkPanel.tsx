@@ -1190,8 +1190,11 @@ export default function BacklinkPanel() {
           outline: none;
           transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .backlink-panel__search-input:focus {
+        .backlink-panel__search-input:focus,
+        .backlink-panel__search-input:focus-visible {
           border-color: var(--accent);
+          outline: none;
+          box-shadow: none;
         }
         .backlink-panel__search:has(.backlink-panel__search-input:focus) .backlink-panel__search-icon {
           color: var(--accent);
