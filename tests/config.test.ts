@@ -11,7 +11,6 @@ const {
   mockReadFileSync,
   mockWriteFileSync,
   mockMkdirSync,
-  mockStatSync,
   mockIsSafeDirectoryPath,
   mockIsSafeExecutablePath,
   mockDecryptField,
@@ -21,7 +20,6 @@ const {
   mockReadFileSync: vi.fn(),
   mockWriteFileSync: vi.fn(),
   mockMkdirSync: vi.fn(),
-    mockStatSync: vi.fn().mockReturnValue({ mtimeMs: 0 }),
   mockIsSafeDirectoryPath: vi.fn().mockReturnValue(true),
   mockIsSafeExecutablePath: vi.fn().mockReturnValue(true),
   mockDecryptField: vi.fn(),
@@ -45,7 +43,6 @@ vi.mock('fs', async () => {
     readFileSync: mockReadFileSync,
     writeFileSync: mockWriteFileSync,
     mkdirSync: mockMkdirSync,
-    statSync: mockStatSync,
   }
 })
 

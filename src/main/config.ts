@@ -195,24 +195,20 @@ export function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
   return result
 }
 
-let configCache: { mtime: number; data: PodcastConfig } | null = null
+let configCache: PodcastConfig | null = null
 export function clearConfigCache(): void { configCache = null }
 
 export function loadConfig(): PodcastConfig {
+  if (configCache) return configCache
   // 1. 优先加载用户配置文件（已持久化的用户设置）
   try {
     const userPath = getUserConfigPath()
     if (fs.existsSync(userPath)) {
-      const stat = fs.statSync(userPath)
-      if (configCache && configCache.mtime === stat.mtimeMs) {
-        return configCache.data
-      }
       const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       const merged = { ...DEFAULTS, ...data }
       const cleaned = stripPlaceholderValues(merged)
-      const config = migrateEncryptedFields(cleaned)
-      configCache = { mtime: stat.mtimeMs, data: config }
-      return config
+      configCache = migrateEncryptedFields(cleaned)
+      return configCache
     }
   } catch {}
 
@@ -269,25 +265,21 @@ export function loadSafeConfig(): PodcastConfig {
   return loadConfig()
 }
 
-let stateCache: { mtime: number; data: FeishuState } | null = null
+let stateCache: FeishuState | null = null
 
 export function loadState(): FeishuState {
+  if (stateCache) return stateCache
   try {
     const p = getUserStatePath()
     if (fs.existsSync(p)) {
-      const stat = fs.statSync(p)
-      if (stateCache && stateCache.mtime === stat.mtimeMs) {
-        return stateCache.data
-      }
       const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
-      const state: FeishuState = {
+      stateCache = {
         processed: data.processed || [],
         processedUrls: data.processedUrls || [],
         activeTasks: data.activeTasks || [],
         recentTasks: data.recentTasks || (data.recentTask ? [data.recentTask] : []),
       }
-      stateCache = { mtime: stat.mtimeMs, data: state }
-      return state
+      return stateCache
     }
   } catch {}
   return { processed: [], processedUrls: [], activeTasks: [], recentTasks: [] }
