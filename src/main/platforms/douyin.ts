@@ -16,15 +16,21 @@ function getDownloaderPath(): string {
 function findLatestAudio(dir: string): string | null {
   try {
     if (!fs.existsSync(dir)) return null
-    const audioExts = ['.mp3', '.m4a', '.wav', '.aac', '.flac']
+    const audioExts = ['.mp3', '.m4a', '.wav', '.aac', '.flac', '.mp4']
     const files: { name: string; mtime: number }[] = []
 
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isFile() && audioExts.includes(path.extname(entry.name).toLowerCase())) {
-        const fullPath = path.join(dir, entry.name)
-        files.push({ name: fullPath, mtime: fs.statSync(fullPath).mtimeMs })
+    function walk(d: string) {
+      for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+        const fullPath = path.join(d, entry.name)
+        if (entry.isDirectory()) {
+          walk(fullPath)
+        } else if (entry.isFile() && audioExts.includes(path.extname(entry.name).toLowerCase())) {
+          files.push({ name: fullPath, mtime: fs.statSync(fullPath).mtimeMs })
+        }
       }
     }
+    walk(dir)
+
     files.sort((a, b) => b.mtime - a.mtime)
     return files[0]?.name || null
   } catch {
