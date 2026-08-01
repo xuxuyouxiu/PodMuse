@@ -414,7 +414,7 @@ export default function TabApi({
           <textarea
             value={form.douyin_cookie || ''}
             onChange={e => update('douyin_cookie', e.target.value)}
-            placeholder="name1=value1; name2=value2（从浏览器 F12 → Application → Cookies 复制）"
+            placeholder="点击下方按钮自动获取，或手动粘贴 Cookie"
             rows={3}
             style={{
               width: '100%',
@@ -428,9 +428,35 @@ export default function TabApi({
               resize: 'vertical',
             }}
           />
-          <p className="settings-hint">
-            从浏览器登录抖音后，F12 开发者工具 → Application → Cookies → douyin.com → 复制所有 Cookie 值。
-            格式：<code>msToken=xxx; ttwid=xxx; odin_tt=xxx</code>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button
+              className="settings-browse-button"
+              onClick={async () => {
+                try {
+                  const cookie = await window.electronAPI.douyinLogin()
+                  if (cookie) {
+                    update('douyin_cookie', cookie)
+                  }
+                } catch (e: any) {
+                  // 错误处理在 App.tsx 的 toast 中
+                }
+              }}
+            >
+              自动获取 Cookie
+            </button>
+            {form.douyin_cookie && (
+              <button
+                className="settings-browse-button"
+                onClick={() => update('douyin_cookie', '')}
+                style={{ opacity: 0.6 }}
+              >
+                清除
+              </button>
+            )}
+          </div>
+          <p className="settings-hint" style={{ marginTop: 8 }}>
+            点击按钮会打开抖音登录页面，登录成功后自动获取 Cookie 并填入。
+            如需手动获取：浏览器登录抖音 → F12 → Application → Cookies → 复制所有值。
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, session } from 'electron'
 import { join, basename, extname } from 'path'
 import { loadConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
@@ -192,6 +192,57 @@ function setupIPC() {
     },
   })
   registerBatchIPC(mainWindow, batchQueueService)
+
+  // ---- 抖音 Cookie 登录 ----
+  ipcMain.handle('douyin:login', async () => {
+    return new Promise((resolve, reject) => {
+      const loginWin = new BrowserWindow({
+        width: 500,
+        height: 700,
+        title: '登录抖音',
+        parent: mainWindow || undefined,
+        modal: true,
+        webPreferences: {
+          session: session.defaultSession,
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      })
+
+      loginWin.loadURL('https://www.douyin.com/')
+
+      // 检查是否已登录（每3秒检查一次 cookie）
+      const checkInterval = setInterval(async () => {
+        try {
+          const cookies = await session.defaultSession.cookies.get({ domain: '.douyin.com' })
+          const hasSidGuard = cookies.some(c => c.name === 'sid_guard')
+          const hasTtwid = cookies.some(c => c.name === 'ttwid')
+          if (hasSidGuard || hasTtwid) {
+            clearInterval(checkInterval)
+            // 收集所有抖音 cookie
+            const allCookies = await session.defaultSession.cookies.get({})
+            const douyinCookies = allCookies.filter(c =>
+              (c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'))
+            )
+            const cookieStr = douyinCookies.map(c => c.name + '=' + c.value).join('; ')
+            loginWin.close()
+            resolve(cookieStr)
+          }
+        } catch {}
+      }, 3000)
+
+      loginWin.on('closed', () => {
+        clearInterval(checkInterval)
+        resolve('') // 用户关闭窗口，返回空
+      })
+
+      loginWin.webContents.on('did-fail-load', (_e, code, desc) => {
+        clearInterval(checkInterval)
+        loginWin.close()
+        reject(new Error('页面加载失败: ' + desc))
+      })
+    })
+  })
 
   // ---- 以下为涉及模块级状态的 handler，保留在 index.ts 中 ----
 

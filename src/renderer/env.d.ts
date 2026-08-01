@@ -160,6 +160,7 @@ declare global {
         appSecret: string
         chatId: string
       }) => Promise<{ success: boolean; message: string }>
+      douyinLogin: () => Promise<string>
       processPodcast: (
         url: string,
         force?: boolean,
