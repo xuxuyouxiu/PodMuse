@@ -1,48 +1,11 @@
-/** 抖音（Douyin）平台适配器 — 通过 Python 脚本调用 douyin-downloader */
+/** 抖音（Douyin）平台适配器 — 使用 yt-dlp + 用户配置的 Cookie 下载 */
 
-import { spawn } from 'child_process'
-import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 import type { PlatformAdapter, AudioExtractResult } from './types'
-
-/** douyin-downloader 项目路径 */
-function getDownloaderPath(): string {
-  // 优先用环境变量
-  if (process.env.DOUYIN_DOWNLOADER_PATH) return process.env.DOUYIN_DOWNLOADER_PATH
-  // 默认路径
-  return 'G:\\douyin-downloader-main'
-}
-
-/** 获取 Python 可执行文件 */
-function getPythonPath(): string {
-  return process.env.DOUYIN_PYTHON || 'python'
-}
-
-/** 从输出目录找最新的音频文件 */
-function findLatestAudio(downloadDir: string): string | null {
-  try {
-    if (!fs.existsSync(downloadDir)) return null
-    const entries = fs.readdirSync(downloadDir, { withFileTypes: true })
-    const audioExts = ['.mp3', '.m4a', '.wav', '.aac', '.flac']
-    const audioFiles: { name: string; mtime: number }[] = []
-
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        const ext = path.extname(entry.name).toLowerCase()
-        if (audioExts.includes(ext)) {
-          const fullPath = path.join(downloadDir, entry.name)
-          const stat = fs.statSync(fullPath)
-          audioFiles.push({ name: fullPath, mtime: stat.mtimeMs })
-        }
-      }
-    }
-
-    audioFiles.sort((a, b) => b.mtime - a.mtime)
-    return audioFiles[0]?.name || null
-  } catch {
-    return null
-  }
-}
+import { extractAudioWithYtDlp, detectYtDlp } from './yt-dlp'
+import { loadConfig } from '../config'
 
 export class DouyinAdapter implements PlatformAdapter {
   id = 'douyin'
@@ -54,72 +17,67 @@ export class DouyinAdapter implements PlatformAdapter {
   }
 
   async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
-    const downloaderPath = getDownloaderPath()
-    const scriptPath = path.join(downloaderPath, 'douyin-cli.py')
+    // 检查 yt-dlp
+    const status = await detectYtDlp()
+    if (!status.available) {
+      throw new Error('yt-dlp 未安装，请在设置中配置 yt-dlp 路径')
+    }
 
-    // 检查脚本是否存在
-    if (!fs.existsSync(scriptPath)) {
+    // 读取抖音 Cookie
+    const config = loadConfig()
+    const cookieStr = config.douyin_cookie?.trim()
+
+    if (!cookieStr) {
       throw new Error(
-        `抖音下载脚本未找到。请设置环境变量 DOUYIN_DOWNLOADER_PATH 指向 douyin-downloader 目录，\n` +
-        `或将项目放在 G:\\douyin-downloader-main。\n` +
-        `需要 Python 3.8+ 和依赖：pip install -r requirements.txt`
+        '请先在「设置 → 抖音」中配置抖音 Cookie。\n' +
+        '获取方式：用浏览器登录抖音 → F12 开发者工具 → Application → Cookies → 复制所有 Cookie 值'
       )
     }
 
-    // 准备输出目录
-    const downloadDir = path.join(downloaderPath, 'Downloaded')
-    if (!fs.existsSync(downloadDir)) {
-      fs.mkdirSync(downloadDir, { recursive: true })
-    }
+    // 把 Cookie 字符串转为 Netscape cookie 文件
+    const cookieFile = this.writeCookieFile(cookieStr)
 
-    // 调用 Python 脚本
-    const result = await new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
-      const proc = spawn(getPythonPath(), [scriptPath, url, '--output', downloadDir], {
-        cwd: downloaderPath,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
-
-      let stdout = ''
-      let stderr = ''
-      proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
-      proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
-
-      signal?.addEventListener('abort', () => {
-        proc.kill()
-        reject(new Error('用户取消'))
-      }, { once: true })
-
-      proc.on('close', (code) => {
-        resolve({ code: code ?? 1, stdout, stderr })
-      })
-
-      proc.on('error', (err) => {
-        reject(new Error(`启动 Python 失败: ${err.message}。请确认已安装 Python 3.8+ 和依赖。`))
-      })
-    })
-
-    // 解析 JSON 输出
-    let downloadResult: { success?: boolean; error?: string } = {}
     try {
-      const lines = result.stdout.trim().split('\n')
-      downloadResult = JSON.parse(lines[lines.length - 1])
-    } catch {}
+      // 用 yt-dlp + cookie 文件下载
+      const tmpDir = require("os").tmpdir()
+      const tmpName = "douyin_" + Date.now()
+      const result = await extractAudioWithYtDlp(status.path!, url, tmpDir, tmpName, undefined, signal, cookieFile)
+      return {
+        type: 'direct_url',
+        audioUrl: result,
+        metadata: { platform: 'douyin' },
+      }
+    } finally {
+      // 清理临时 cookie 文件
+      try { fs.unlinkSync(cookieFile) } catch {}
+    }
+  }
 
-    if (!downloadResult.success) {
-      throw new Error(downloadResult.error || `抖音下载失败 (exit ${result.code}): ${result.stderr.slice(0, 200)}`)
+  /** 将 Cookie 字符串转为 Netscape 格式的临时文件 */
+  private writeCookieFile(cookieStr: string): string {
+    // 支持两种格式：
+    // 1. "name1=value1; name2=value2" 格式
+    // 2. 直接是 Netscape 格式
+    let content = '# Netscape HTTP Cookie File\n'
+
+    if (cookieStr.includes('\t')) {
+      // 已经是 Netscape 格式
+      content = cookieStr
+    } else {
+      // 解析 "name=value; name=value" 格式
+      const pairs = cookieStr.split(';').map(s => s.trim()).filter(Boolean)
+      for (const pair of pairs) {
+        const eqIdx = pair.indexOf('=')
+        if (eqIdx === -1) continue
+        const name = pair.slice(0, eqIdx).trim()
+        const value = pair.slice(eqIdx + 1).trim()
+        content += `.douyin.com\tTRUE\t/\tFALSE\t0\t${name}\t${value}\n`
+      }
     }
 
-    // 找到新下载的音频文件
-    const audioFile = findLatestAudio(downloadDir)
-    if (!audioFile) {
-      throw new Error('抖音下载完成但未找到音频文件')
-    }
-
-    return {
-      type: 'direct_url',
-      audioUrl: audioFile,
-      metadata: { platform: 'douyin' },
-    }
+    const tmpFile = path.join(os.tmpdir(), `douyin_cookies_${Date.now()}.txt`)
+    fs.writeFileSync(tmpFile, content, 'utf-8')
+    return tmpFile
   }
 
   getDedupKey(url: string): string | null {

@@ -70,6 +70,7 @@ export interface PodcastConfig {
   whisper_exe_path: string
   whisper_model: string
   notification_enabled: boolean
+  douyin_cookie: string
 
   // 导出配置（可选，向后兼容）
   export?: ExportConfig

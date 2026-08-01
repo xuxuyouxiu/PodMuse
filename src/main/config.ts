@@ -82,6 +82,7 @@ const DEFAULTS: PodcastConfig = {
   whisper_exe_path: '',
   whisper_model: 'large-v3-turbo',
   notification_enabled: true,
+  douyin_cookie: '',
 
   // 导出配置默认值
   export: {

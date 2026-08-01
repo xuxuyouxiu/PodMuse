@@ -1,6 +1,7 @@
 /** yt-dlp 检测、版本管理与音视频提取 */
 
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { spawn } from 'child_process'
 
@@ -171,9 +172,12 @@ export function extractAudioWithYtDlp(
   outputName: string,
   onLog?: (msg: string) => void,
   signal?: AbortSignal,
+  cookieFile?: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const outputTemplate = path.join(outputDir, `${outputName}.%(ext)s`)
+    const outputTemplate = outputDir && outputName
+      ? path.join(outputDir, `${outputName}.%(ext)s`)
+      : path.join(os.tmpdir(), `podcast_dl_${Date.now()}.%(ext)s`)
     const args = [
       '--extract-audio',
       '--audio-format',
@@ -183,6 +187,7 @@ export function extractAudioWithYtDlp(
       '-o',
       outputTemplate,
       '--no-playlist',
+      ...(cookieFile ? ['--cookies', cookieFile] : []),
       videoUrl,
     ]
 

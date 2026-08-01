@@ -405,6 +405,35 @@ export default function TabApi({
           <span>启用系统通知（任务完成、错误等）</span>
         </label>
       </div>
+
+      {/* 抖音配置 */}
+      <div className="settings-section" style={{ marginTop: 24 }}>
+        <div className="settings-section-title">抖音配置</div>
+        <div className="settings-field">
+          <div className="settings-field-label">抖音 Cookie</div>
+          <textarea
+            value={form.douyin_cookie || ''}
+            onChange={e => update('douyin_cookie', e.target.value)}
+            placeholder="name1=value1; name2=value2（从浏览器 F12 → Application → Cookies 复制）"
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-card)',
+              color: 'var(--text)',
+              fontSize: 12,
+              fontFamily: 'monospace',
+              resize: 'vertical',
+            }}
+          />
+          <p className="settings-hint">
+            从浏览器登录抖音后，F12 开发者工具 → Application → Cookies → douyin.com → 复制所有 Cookie 值。
+            格式：<code>msToken=xxx; ttwid=xxx; odin_tt=xxx</code>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
