@@ -94,9 +94,19 @@ export class DouyinAdapter implements PlatformAdapter {
     const audioFile = findLatestAudio(downloadDir)
     if (!audioFile) throw new Error('抖音下载完成但未找到音频文件')
 
+    // 从文件名提取标题（格式：日期_标题.mp4 或 日期_标题_ID.mp4）
+    const fileName = path.basename(audioFile, path.extname(audioFile))
+    let title = fileName
+    // 去掉日期前缀（2026-08-01_）
+    const dateMatch = title.match(/^\d{4}-\d{2}-\d{2}_(.+)$/)
+    if (dateMatch) title = dateMatch[1]
+    // 去掉末尾的 ID（_1234567890）
+    title = title.replace(/_\d{15,}$/, '').trim()
+
     return {
       type: 'direct_url',
       audioUrl: audioFile,
+      title: title || undefined,
       metadata: { platform: 'douyin' },
     }
   }
