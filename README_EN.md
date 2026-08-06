@@ -1,15 +1,18 @@
-# Podcast Notes Assistant 🎧
+# PodNotes 🎧
 
 [**中文**](./README.md) | **English**
 
-Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes. Supports audio download, Whisper speech-to-text, multi-AI provider summarization, and Lark message polling for automated processing.
+**PodNotes** — Turn podcasts into a knowledge base. Paste any podcast/video link, and AI automatically transcribes, summarizes, and generates structured notes in Obsidian.
 
-[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/Podcast_notes?label=version)](package.json)
+Supports Xiaoyuzhou FM, Bilibili, YouTube, Ximalaya, Apple Podcasts, Douyin and more. One-click extraction, download, Whisper transcription, AI note generation, and auto-writing into your Obsidian vault.
+
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodNotes?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
 
-- **One-Click Processing** — Paste a Xiaoyuzhou FM link and auto-complete extraction, download, transcription, correction, and note organization
+- **Multi-Platform** — Xiaoyuzhou FM, Bilibili, YouTube, Ximalaya, Apple Podcasts, Douyin in one input box
+- **One-Click Processing** — Paste a link and auto-complete extraction, download, transcription, correction, and note organization
 - **Multi-AI Providers** — Supports DeepSeek, OpenAI, Moonshot (Kimi), Zhipu AI (GLM), Qwen, Yi, MiniMax, and 7+ other providers
 - **AI Note Generation** — LLM generates structured notes (key insights, dialogue highlights, glossary, quotes, etc.)
 - **Auto Entity Cards** — Automatically identifies people, projects, and concepts, generating standalone card notes from templates
@@ -44,7 +47,7 @@ Automatically convert Xiaoyuzhou FM podcast links into structured Obsidian notes
 
 ```bash
 # Clone the repository
-git clone https://github.com/xuxuyouxiu/Podcast_notes.git
+git clone https://github.com/xuxuyouxiu/PodNotes.git
 cd podcast-notes
 
 # Install dependencies

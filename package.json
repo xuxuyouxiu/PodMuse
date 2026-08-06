@@ -1,7 +1,7 @@
 {
-  "name": "podcast-notes",
+  "name": "podnotes",
   "version": "1.16.0",
-  "description": "播客笔记助手 - 小宇宙链接自动下载、AI提炼、写入Obsidian",
+  "description": "PodNotes - 把播客变成知识库。粘贴任意播客/视频链接，AI自动转写、提炼、生成结构化笔记并写入Obsidian",
   "main": "dist-electron/main/index.js",
   "author": "podcast-notes contributors",
   "license": "MIT",

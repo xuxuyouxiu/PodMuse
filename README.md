@@ -1,20 +1,23 @@
-# 播客笔记助手 🎧
+# PodNotes 播客笔记助手 🎧
 
 [**English**](./README_EN.md) | **中文**
 
-将小宇宙播客链接自动转换为结构化的 Obsidian 笔记。支持音频下载、Whisper 语音转文字、多 AI 供应商提炼，以及飞书消息轮询自动处理。
+> **PodNotes** — 把播客变成知识库。粘贴任意播客/视频链接，AI 自动转写、提炼、生成结构化笔记并写入 Obsidian。
 
-[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/Podcast_notes?label=version)](package.json)
+支持**小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音**等多平台链接，一键自动完成提取、下载、Whisper 语音转写、AI 笔记生成，并自动写入 Obsidian 知识库。
+
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodNotes?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 功能特性
 
-- **一键处理** — 粘贴小宇宙播客链接，自动完成提取、下载、转写、校对和笔记整理
+- **多平台支持** — 小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音，一个输入框全搞定
+- **一键处理** — 粘贴链接，自动完成提取、下载、转写、校对和笔记整理
 - **多 AI 供应商** — 支持 DeepSeek、OpenAI、Moonshot（Kimi）、智谱AI（GLM）、通义千问（Qwen）、零一万物（Yi）、MiniMax 等 7+ 供应商
 - **AI 笔记生成** — 大语言模型自动生成结构化笔记（核心观点、关键对话、术语词典、金句摘录等）
 - **自动实体卡片** — 自动识别播客中的人物、项目、概念，用预设模板生成独立卡片笔记
 - **双向链接** — 播客笔记与实体卡片之间自动建立 Obsidian 双向链接
-- **飞书消息集成** — 在飞书群聊中发送播客链接即可自动触发处理流程
+- **飞书消息集成** — 在飞书群聊中发送播客/视频链接即可自动触发处理流程
 - **Whisper 模型管理** — 支持 tiny 到 large-v3-turbo 多种模型切换，自动检测硬件兼容性
 - **Obsidian 模板化** — 使用自定义模板生成笔记，保持知识体系一致性
 - **现代化 UI** — Glassmorphism 设计风格，深色主题，流畅动画
@@ -40,11 +43,15 @@
 3. **Obsidian**（可选）— 笔记知识库
    - https://obsidian.md/
 
+4. **抖音支持**（可选）— 需要 Python 3.8+ 和 douyin-downloader
+   - 下载：[douyin-downloader](https://github.com/jiji262/douyin-downloader)
+   - 在设置中配置环境并获取 Cookie
+
 ### 安装
 
 ```bash
 # 克隆仓库
-git clone https://github.com/xuxuyouxiu/Podcast_notes.git
+git clone https://github.com/xuxuyouxiu/PodNotes.git
 cd podcast-notes
 
 # 安装依赖
@@ -135,6 +142,7 @@ npm run refresh:test
 | motion/react | 动画引擎 |
 | Whisper / faster-whisper-xxl | 语音转文字 |
 | 多 AI 供应商 | AI 笔记生成 |
+| yt-dlp | 多平台音视频提取 |
 | electron-builder | 打包分发 |
 | ESLint + Prettier | 代码规范 |
 
