@@ -53,7 +53,7 @@ export default function AboutDialog({ onClose }: Props) {
                 href="#"
                 onClick={e => {
                   e.preventDefault()
-                  window.electronAPI.openExternal('https://github.com/xuxuyouxiu/Podcast_notes')
+                  window.electronAPI.openExternal('https://github.com/xuxuyouxiu/PodMuse')
                 }}
                 className="about-dialog-link"
               >
@@ -69,7 +69,7 @@ export default function AboutDialog({ onClose }: Props) {
                 onClick={e => {
                   e.preventDefault()
                   window.electronAPI.openExternal(
-                    'https://github.com/xuxuyouxiu/Podcast_notes/issues',
+                    'https://github.com/xuxuyouxiu/PodMuse/issues',
                   )
                 }}
                 className="about-dialog-link about-dialog-link--inline"

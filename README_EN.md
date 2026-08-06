@@ -1,12 +1,12 @@
-# PodNotes 🎧
+# PodMuse 🎧
 
 [**中文**](./README.md) | **English**
 
-**PodNotes** — Turn podcasts into a knowledge base. Paste any podcast/video link, and AI automatically transcribes, summarizes, and generates structured notes in Obsidian.
+**PodMuse** — Turn podcasts into a knowledge base. Paste any podcast/video link, and AI automatically transcribes, summarizes, and generates structured notes in Obsidian.
 
 Supports Xiaoyuzhou FM, Bilibili, YouTube, Ximalaya, Apple Podcasts, Douyin and more. One-click extraction, download, Whisper transcription, AI note generation, and auto-writing into your Obsidian vault.
 
-[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodNotes?label=version)](package.json)
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodMuse?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
@@ -47,7 +47,7 @@ Supports Xiaoyuzhou FM, Bilibili, YouTube, Ximalaya, Apple Podcasts, Douyin and 
 
 ```bash
 # Clone the repository
-git clone https://github.com/xuxuyouxiu/PodNotes.git
+git clone https://github.com/xuxuyouxiu/PodMuse.git
 cd podcast-notes
 
 # Install dependencies

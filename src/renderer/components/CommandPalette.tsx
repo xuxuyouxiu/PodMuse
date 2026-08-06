@@ -193,7 +193,7 @@ export function useAppCommands(opts: {
       label: '查看使用文档',
       hint: '在线',
       icon: <FileText size={15} />,
-      action: () => window.electronAPI?.openPath('https://github.com/xuxuyouxiu/Podcast_notes'),
+      action: () => window.electronAPI?.openPath('https://github.com/xuxuyouxiu/PodMuse'),
       keywords: 'docs help 文档 帮助',
     },
     {

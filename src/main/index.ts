@@ -664,6 +664,19 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  // 项目更名后 userData 路径可能变化（podcast-notes → podmuse），迁移旧配置
+  try {
+    const oldData = join(app.getPath('appData'), 'podcast-notes')
+    const newData = app.getPath('userData')
+    if (oldData !== newData && fs.existsSync(oldData) && !fs.existsSync(newData)) {
+      fs.mkdirSync(newData, { recursive: true })
+      fs.cpSync(oldData, newData, { recursive: true })
+      console.log('[migrate] 已从旧配置目录迁移: ' + oldData + ' -> ' + newData)
+    }
+  } catch (e) {
+    console.error('[migrate] 配置迁移失败:', e)
+  }
+
   // 设置 AppUserModelID 以支持 Windows 通知
   setupNotificationAppId()
 

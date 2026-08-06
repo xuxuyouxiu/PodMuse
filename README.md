@@ -1,12 +1,12 @@
-# PodNotes 播客笔记助手 🎧
+# PodMuse 播客笔记助手 🎧
 
 [**English**](./README_EN.md) | **中文**
 
-> **PodNotes** — 把播客变成知识库。粘贴任意播客/视频链接，AI 自动转写、提炼、生成结构化笔记并写入 Obsidian。
+> **PodMuse** — 把播客变成知识库。粘贴任意播客/视频链接，AI 自动转写、提炼、生成结构化笔记并写入 Obsidian。
 
 支持**小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音**等多平台链接，一键自动完成提取、下载、Whisper 语音转写、AI 笔记生成，并自动写入 Obsidian 知识库。
 
-[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodNotes?label=version)](package.json)
+[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodMuse?label=version)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 功能特性
@@ -51,7 +51,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/xuxuyouxiu/PodNotes.git
+git clone https://github.com/xuxuyouxiu/PodMuse.git
 cd podcast-notes
 
 # 安装依赖

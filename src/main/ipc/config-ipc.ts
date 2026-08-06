@@ -11,7 +11,7 @@ import type { PodcastConfig } from '@shared/types'
  * 验证来自渲染进程的配置对象是否合法
  * 防止通过 config:save IPC 注入恶意数据（篡改可执行文件路径、指向系统目录等）
  */
-function validateConfigInput(config: Record<string, unknown>): string | null {
+export function validateConfigInput(config: Record<string, unknown>): string | null {
   if (!config || typeof config !== 'object') return '配置必须是对象'
 
   // 验证字符串字段类型

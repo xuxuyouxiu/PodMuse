@@ -51,3 +51,6 @@ desktop.ini
 
 # 工作区临时文件
 C:Usersadmin.qoderworkcnworkspacemq0qsnxnqejzdw09kill-app.ps1
+
+# 抖音下载器编译产物（从源码构建，不提交二进制）
+resources/douyin/douyin-cli.exe

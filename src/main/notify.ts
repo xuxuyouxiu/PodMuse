@@ -29,7 +29,7 @@ function getIcon(): Electron.NativeImage | undefined {
 export function setupNotificationAppId() {
   // Windows 需要设置 AppUserModelID 才能在 Action Center 正确显示通知
   if (process.platform === 'win32') {
-    app.setAppUserModelId('com.podcast-notes.app')
+    app.setAppUserModelId('com.podcastnotes.app')
   }
 }
 
