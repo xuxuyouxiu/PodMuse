@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
+import { useI18n } from '../../i18n'
 import {
   Fish,
   Bot,
@@ -43,6 +44,7 @@ export default function TabApi({
   update: (key: keyof PodcastConfig, value: PodcastConfig[keyof PodcastConfig]) => void
   validationErrors: Record<string, string>
 }) {
+  const { t } = useI18n()
   const [activeProvider, setActiveProvider] = useState<AIProviderId>(form.ai_provider || 'deepseek')
   const [providers, setProviders] = useState<Record<AIProviderId, AIProviderConfig>>(
     form.ai_providers || ({} as Record<AIProviderId, AIProviderConfig>),
@@ -116,7 +118,7 @@ export default function TabApi({
       const result = await window.electronAPI.fetchAIModels(baseUrl || '', apiKey)
       if (result.success && result.models.length > 0) {
         setFetchedModels(result.models)
-        setFetchModelsStatus(`已加载 ${result.models.length} 个模型`)
+        setFetchModelsStatus(t('已加载') + ' ' + result.models.length + ' ' + t('个模型'))
         // 如果当前没有选择模型，自动选择第一个
         if (!currentProvider.model && result.models.length > 0) {
           updateProviderConfig('model', result.models[0].id)
@@ -126,7 +128,7 @@ export default function TabApi({
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      setFetchModelsStatus(`加载失败: ${msg}`)
+      setFetchModelsStatus(t('加载失败') + ': ' + msg)
     } finally {
       setFetchingModels(false)
     }
@@ -134,11 +136,11 @@ export default function TabApi({
 
   return (
     <div>
-      <TabHeader title="AI 供应商配置" subtitle="选择和配置 AI API 供应商" />
+      <TabHeader title={t('AI 供应商配置')} subtitle={t('选择和配置 AI API 供应商')} />
 
       {/* 供应商选择网格 */}
       <div className="settings-field" style={{ marginBottom: 20 }}>
-        <div className="settings-field-label">选择供应商</div>
+        <div className="settings-field-label">{t('选择供应商')}</div>
         <div className="settings-provider-grid">
           {AI_PROVIDER_PRESETS.map(preset => {
             const isActive = activeProvider === preset.id
@@ -151,7 +153,7 @@ export default function TabApi({
               >
                 <div className="settings-provider-button-row">
                   {getProviderIcon(preset.id)}
-                  <span>{preset.name}</span>
+                  <span>{t(preset.name)}</span>
                 </div>
                 {hasKey && <div className="settings-provider-dot" />}
               </button>
@@ -165,7 +167,7 @@ export default function TabApi({
           >
             <div className="settings-provider-button-row">
               <Plus size={14} />
-              <span>自定义</span>
+              <span>{t('自定义')}</span>
             </div>
           </button>
         </div>
@@ -177,11 +179,11 @@ export default function TabApi({
           <div className="settings-detail-header">
             <div>
               <div className="settings-detail-title">
-                {currentPreset?.name || '自定义供应商'}
+                {t(currentPreset?.name || '自定义供应商')}
               </div>
               {currentPreset?.description && (
                 <div className="settings-detail-description">
-                  {currentPreset.description}
+                  {t(currentPreset.description)}
                 </div>
               )}
             </div>
@@ -192,7 +194,7 @@ export default function TabApi({
                   className="settings-link-button"
                 >
                   <ExternalLink size={11} />
-                  官网
+                  {t('官网')}
                 </span>
               )}
               {currentPreset?.apiKeyUrl && (
@@ -201,7 +203,7 @@ export default function TabApi({
                   className="settings-link-button"
                 >
                   <Key size={11} />
-                  获取密钥
+                  {t('获取密钥')}
                 </span>
               )}
               {currentPreset && (
@@ -210,7 +212,7 @@ export default function TabApi({
                   className="settings-link-button"
                 >
                   <RotateCcw size={11} />
-                  重置默认
+                  {t('重置默认')}
                 </button>
               )}
             </div>
@@ -225,12 +227,12 @@ export default function TabApi({
               secret
               error={validationErrors[`ai_providers.${activeProvider}.apiKey`]}
               required
-              placeholder={currentPreset?.apiKeyPlaceholder || '输入 API Key'}
+              placeholder={t(currentPreset?.apiKeyPlaceholder || '输入 API Key')}
             />
 
             {/* Base URL */}
             <Field
-              label="API 地址"
+              label={t('API 地址')}
               value={currentProvider.baseUrl || ''}
               onChange={v => updateProviderConfig('baseUrl', v)}
               placeholder={currentPreset?.baseUrl || 'https://api.example.com/v1'}
@@ -238,7 +240,7 @@ export default function TabApi({
 
             {/* 模型选择 */}
             <div className="settings-field">
-              <div className="settings-field-label">模型</div>
+              <div className="settings-field-label">{t('模型')}</div>
               <div className="settings-dir-row">
                 <div style={{ flex: 1 }}>
                   {fetchedModels.length > 0 ? (
@@ -247,7 +249,7 @@ export default function TabApi({
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
                     >
-                      <option value="">选择模型...</option>
+                      <option value="">{t('选择模型...')}</option>
                       {fetchedModels.map(model => (
                         <option key={model.id} value={model.id}>
                           {model.id}
@@ -260,10 +262,10 @@ export default function TabApi({
                       onChange={e => handleModelSelect(e.target.value)}
                       className="settings-input"
                     >
-                      <option value="">选择模型...</option>
+                      <option value="">{t('选择模型...')}</option>
                       {currentPreset.availableModels.map(model => (
                         <option key={model.id} value={model.id}>
-                          {model.name}
+                          {t(model.name)}
                         </option>
                       ))}
                     </select>
@@ -273,7 +275,7 @@ export default function TabApi({
                       value={currentProvider.model || ''}
                       onChange={e => updateProviderConfig('model', e.target.value)}
                       className="settings-input"
-                      placeholder="输入模型名称，如 gpt-4o"
+                      placeholder={t('输入模型名称，如 gpt-4o')}
                     />
                   )}
                 </div>
@@ -285,9 +287,9 @@ export default function TabApi({
                     whiteSpace: 'nowrap',
                     opacity: !currentProvider.apiKey ? 0.5 : 1,
                   }}
-                  title={!currentProvider.apiKey ? '请先填写 API Key' : '从 API 加载模型列表'}
+                  title={!currentProvider.apiKey ? t('请先填写 API Key') : t('从 API 加载模型列表')}
                 >
-                  {fetchingModels ? '加载中...' : '加载模型'}
+                  {fetchingModels ? t('加载中...') : t('加载模型')}
                 </button>
               </div>
               {fetchModelsStatus && (
@@ -300,11 +302,11 @@ export default function TabApi({
                         : 'settings-test-result--muted'
                   }
                 >
-                  {fetchModelsStatus}
+                  {t(fetchModelsStatus)}
                 </div>
               )}
               <div className="settings-hint">
-                填写 API Key 后点击「加载模型」可获取该供应商的可用模型列表
+                {t('填写 API Key 后点击「加载模型」可获取该供应商的可用模型列表')}
               </div>
             </div>
           </div>
@@ -314,24 +316,24 @@ export default function TabApi({
       {/* 飞书配置 */}
       <div style={{ marginTop: 24 }}>
         <div className="settings-section-title" style={{ marginBottom: 12 }}>
-          飞书集成
+          {t('飞书集成')}
         </div>
         <div className="settings-grid">
           <Field
-            label="飞书 App ID"
+            label={t('飞书 App ID')}
             value={form.feishu_app_id}
             onChange={v => update('feishu_app_id', v)}
             placeholder="cli_xxxxxxxxxx"
           />
           <Field
-            label="飞书 App Secret"
+            label={t('飞书 App Secret')}
             value={form.feishu_app_secret}
             onChange={v => update('feishu_app_secret', v)}
             secret
-            placeholder="输入飞书应用 App Secret"
+            placeholder={t('输入飞书应用 App Secret')}
           />
           <Field
-            label="飞书群聊 Chat ID"
+            label={t('飞书群聊 Chat ID')}
             value={form.feishu_chat_id}
             onChange={v => update('feishu_chat_id', v)}
             placeholder="oc_xxxxxxxxxxxxxxxxxx"
@@ -352,7 +354,7 @@ export default function TabApi({
               } catch (e) {
                 setFeishuTestResult({
                   success: false,
-                  message: `测试失败: ${(e as Error).message}`,
+                  message: t('测试失败') + ': ' + (e as Error).message,
                 })
               } finally {
                 setFeishuTesting(false)
@@ -367,7 +369,7 @@ export default function TabApi({
                   : 1,
             }}
           >
-            {feishuTesting ? '测试中…' : '测试连接'}
+            {feishuTesting ? t('测试中…') : t('测试连接')}
           </button>
           {feishuTestResult && (
             <span
@@ -378,26 +380,26 @@ export default function TabApi({
               }
             >
               {feishuTestResult.success ? '✓ ' : '✗ '}
-              {feishuTestResult.message}
+              {t(feishuTestResult.message)}
             </span>
           )}
         </div>
         <div className="settings-hint">
-          在
+          {t('在')}
           <span
             onClick={() => window.electronAPI.openExternal('https://open.feishu.cn')}
             className="settings-link-button"
             style={{ display: 'inline' }}
           >
-            飞书开放平台
+            {t('飞书开放平台')}
           </span>
-          创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。
+          {t('创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。')}
         </div>
       </div>
 
       {/* 通知设置 */}
       <div className="settings-field" style={{ marginTop: 16 }}>
-        <div className="settings-field-label">通知设置</div>
+        <div className="settings-field-label">{t('通知设置')}</div>
         <label className="settings-checkbox">
           <input
             type="checkbox"
@@ -405,19 +407,19 @@ export default function TabApi({
             onChange={e => update('notification_enabled', e.target.checked)}
             style={{ accentColor: 'var(--accent)' }}
           />
-          <span>启用系统通知（任务完成、错误等）</span>
+          <span>{t('启用系统通知（任务完成、错误等）')}</span>
         </label>
       </div>
 
       {/* 抖音配置 */}
       <div className="settings-section" style={{ marginTop: 24 }}>
-        <div className="settings-section-title">抖音配置</div>
+        <div className="settings-section-title">{t('抖音配置')}</div>
         <div className="settings-field">
-          <div className="settings-field-label">抖音 Cookie</div>
+          <div className="settings-field-label">{t('抖音 Cookie')}</div>
           <textarea
             value={form.douyin_cookie || ''}
             onChange={e => update('douyin_cookie', e.target.value)}
-            placeholder="点击下方按钮自动获取，或手动粘贴 Cookie"
+            placeholder={t('点击下方按钮自动获取，或手动粘贴 Cookie')}
             rows={3}
             style={{
               width: '100%',
@@ -452,11 +454,11 @@ export default function TabApi({
                 }
               }}
             >
-              {douyinSetupChecking ? '检查中…' : '检查环境'}
+              {douyinSetupChecking ? t('检查中…') : t('检查环境')}
             </button>
             {douyinSetupResult && (
               <span className={douyinSetupResult.success ? 'settings-test-result--success' : 'settings-test-result--error'}>
-                {douyinSetupResult.success ? '✓ ' : '✗ '}{douyinSetupResult.message}
+                {douyinSetupResult.success ? '✓ ' : '✗ '}{t(douyinSetupResult.message)}
               </span>
             )}
           </div>
@@ -479,7 +481,7 @@ export default function TabApi({
                 }
               }}
             >
-              {douyinLoginLoading ? '获取中…' : '自动获取 Cookie'}
+              {douyinLoginLoading ? t('获取中…') : t('自动获取 Cookie')}
             </button>
             {form.douyin_cookie && (
               <button
@@ -487,13 +489,13 @@ export default function TabApi({
                 onClick={() => update('douyin_cookie', '')}
                 style={{ opacity: 0.6 }}
               >
-                清除
+                {t('清除')}
               </button>
             )}
           </div>
           <p className="settings-hint" style={{ marginTop: 8 }}>
-            首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击「检查环境」 ④ 点击「自动获取 Cookie」。<br/>
-            下载地址：<a href="#" onClick={e => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/jiji262/douyin-downloader') }}>github.com/jiji262/douyin-downloader</a>
+            {t('首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击「检查环境」 ④ 点击「自动获取 Cookie」。')}<br/>
+            {t('下载地址：')}<a href="#" onClick={e => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/jiji262/douyin-downloader') }}>github.com/jiji262/douyin-downloader</a>
           </p>
         </div>
       </div>

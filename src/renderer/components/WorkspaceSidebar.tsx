@@ -70,7 +70,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <LayoutDashboard size={16} />
-          {t("sidebar.notes")}
+          {t("笔记")}
         </motion.button>
         <motion.button
           type="button"
@@ -80,7 +80,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Link2 size={16} />
-          {t("sidebar.backlinks")}
+          {t("知识关联")}
         </motion.button>
         <motion.button
           type="button"
@@ -90,7 +90,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Search size={16} />
-          {t("sidebar.search")}
+          {t("搜索")}
         </motion.button>
       </nav>
 
@@ -98,20 +98,20 @@ export default function WorkspaceSidebar({
 
       {/* 快速统计 - 放在底部操作区上方 */}
       <div className="sidebar-stats">
-        <div className="sidebar-stats__title">{t("sidebar.stats.title")}</div>
+        <div className="sidebar-stats__title">{t("任务概览")}</div>
         <div className="sidebar-stat">
           <Zap size={13} className="sidebar-stat__icon sidebar-stat__icon--active" />
-          <span className="sidebar-stat__label">{t("sidebar.stats.running")}</span>
+          <span className="sidebar-stat__label">{t("进行中")}</span>
           <span className="sidebar-stat__value">{runningCount}</span>
         </div>
         <div className="sidebar-stat">
           <Clock size={13} className="sidebar-stat__icon sidebar-stat__icon--queued" />
-          <span className="sidebar-stat__label">{t("sidebar.stats.queued")}</span>
+          <span className="sidebar-stat__label">{t("排队中")}</span>
           <span className="sidebar-stat__value">{activeTasks.length - runningCount}</span>
         </div>
         <div className="sidebar-stat">
           <CheckCircle2 size={13} className="sidebar-stat__icon sidebar-stat__icon--done" />
-          <span className="sidebar-stat__label">{t("sidebar.stats.done")}</span>
+          <span className="sidebar-stat__label">{t("今日完成")}</span>
           <span className="sidebar-stat__value">{completedToday}</span>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Settings size={16} />
-          {t("sidebar.settings")}
+          {t("设置")}
         </motion.button>
         <motion.button
           type="button"
@@ -140,7 +140,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Info size={16} />
-          {t("sidebar.about")}
+          {t("关于")}
         </motion.button>
       </div>
 

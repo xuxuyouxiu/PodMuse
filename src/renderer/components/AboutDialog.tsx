@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface Props {
   onClose: () => void
 }
 
 export default function AboutDialog({ onClose }: Props) {
+  const { t } = useI18n()
   const [version, setVersion] = useState<string>('')
 
   useEffect(() => {
@@ -26,13 +28,13 @@ export default function AboutDialog({ onClose }: Props) {
 
         {/* 描述 */}
         <div className="about-dialog-desc">
-          小宇宙播客 → 下载音频 → Whisper 语音转写
-          <br />→ DeepSeek 修正专有名词 → AI 提炼笔记 → Obsidian
+          {t('小宇宙播客')} → {t('下载音频')} → {t('Whisper 语音转写')}
+          <br />→ {t('DeepSeek 修正专有名词')} → {t('AI 提炼笔记')} → Obsidian
         </div>
 
         {/* 技术栈 */}
         <div className="about-dialog-tags">
-          {['Electron', 'React', 'TypeScript', 'DeepSeek AI', 'Whisper', '飞书', 'Obsidian'].map(
+          {['Electron', 'React', 'TypeScript', 'DeepSeek AI', 'Whisper', t('飞书'), 'Obsidian'].map(
             tag => (
               <span key={tag} className="about-dialog-tag">
                 {tag}
@@ -47,7 +49,7 @@ export default function AboutDialog({ onClose }: Props) {
         {/* 链接 */}
         <div className="about-dialog-links">
           <InfoRow
-            label="项目地址"
+            label={t('项目地址')}
             value={
               <a
                 href="#"
@@ -57,12 +59,12 @@ export default function AboutDialog({ onClose }: Props) {
                 }}
                 className="about-dialog-link"
               >
-                GitHub 仓库 <ExternalLink size={12} />
+                {t('GitHub 仓库')} <ExternalLink size={12} />
               </a>
             }
           />
           <InfoRow
-            label="问题反馈"
+            label={t('问题反馈')}
             value={
               <a
                 href="#"
@@ -74,16 +76,16 @@ export default function AboutDialog({ onClose }: Props) {
                 }}
                 className="about-dialog-link about-dialog-link--inline"
               >
-                提交 Issue <ExternalLink size={12} />
+                {t('提交 Issue')} <ExternalLink size={12} />
               </a>
             }
           />
-          <InfoRow label="许可证" value="MIT License" />
+          <InfoRow label={t('许可证')} value="MIT License" />
         </div>
 
         {/* 关闭按钮 */}
         <button onClick={onClose} className="settings-save-button about-dialog-close-btn">
-          关闭
+          {t('关闭')}
         </button>
       </div>
     </div>

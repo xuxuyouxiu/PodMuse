@@ -7,6 +7,14 @@ interface State {
   error: Error | null
 }
 
+function isEn(): boolean {
+  try {
+    return localStorage.getItem('podmuse_language') === 'en'
+  } catch {
+    return false
+  }
+}
+
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
 
@@ -20,6 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const en = isEn()
       return (
         <div
           style={{
@@ -36,7 +45,9 @@ export default class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <div style={{ fontSize: 40 }}>⚠️</div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>应用加载失败</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>
+            {en ? 'App failed to load' : '应用加载失败'}
+          </div>
           <div
             style={{
               fontSize: 13,
@@ -78,7 +89,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               cursor: 'pointer',
             }}
           >
-            重试
+            {en ? 'Retry' : '重试'}
           </button>
         </div>
       )

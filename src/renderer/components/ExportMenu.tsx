@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Share, FileText, BookOpen, Globe, Loader2 } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface Props {
   taskId: string
@@ -12,6 +13,7 @@ interface Props {
 type ExportTarget = 'markdown' | 'logseq' | 'notion'
 
 export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToast }: Props) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState<ExportTarget | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
@@ -85,12 +87,12 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
         stripObsidianSyntax: false,
       })
       if (result.success && result.outputPath) {
-        onToast(`已导出到 Markdown：${result.outputPath}`, 'success')
+        onToast(t('已导出到 Markdown') + '：' + result.outputPath, 'success')
       } else {
-        onToast(result.error || '导出失败', 'error')
+        onToast(result.error || t('导出失败'), 'error')
       }
     } catch (e) {
-      onToast(`导出失败: ${(e as Error).message}`, 'error')
+      onToast(t('导出失败') + ': ' + (e as Error).message, 'error')
     } finally {
       setExporting(null)
     }
@@ -103,12 +105,12 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
     try {
       const result = await window.electronAPI.exportToLogseq(taskId)
       if (result.success && result.outputPath) {
-        onToast(`已导出到 Logseq：${result.outputPath}`, 'success')
+        onToast(t('已导出到 Logseq') + '：' + result.outputPath, 'success')
       } else {
-        onToast(result.error || '导出失败', 'error')
+        onToast(result.error || t('导出失败'), 'error')
       }
     } catch (e) {
-      onToast(`导出失败: ${(e as Error).message}`, 'error')
+      onToast(t('导出失败') + ': ' + (e as Error).message, 'error')
     } finally {
       setExporting(null)
     }
@@ -121,7 +123,7 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
     try {
       const result = await window.electronAPI.exportToNotion(taskId)
       if (result.success && result.pageUrl) {
-        onToast('已导出到 Notion', 'success')
+        onToast(t('已导出到 Notion'), 'success')
         // 提供"在浏览器中打开"链接：自动打开
         try {
           await window.electronAPI.openExternal(result.pageUrl)
@@ -130,15 +132,15 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
         }
       } else if (result.pageUrl) {
         // 重复检测失败：有 existingPageUrl 但 success=false
-        onToast(`${result.error}（页面已存在）`, 'error')
+        onToast(result.error + t('（页面已存在）'), 'error')
         try {
           await window.electronAPI.openExternal(result.pageUrl)
         } catch {}
       } else {
-        onToast(result.error || '导出失败', 'error')
+        onToast(result.error || t('导出失败'), 'error')
       }
     } catch (e) {
-      onToast(`导出失败: ${(e as Error).message}`, 'error')
+      onToast(t('导出失败') + ': ' + (e as Error).message, 'error')
     } finally {
       setExporting(null)
     }
@@ -182,7 +184,7 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
             <button
               onClick={handleExportLogseq}
               disabled={isExporting || !logseqEnabled}
-              title={logseqEnabled ? '导出到 Logseq 目录' : '未配置 Logseq 目录，请在设置中配置'}
+              title={logseqEnabled ? t('导出到 Logseq 目录') : t('未配置 Logseq 目录，请在设置中配置')}
               style={menuItemStyle(!logseqEnabled)}
               onMouseEnter={e =>
                 logseqEnabled &&
@@ -193,14 +195,14 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
             >
               <BookOpen size={14} />
               <span>Logseq</span>
-              {!logseqEnabled && <span style={disabledHintStyle}>未配置</span>}
+              {!logseqEnabled && <span style={disabledHintStyle}>{t('未配置')}</span>}
             </button>
 
             <button
               onClick={handleExportNotion}
               disabled={isExporting || !notionEnabled}
               title={
-                notionEnabled ? '上传到 Notion database' : '未配置 Notion 集成，请在设置中配置'
+                notionEnabled ? t('上传到 Notion database') : t('未配置 Notion 集成，请在设置中配置')
               }
               style={menuItemStyle(!notionEnabled)}
               onMouseEnter={e =>
@@ -212,7 +214,7 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
             >
               <Globe size={14} />
               <span>Notion</span>
-              {!notionEnabled && <span style={disabledHintStyle}>未配置</span>}
+              {!notionEnabled && <span style={disabledHintStyle}>{t('未配置')}</span>}
             </button>
           </div>,
           document.body,
@@ -226,11 +228,11 @@ export default function ExportMenu({ taskId, logseqDir, notionConfigured, onToas
         onClick={() => (open ? setOpen(false) : openMenu())}
         disabled={isExporting}
         className="recent-task-secondary"
-        title="导出到其他平台"
+        title={t('导出到其他平台')}
         style={{ opacity: isExporting ? 0.6 : 1 }}
       >
         {exporting ? <Loader2 size={12} className="animate-spin" /> : <Share size={12} />}
-        {exporting ? '导出中...' : '导出'}
+        {exporting ? t('导出中...') : t('导出')}
       </button>
       {menu}
     </div>

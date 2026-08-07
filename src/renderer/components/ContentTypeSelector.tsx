@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface Props {
   contentType: string
@@ -21,6 +22,7 @@ export default function ContentTypeSelector({
   onContentTypeChange,
   disabled = false,
 }: Props) {
+  const { t } = useI18n()
   const [showMenu, setShowMenu] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -94,8 +96,8 @@ export default function ContentTypeSelector({
                 setShowMenu(false)
               }}
             >
-              <span className="type-option-label">{type.label}</span>
-              <span className="type-option-desc">{type.desc}</span>
+              <span className="type-option-label">{t(type.label)}</span>
+              <span className="type-option-desc">{t(type.desc)}</span>
             </button>
           ))}
         </motion.div>
@@ -113,7 +115,7 @@ export default function ContentTypeSelector({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
-        <span className="content-type-label">{currentType.label}</span>
+        <span className="content-type-label">{t(currentType.label)}</span>
         <ChevronDown size={14} className={`content-type-arrow ${showMenu ? 'open' : ''}`} />
       </motion.button>
       {createPortal(menuContent, document.body)}

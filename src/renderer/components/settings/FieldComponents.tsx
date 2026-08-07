@@ -1,3 +1,5 @@
+import { useI18n } from '../../i18n'
+
 export function TabHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div style={{ marginBottom: 20 }}>
@@ -20,15 +22,16 @@ export function DirField({
   placeholder?: string
   onBrowse: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="settings-field">
       <div className="settings-field-label">{label}</div>
       <div className="settings-dir-row">
         <div className={`settings-dir-display ${value ? 'has-value' : ''}`}>
-          {value || placeholder || '未设置'}
+          {value || placeholder || t('未设置')}
         </div>
         <button onClick={onBrowse} className="settings-browse-button">
-          浏览
+          {t('浏览')}
         </button>
       </div>
     </div>
@@ -52,6 +55,7 @@ export function Field({
   required?: boolean
   placeholder?: string
 }) {
+  const { t } = useI18n()
   return (
     <div className="settings-field">
       <div className="settings-field-label">
@@ -70,7 +74,7 @@ export function Field({
           borderColor: error ? 'var(--error)' : undefined,
         }}
       />
-      {error && <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 4 }}>{error}</div>}
+      {error && <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 4 }}>{t(error)}</div>}
     </div>
   )
 }

@@ -11,6 +11,7 @@ import {
   Headphones,
   Keyboard,
 } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 export interface Command {
   id: string
@@ -28,6 +29,7 @@ interface Props {
 }
 
 function PalettePanel({ commands, onClose }: { commands: Command[]; onClose: () => void }) {
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -99,7 +101,7 @@ function PalettePanel({ commands, onClose }: { commands: Command[]; onClose: () 
           <kbd className="cmd-esc-hint">ESC</kbd>
         </div>
         <div className="cmd-list" ref={listRef}>
-          {filtered.length === 0 && <div className="cmd-empty">没有匹配的命令</div>}
+          {filtered.length === 0 && <div className="cmd-empty">{t('没有匹配的命令')}</div>}
           {filtered.map((cmd, i) => (
             <div
               key={cmd.id}
@@ -111,8 +113,8 @@ function PalettePanel({ commands, onClose }: { commands: Command[]; onClose: () 
               onMouseEnter={() => setSelectedIndex(i)}
             >
               <span className="cmd-item-icon">{cmd.icon}</span>
-              <span className="cmd-item-label">{cmd.label}</span>
-              {cmd.hint && <span className="cmd-item-hint">{cmd.hint}</span>}
+              <span className="cmd-item-label">{t(cmd.label)}</span>
+              {cmd.hint && <span className="cmd-item-hint">{t(cmd.hint)}</span>}
             </div>
           ))}
         </div>

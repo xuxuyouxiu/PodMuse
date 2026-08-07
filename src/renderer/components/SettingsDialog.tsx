@@ -17,12 +17,12 @@ import { useI18n, type TranslationKey } from '../i18n'
 type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
 
 const TABS: { key: TabKey; icon: LucideIcon; label: TranslationKey }[] = [
-  { key: 'api', icon: Link, label: 'settings.api' },
-  { key: 'transcribe', icon: FileText, label: 'settings.transcribe' },
-  { key: 'whisper', icon: Mic, label: 'settings.whisper' },
-  { key: 'platforms', icon: Layers, label: 'settings.platforms' },
-  { key: 'export', icon: Download, label: 'settings.export' },
-  { key: 'tools', icon: Wrench, label: 'settings.tools' },
+  { key: 'api', icon: Link, label: '接口与通知' },
+  { key: 'transcribe', icon: FileText, label: '转写偏好' },
+  { key: 'whisper', icon: Mic, label: '语音模型' },
+  { key: 'platforms', icon: Layers, label: '支持平台' },
+  { key: 'export', icon: Download, label: '导出' },
+  { key: 'tools', icon: Wrench, label: '工具维护' },
 ]
 
 interface Props {
@@ -96,10 +96,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       const result = await window.electronAPI.scanWhisperModels()
       setModels(result)
       const downloadedCount = result.filter(m => m.downloaded).length
-      setModelScanStatus(`找到 ${result.length} 个标准模型，本地已下载 ${downloadedCount} 个`)
+      setModelScanStatus(t('找到') + ' ' + result.length + ' ' + t('个标准模型，本地已下载') + ' ' + downloadedCount + ' ' + t('个'))
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
-      setModelScanStatus(`扫描失败: ${msg}`)
+      setModelScanStatus(t('扫描失败') + ': ' + msg)
     } finally {
       setScanningModels(false)
     }
@@ -206,10 +206,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     setTempCleanResult(null)
     try {
       const success = await window.electronAPI.cleanTemp()
-      setTempCleanResult(success ? '临时文件已清理' : '清理失败')
+      setTempCleanResult(success ? t('临时文件已清理') : t('清理失败'))
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
-      setTempCleanResult(`清理失败: ${msg}`)
+      setTempCleanResult(t('清理失败') + ': ' + msg)
     } finally {
       setCleaningTemp(false)
     }
@@ -236,7 +236,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
         className="settings-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="设置"
+        aria-label={t('设置')}
         style={{
           width: 720,
           maxWidth: 'calc(100vw - 32px)',
@@ -283,7 +283,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               }}
             >
               <Settings size={16} />
-              设置
+              {t('设置')}
             </div>
           </div>
 
@@ -378,15 +378,15 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {isDirty && (
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• 未保存的更改</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• {t('未保存的更改')}</span>
               )}
               {saveSuccess && (
-                <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 保存成功</span>
+                <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ {t('保存成功')}</span>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleClose} className="tailbar-button">
-                取消
+                {t('取消')}
               </button>
               <button
                 onClick={handleSave}
@@ -394,7 +394,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 disabled={!isDirty}
                 style={{ opacity: isDirty ? 1 : 0.6 }}
               >
-                保存
+                {t('保存')}
               </button>
             </div>
           </div>
@@ -435,10 +435,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
       {/* 关闭确认对话框 */}
       {showCloseConfirm && (
         <ConfirmDialog
-          title="未保存的更改"
-          message="您有未保存的更改，确定要关闭设置吗？"
-          confirmText="不保存"
-          cancelText="继续编辑"
+          title={t('未保存的更改')}
+          message={t('您有未保存的更改，确定要关闭设置吗？')}
+          confirmText={t('不保存')}
+          cancelText={t('继续编辑')}
           danger={true}
           onConfirm={handleConfirmClose}
           onCancel={handleCancelClose}

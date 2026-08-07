@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField, Field } from './FieldComponents'
+import { useI18n } from '../../i18n'
 
 interface Props {
   form: PodcastConfig
@@ -13,6 +14,7 @@ const DEFAULT_EXPORT = {
 }
 
 export default function TabExport({ form, update }: Props) {
+  const { t } = useI18n()
   // 向后兼容旧 config（无 export 字段）
   const exportConfig = form.export || DEFAULT_EXPORT
   const notion = exportConfig.notion || { token: '', database_id: '' }
@@ -48,12 +50,12 @@ export default function TabExport({ form, update }: Props) {
         databaseId: notion.database_id,
       })
       if (result.success) {
-        setTestResult({ success: true, message: `已连接（database: ${result.databaseTitle}）` })
+        setTestResult({ success: true, message: t('已连接') + ` (database: ${result.databaseTitle})` })
       } else {
-        setTestResult({ success: false, message: result.error || '测试失败' })
+        setTestResult({ success: false, message: result.error || t('测试失败') })
       }
     } catch (e) {
-      setTestResult({ success: false, message: `测试失败: ${(e as Error).message}` })
+      setTestResult({ success: false, message: t('测试失败') + ': ' + (e as Error).message })
     } finally {
       setTesting(false)
     }
@@ -61,29 +63,28 @@ export default function TabExport({ form, update }: Props) {
 
   return (
     <div>
-      <TabHeader title="导出" subtitle="配置笔记导出到其他平台（Markdown / Logseq / Notion）" />
+      <TabHeader title={t('导出')} subtitle={t('配置笔记导出到其他平台（Markdown / Logseq / Notion）')} />
 
       {/* Logseq */}
       <div style={{ marginBottom: 28 }}>
         <div className="settings-section-title" style={{ marginBottom: 8 }}>
-          Logseq 目录
+          {t('Logseq 目录')}
         </div>
         <DirField
-          label="Logseq graph 目录"
+          label={t('Logseq graph 目录')}
           value={exportConfig.logseq_dir}
-          placeholder="未设置"
+          placeholder={t('未设置')}
           onBrowse={handleBrowseLogseq}
         />
         <div className="settings-hint" style={{ marginTop: 6 }}>
-          配置后，完成笔记的任务卡片「导出」按钮可直接复制到该目录。Logseq 兼容 Obsidian 的
-          wiki-link 语法，无需转换。
+          {t('配置后，完成笔记的任务卡片「导出」按钮可直接复制到该目录。Logseq 兼容 Obsidian 的 wiki-link 语法，无需转换。')}
         </div>
       </div>
 
       {/* Notion */}
       <div>
         <div className="settings-section-title" style={{ marginBottom: 8 }}>
-          Notion 集成
+          {t('Notion 集成')}
         </div>
         <div className="settings-grid">
           <Field
@@ -97,7 +98,7 @@ export default function TabExport({ form, update }: Props) {
             label="Database ID"
             value={notion.database_id}
             onChange={v => updateNotionField('database_id', v)}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx 或 database URL"
+            placeholder={`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx ${t('或')} database URL`}
           />
         </div>
         <div className="settings-test-row">
@@ -109,7 +110,7 @@ export default function TabExport({ form, update }: Props) {
               opacity: testing || !notion.token.trim() || !notion.database_id.trim() ? 0.6 : 1,
             }}
           >
-            {testing ? '测试中…' : '测试连接'}
+            {testing ? t('测试中…') : t('测试连接')}
           </button>
           {testResult && (
             <span
@@ -120,12 +121,12 @@ export default function TabExport({ form, update }: Props) {
               }
             >
               {testResult.success ? '✓ ' : '✗ '}
-              {testResult.message}
+              {t(testResult.message)}
             </span>
           )}
         </div>
         <div className="settings-hint" style={{ marginTop: 8 }}>
-          在 Notion 中创建 integration（
+          {t('在 Notion 中创建 integration（')}
           <span
             onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')}
             className="settings-link-button"
@@ -133,9 +134,7 @@ export default function TabExport({ form, update }: Props) {
           >
             https://www.notion.so/my-integrations
           </span>
-          ），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database
-          需包含 title
-          列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。
+          {t('），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。')}
         </div>
       </div>
     </div>

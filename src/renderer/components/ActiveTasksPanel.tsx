@@ -14,18 +14,18 @@ interface Props {
 }
 
 const STATUS_META: Record<RecentTaskState['status'], { label: TranslationKey }> = {
-  running: { label: 'tasks.status.running' },
-  stopped: { label: 'tasks.status.stopped' },
-  error: { label: 'tasks.status.error' },
-  completed: { label: 'tasks.status.done' },
+  running: { label: '处理中' },
+  stopped: { label: '已停止' },
+  error: { label: '失败' },
+  completed: { label: '已完成' },
 }
 
 const BATCH_STATUS_META: Record<BatchTask['status'], { label: TranslationKey; className: string }> = {
-  pending: { label: 'sidebar.stats.queued', className: 'pending' },
-  processing: { label: 'tasks.status.running', className: 'running' },
-  completed: { label: 'tasks.status.done', className: 'completed' },
-  failed: { label: 'tasks.status.error', className: 'error' },
-  skipped: { label: 'batch.skipped', className: 'stopped' },
+  pending: { label: '排队中', className: 'pending' },
+  processing: { label: '处理中', className: 'running' },
+  completed: { label: '已完成', className: 'completed' },
+  failed: { label: '失败', className: 'error' },
+  skipped: { label: '已跳过', className: 'stopped' },
 }
 
 export default function ActiveTasksPanel({
@@ -57,9 +57,9 @@ export default function ActiveTasksPanel({
     <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
         <div>
-          <div className="task-panel-title">活跃任务</div>
+          <div className="task-panel-title">{t('活跃任务')}</div>
           <div className="task-panel-subtitle">
-            {isActive ? `批量处理中 — 剩余 ${batchPending} 项` : '正在处理或排队中的任务'}
+            {isActive ? t('批量处理中') + ' — ' + t('剩余') + ' ' + batchPending + ' ' + t('项') : t('正在处理或排队中的任务')}
           </div>
         </div>
         <div className="task-panel-count">{totalVisible}</div>
@@ -71,8 +71,8 @@ export default function ActiveTasksPanel({
             <div className="task-panel-empty-icon">
               <Zap size={24} />
             </div>
-            <div className="task-panel-empty-title">暂无活跃任务</div>
-            <div className="task-panel-empty-copy">新发起的任务会显示在这里</div>
+            <div className="task-panel-empty-title">{t('暂无活跃任务')}</div>
+            <div className="task-panel-empty-copy">{t('新发起的任务会显示在这里')}</div>
           </div>
         )}
 
@@ -101,23 +101,23 @@ export default function ActiveTasksPanel({
                   >
                     {isStopping ? (
                       <>
-                        <Loader2 size={12} className="animate-spin" /> 停止中...
+                        <Loader2 size={12} className="animate-spin" /> {t('停止中...')}
                       </>
                     ) : (
                       <>
-                        <Square size={12} /> 停止
+                        <Square size={12} /> {t('停止')}
                       </>
                     )}
                   </button>
                 )}
                 {canResume && onResume && (
                   <button onClick={() => onResume(task)} className="recent-task-primary">
-                    <Play size={12} /> 重新处理
+                    <Play size={12} /> {t('重新处理')}
                   </button>
                 )}
                 {canDelete && onDelete && (
                   <button onClick={() => onDelete(task.id)} className="recent-task-danger">
-                    <Trash2 size={12} /> 删除
+                    <Trash2 size={12} /> {t('删除')}
                   </button>
                 )}
               </div>
@@ -130,8 +130,8 @@ export default function ActiveTasksPanel({
           <>
             <div className="batch-section-header">
               <ListOrdered size={13} />
-              <span>批量队列</span>
-              {batchStatus === 'paused' && <span className="batch-section-badge">已暂停</span>}
+              <span>{t('批量队列')}</span>
+              {batchStatus === 'paused' && <span className="batch-section-badge">{t('已暂停')}</span>}
             </div>
             {batchTasks.map((task, i) => {
               const meta = BATCH_STATUS_META[task.status] || { label: task.status, className: '' }

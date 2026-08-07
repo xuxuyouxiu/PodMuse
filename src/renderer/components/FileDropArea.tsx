@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Upload, FileAudio, FolderOpen, AlertCircle } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.wmv']
 const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.aac', '.flac', '.m4a', '.ogg']
@@ -13,11 +14,13 @@ interface Props {
   disabled: boolean
 }
 
-function validateFile(file: File): string | null {
+type FileError = { kind: 'unsupported'; name: string } | { kind: 'nopath' } | null
+
+function validateFile(file: File): FileError {
   const name = file.name.toLowerCase()
   const ext = name.substring(name.lastIndexOf('.'))
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    return `不支持的文件格式（${file.name}），仅允许: ${EXTENSION_LABELS}`
+    return { kind: 'unsupported', name: file.name }
   }
   return null
 }
@@ -31,8 +34,9 @@ function getFilePath(file: File): string | null {
 }
 
 export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: Props) {
+  const { t } = useI18n()
   const [dragOver, setDragOver] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<FileError>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = useCallback(
@@ -50,7 +54,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
         }
         const filePath = getFilePath(file)
         if (!filePath) {
-          setError('无法获取文件路径，请重试')
+          setError({ kind: 'nopath' })
           return
         }
         validPaths.push(filePath)
@@ -113,6 +117,12 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
     [handleFiles],
   )
 
+  const errorText = error
+    ? error.kind === 'unsupported'
+      ? `${t('不支持的文件格式')}（${error.name}），${t('仅允许')}: ${EXTENSION_LABELS}`
+      : t('无法获取文件路径，请重试')
+    : null
+
   return (
     <motion.div
       className="file-drop-card"
@@ -141,9 +151,9 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
           {dragOver ? <Upload size={32} /> : <FileAudio size={32} />}
         </motion.div>
         <div className="file-drop-zone__text">
-          {dragOver ? '释放以添加文件' : '拖拽音视频文件到此处'}
+          {dragOver ? t('释放以添加文件') : t('拖拽音视频文件到此处')}
         </div>
-        <div className="file-drop-zone__hint">支持 {EXTENSION_LABELS} 格式</div>
+        <div className="file-drop-zone__hint">{t('支持')} {EXTENSION_LABELS} {t('格式')}</div>
       </motion.div>
       <motion.button
         className="file-drop-browse"
@@ -153,7 +163,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
         whileTap={{ scale: 0.98 }}
       >
         <FolderOpen size={14} />
-        浏览文件
+        {t('浏览文件')}
       </motion.button>
       <input
         ref={fileInputRef}
@@ -164,7 +174,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
         style={{ display: 'none' }}
       />
       <AnimatePresence>
-        {error && (
+        {errorText && (
           <motion.div
             className="file-drop-error"
             initial={{ opacity: 0, height: 0 }}
@@ -173,7 +183,7 @@ export default function FileDropArea({ onProcessFile, onBatchFiles, disabled }: 
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <AlertCircle size={14} />
-            {error}
+            {errorText}
           </motion.div>
         )}
       </AnimatePresence>

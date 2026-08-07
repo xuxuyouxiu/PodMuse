@@ -144,14 +144,14 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="url-input-copy">
-        <div className="url-input-eyebrow">{t("url.eyebrow")}</div>
-        <h2 className="url-input-title">{t("url.title")}</h2>
+        <div className="url-input-eyebrow">{t("开始新任务")}</div>
+        <h2 className="url-input-title">{t("粘贴链接开始处理")}</h2>
         <p className="url-input-hint">
-          支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接，按 Enter 发起。
+          {t('支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接，按 Enter 发起。')}
           <button
             className="url-input-tip-btn"
             onClick={() => setShowTip(v => !v)}
-            title="查看支持的链接格式"
+            title={t('查看支持的链接格式')}
           >
             <HelpCircle size={13} />
           </button>
@@ -168,7 +168,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
             transition={{ duration: 0.2 }}
           >
             <div className="url-input-tip-header">
-              <span>支持的链接格式</span>
+              <span>{t('支持的链接格式')}</span>
               <button className="url-input-tip-close" onClick={() => setShowTip(false)}>
                 <X size={14} />
               </button>
@@ -176,13 +176,12 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
             <div className="url-input-tip-list">
               {PLATFORMS.map(p => (
                 <div key={p.label} className="url-input-tip-item">
-                  <span className="url-input-tip-label">{p.label}</span>
-                  <span className="url-input-tip-desc">{p.desc}</span>
+                  <span className="url-input-tip-label">{t(p.label)}</span>
+                  <span className="url-input-tip-desc">{t(p.desc)}</span>
                 </div>
               ))}
               <div className="url-input-tip-note">
-                直链指任何能直接下载到音频/视频文件的公开 URL，如播客 RSS
-                音频链接、云盘公开下载链接等。
+                {t('直链指任何能直接下载到音频/视频文件的公开 URL，如播客 RSS，包括音频链接、云盘公开下载链接等。')}
               </div>
             </div>
           </motion.div>
@@ -203,7 +202,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
             ref={inputRef}
             className="url-input-field"
             type="text"
-            placeholder="支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接"
+            placeholder={t('支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接')}
             value={url}
             onChange={e => setUrl(e.target.value)}
             onPaste={handlePaste}
@@ -213,12 +212,12 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
             disabled={disabled}
           />
           {detected && (
-            <span className="url-input-badge" title={detected.name}>
-              {detected.name}
+            <span className="url-input-badge" title={t(detected.name)}>
+              {t(detected.name)}
             </span>
           )}
           {url && !disabled && (
-            <button className="url-input-clear" onClick={() => setUrl('')} title="清空">
+            <button className="url-input-clear" onClick={() => setUrl('')} title={t('清空')}>
               <X size={13} />
             </button>
           )}
@@ -231,7 +230,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
           whileTap={{ scale: 0.98 }}
         >
           <Play size={14} />
-          {t("url.process")}
+          {t("开始处理")}
         </motion.button>
       </div>
 
@@ -242,7 +241,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
         >
-          {t("url.unsupported")}
+          {t("暂不支持该平台，请使用本地文件方式")}
         </motion.p>
       )}
     </motion.div>

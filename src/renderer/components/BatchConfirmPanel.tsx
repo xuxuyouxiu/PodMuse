@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { motion } from 'motion/react'
 import { X, Play, FileAudio, Link, AlertTriangle } from 'lucide-react'
 import type { BatchInput } from '@shared/types'
+import { useI18n } from '../i18n'
 
 interface Props {
   items: BatchInput[]
@@ -48,6 +49,7 @@ export default function BatchConfirmPanel({
   onRemoveItem,
   onReorder,
 }: Props) {
+  const { t } = useI18n()
   const fileCount = items.filter(i => i.type === 'file').length
   const urlCount = items.filter(i => i.type === 'url').length
 
@@ -75,11 +77,11 @@ export default function BatchConfirmPanel({
     >
       <div className="batch-confirm-header">
         <div>
-          <div className="batch-confirm-eyebrow">批量处理</div>
+          <div className="batch-confirm-eyebrow">{t('批量处理')}</div>
           <h3 className="batch-confirm-title">
-            确认处理 {items.length} 项
-            {fileCount > 0 && <span className="batch-confirm-count">{fileCount} 个文件</span>}
-            {urlCount > 0 && <span className="batch-confirm-count">{urlCount} 个链接</span>}
+            {t('确认处理')} {items.length} {t('项')}
+            {fileCount > 0 && <span className="batch-confirm-count">{fileCount} {t('个文件')}</span>}
+            {urlCount > 0 && <span className="batch-confirm-count">{urlCount} {t('个链接')}</span>}
           </h3>
         </div>
         <button className="batch-confirm-cancel" onClick={onCancel} title="取消">
@@ -129,7 +131,7 @@ export default function BatchConfirmPanel({
       <div className="batch-confirm-footer">
         <div className="batch-confirm-hint">
           <AlertTriangle size={13} />
-          任务将按顺序逐个处理，单个失败不影响后续任务
+          {t('任务将按顺序逐个处理，单个失败不影响后续任务')}
         </div>
         <motion.button
           className="batch-confirm-start"
@@ -138,7 +140,7 @@ export default function BatchConfirmPanel({
           whileTap={{ scale: 0.98 }}
         >
           <Play size={14} />
-          开始批量处理
+          {t('开始批量处理')}
         </motion.button>
       </div>
 

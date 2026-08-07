@@ -14,6 +14,8 @@ import {
   FileText,
 } from 'lucide-react'
 
+import { useI18n } from '../i18n'
+
 // ── Constants ──
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -35,6 +37,7 @@ const PAGE_SIZE = 20
 // ── Component ──
 
 export default function SearchPanel() {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [debouncedKeyword, setDebouncedKeyword] = useState('')
@@ -219,7 +222,7 @@ export default function SearchPanel() {
       <div className="search-panel">
         <div className="search-panel__loading">
           <RefreshCw size={16} className="search-panel__spin" />
-          <span>正在加载索引...</span>
+          <span>{t('正在加载索引...')}</span>
         </div>
         <style>{`
           .search-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
@@ -240,13 +243,13 @@ export default function SearchPanel() {
           <input
             type="text"
             className="search-panel__search-input"
-            placeholder="搜索笔记标题、内容、标签..."
+            placeholder={t('搜索笔记标题、内容、标签...')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             autoFocus
           />
           {keyword && (
-            <button className="search-panel__clear-btn" onClick={() => setKeyword('')} title="清空">
+            <button className="search-panel__clear-btn" onClick={() => setKeyword('')} title={t('清空')}>
               <X size={14} />
             </button>
           )}
@@ -258,12 +261,12 @@ export default function SearchPanel() {
             onChange={e => handleSortChange(e.target.value as 'score' | 'date_desc' | 'date_asc')}
             className="search-panel__sort-select"
           >
-            <option value="score">相关度</option>
-            <option value="date_desc">最新</option>
-            <option value="date_asc">最早</option>
+            <option value="score">{t('相关度')}</option>
+            <option value="date_desc">{t('最新')}</option>
+            <option value="date_asc">{t('最早')}</option>
           </select>
         </div>
-        <button className="search-panel__refresh" onClick={refreshFacets} title="刷新索引">
+        <button className="search-panel__refresh" onClick={refreshFacets} title={t('刷新索引')}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -274,17 +277,17 @@ export default function SearchPanel() {
         <aside className="search-panel__facets">
           {hasActiveFilters && (
             <button className="search-panel__clear-all" onClick={clearAllFilters}>
-              <X size={12} /> 清除全部筛选
+              <X size={12} /> {t('清除全部筛选')}
             </button>
           )}
 
           {/* Category filter (single select) */}
-          <FacetSection title="分类" icon={<FolderOpen size={12} />}>
+          <FacetSection title={t('分类')} icon={<FolderOpen size={12} />}>
             <button
               className={`search-panel__facet-item ${!selectedCategory ? 'is-active' : ''}`}
               onClick={() => handleCategoryClick(undefined)}
             >
-              <span>全部</span>
+              <span>{t('全部')}</span>
             </button>
             {facets?.categories.map(c => (
               <button
@@ -305,8 +308,8 @@ export default function SearchPanel() {
           </FacetSection>
 
           {/* Tags filter (multi select, OR) */}
-          <FacetSection title="标签" icon={<TagIcon size={12} />}>
-            {facets?.tags.length === 0 && <div className="search-panel__facet-empty">无标签</div>}
+          <FacetSection title={t('标签')} icon={<TagIcon size={12} />}>
+            {facets?.tags.length === 0 && <div className="search-panel__facet-empty">{t('无标签')}</div>}
             {facets?.tags.slice(0, 30).map(t => (
               <label
                 key={t.value}
@@ -324,12 +327,12 @@ export default function SearchPanel() {
           </FacetSection>
 
           {/* Show filter (single select) */}
-          <FacetSection title="节目" icon={<Radio size={12} />}>
+          <FacetSection title={t('节目')} icon={<Radio size={12} />}>
             <button
               className={`search-panel__facet-item ${!selectedShow ? 'is-active' : ''}`}
               onClick={() => handleShowClick(undefined)}
             >
-              <span>全部</span>
+              <span>{t('全部')}</span>
             </button>
             {facets?.shows.map(s => (
               <button
@@ -344,14 +347,14 @@ export default function SearchPanel() {
           </FacetSection>
 
           {/* Date range filter */}
-          <FacetSection title="日期范围" icon={<Calendar size={12} />}>
+          <FacetSection title={t('日期范围')} icon={<Calendar size={12} />}>
             <div className="search-panel__date-range">
               <input
                 type="date"
                 value={dateFrom}
                 onChange={e => handleDateFromChange(e.target.value)}
                 className="search-panel__date-input"
-                placeholder="从"
+                placeholder={t('从')}
               />
               <span className="search-panel__date-sep">~</span>
               <input
@@ -359,11 +362,11 @@ export default function SearchPanel() {
                 value={dateTo}
                 onChange={e => handleDateToChange(e.target.value)}
                 className="search-panel__date-input"
-                placeholder="到"
+                placeholder={t('到')}
               />
               {facets?.dateRange.earliest && (
                 <div className="search-panel__date-hint">
-                  范围：{facets.dateRange.earliest} ~ {facets.dateRange.latest || ''}
+                  {t('范围')}：{facets.dateRange.earliest} ~ {facets.dateRange.latest || ''}
                 </div>
               )}
             </div>
@@ -371,11 +374,11 @@ export default function SearchPanel() {
 
           {/* Entity filter (multi select, max 3, OR) */}
           <FacetSection
-            title={`实体 ${selectedEntities.length > 0 ? `(${selectedEntities.length}/3)` : ''}`}
+            title={`${t('实体')} ${selectedEntities.length > 0 ? `(${selectedEntities.length}/3)` : ''}`}
             icon={<Users size={12} />}
           >
             {facets?.topEntities.length === 0 && (
-              <div className="search-panel__facet-empty">无实体</div>
+              <div className="search-panel__facet-empty">{t('无实体')}</div>
             )}
             {facets?.topEntities.map(e => (
               <label
@@ -389,7 +392,7 @@ export default function SearchPanel() {
                   disabled={selectedEntities.length >= 3 && !selectedEntities.includes(e.value)}
                 />
                 <span className="search-panel__entity-type">
-                  {ENTITY_TYPE_LABEL[e.type] || e.type}
+                  {t(ENTITY_TYPE_LABEL[e.type] || e.type)}
                 </span>
                 <span>{e.value}</span>
                 <span className="search-panel__facet-count">{e.count}</span>
@@ -400,20 +403,20 @@ export default function SearchPanel() {
 
         {/* Result list */}
         <main className="search-panel__results">
-          {error && <div className="search-panel__error">{error}</div>}
+          {error && <div className="search-panel__error">{t(error)}</div>}
 
           {!error && !loading && results.length === 0 && (
             <div className="search-panel__empty">
               {debouncedKeyword || hasActiveFilters ? (
                 <>
                   <FileText size={32} />
-                  <div>未找到相关笔记</div>
-                  <div className="search-panel__empty-hint">试试调整筛选条件或更换关键词</div>
+                  <div>{t('未找到相关笔记')}</div>
+                  <div className="search-panel__empty-hint">{t('试试调整筛选条件或更换关键词')}</div>
                 </>
               ) : (
                 <>
                   <Search size={32} />
-                  <div>输入关键词或选择筛选条件开始搜索</div>
+                  <div>{t('输入关键词或选择筛选条件开始搜索')}</div>
                 </>
               )}
             </div>
@@ -422,15 +425,15 @@ export default function SearchPanel() {
           {loading && (
             <div className="search-panel__loading-list">
               <RefreshCw size={14} className="search-panel__spin" />
-              <span>正在搜索...</span>
+              <span>{t('正在搜索...')}</span>
             </div>
           )}
 
           {!loading && results.length > 0 && (
             <>
               <div className="search-panel__result-meta">
-                共 <strong>{total}</strong> 条结果{' '}
-                {debouncedKeyword && `(关键词: "${debouncedKeyword}")`}
+                {t('共')} <strong>{total}</strong> {t('条结果')}{' '}
+                {debouncedKeyword && `(${t('关键词')}: "${debouncedKeyword}")`}
               </div>
               <div className="search-panel__result-list">
                 {results.map(r => (
@@ -445,17 +448,17 @@ export default function SearchPanel() {
                     disabled={page === 0}
                     onClick={() => setPage(p => Math.max(0, p - 1))}
                   >
-                    <ChevronLeft size={14} /> 上一页
+                    <ChevronLeft size={14} /> {t('上一页')}
                   </button>
                   <span className="search-panel__page-info">
-                    第 {page + 1} / {totalPages} 页 · 显示 {results.length} 条 / 共 {total} 条
+                    {t('第')} {page + 1} / {totalPages} {t('页')} · {t('显示')} {results.length} {t('条')} / {t('共')} {total} {t('条')}
                   </span>
                   <button
                     className="search-panel__page-btn"
                     disabled={page >= totalPages - 1}
                     onClick={() => setPage(p => p + 1)}
                   >
-                    下一页 <ChevronRight size={14} />
+                    {t('下一页')} <ChevronRight size={14} />
                   </button>
                 </div>
               )}
@@ -566,6 +569,7 @@ function FacetSection({
 // ── Result card ──
 
 function ResultCard({ result, onOpen }: { result: SearchResult; onOpen: (path: string) => void }) {
+  const { t } = useI18n()
   return (
     <div className="search-panel__result-card" onClick={() => onOpen(result.path)}>
       <h3
@@ -585,11 +589,11 @@ function ResultCard({ result, onOpen }: { result: SearchResult; onOpen: (path: s
         {result.show && <span className="search-panel__result-show">· {result.show}</span>}
         {result.matchType.length > 0 && (
           <div className="search-panel__result-match-types">
-            {result.matchType.map(t => (
-              <span key={t} className="search-panel__match-type">
-                {t === 'title' ? '标题' : t === 'tags' ? '标签' : '正文'}
-              </span>
-            ))}
+            {result.matchType.map(mt => (
+                          <span key={mt} className="search-panel__match-type">
+                            {mt === 'title' ? t('标题') : mt === 'tags' ? t('标签') : t('正文')}
+                          </span>
+                        ))}
           </div>
         )}
       </div>

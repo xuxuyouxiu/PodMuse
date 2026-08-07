@@ -139,7 +139,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
               }}
               onBlur={() => setFocused(false)}
               onKeyDown={handleKeyDown}
-              placeholder={t("header.searchPlaceholder")}
+              placeholder={t("搜索笔记、播客、关键词...")}
               className="topbar-search-input"
             />
             {query && (
@@ -151,7 +151,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
                   setResults([])
                   inputRef.current?.focus()
                 }}
-                aria-label={t("header.clear")}
+                aria-label={t("清除搜索")}
               >
                 <X size={11} />
               </button>
@@ -162,9 +162,9 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           {/* 搜索结果下拉 */}
           {open && (query.trim() || results.length > 0) && (
             <div className="topbar-dropdown">
-              {loading && <div className="topbar-status-msg">{t("header.searching")}</div>}
+              {loading && <div className="topbar-status-msg">{t("搜索中...")}</div>}
               {!loading && query.trim() && results.length === 0 && (
-                <div className="topbar-status-msg">{t("header.noResults")}</div>
+                <div className="topbar-status-msg">{t("未找到匹配结果")}</div>
               )}
               {!loading &&
                 results.map((r, i) => (
@@ -203,7 +203,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           </button>
           <button onClick={onToggleTheme} className="topbar-theme-btn">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-            {theme === 'dark' ? t('header.light') : t('header.dark')}
+            {theme === 'dark' ? t('浅色') : t('深色')}
           </button>
         </div>
       </div>
@@ -211,13 +211,13 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
         className="workspace-topbar__window-controls"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button onClick={handleMinimize} className="topbar-winctl-btn" aria-label={t("header.minimize")}>
+        <button onClick={handleMinimize} className="topbar-winctl-btn" aria-label={t("最小化")}>
           <Minus size={14} />
         </button>
-        <button onClick={handleMaximize} className="topbar-winctl-btn" aria-label={t("header.maximize")}>
+        <button onClick={handleMaximize} className="topbar-winctl-btn" aria-label={t("最大化")}>
           <Square size={14} />
         </button>
-        <button onClick={handleClose} className="topbar-winctl-btn" aria-label={t("header.close")}>
+        <button onClick={handleClose} className="topbar-winctl-btn" aria-label={t("关闭")}>
           <X size={14} />
         </button>
       </div>

@@ -1,5 +1,6 @@
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
+import { useI18n } from '../../i18n'
 import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown } from 'lucide-react'
 
 export default function TabWhisper({
@@ -33,12 +34,13 @@ export default function TabWhisper({
   onModelChange: (id: string) => void
   onBrowse: (key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') => void
 }) {
+  const { t } = useI18n()
   return (
     <div>
-      <TabHeader title="语音识别模型" subtitle="选择 Whisper 模型版本，首次使用时会自动下载" />
+      <TabHeader title={t('语音识别模型')} subtitle={t('选择 Whisper 模型版本，首次使用时会自动下载')} />
       <div className="settings-grid">
         <div className="settings-field">
-          <div className="settings-field-label">模型选择</div>
+          <div className="settings-field-label">{t('模型选择')}</div>
           <div className="settings-dir-row">
             <select
               value={form.whisper_model}
@@ -48,7 +50,7 @@ export default function TabWhisper({
             >
               {(models ?? []).map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.label} ({m.size}){m.downloaded ? ' ✓' : ' · 未下载'}
+                  {m.label} ({m.size}){m.downloaded ? ' ✓' : ' · ' + t('未下载')}
                 </option>
               ))}
               {(!models || models.length === 0) && (
@@ -68,7 +70,7 @@ export default function TabWhisper({
               className="settings-browse-button"
               style={{ whiteSpace: 'nowrap' }}
             >
-              {scanningModels ? '…' : '刷新'}
+              {scanningModels ? '…' : t('刷新')}
             </button>
           </div>
           {models && models.length > 0 && (
@@ -83,13 +85,13 @@ export default function TabWhisper({
                   border: '1px solid var(--border-light)',
                 }}
               >
-                已下载 {models.filter(m => m.downloaded).length}/{models.length}
+                {t('已下载')} {models.filter(m => m.downloaded).length}/{models.length}
               </span>
               {(() => {
                 const selected = models.find(m => m.id === form.whisper_model)
                 if (!selected) return null
                 return selected.downloaded ? (
-                  <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ 当前模型已就绪</span>
+                  <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ {t('当前模型已就绪')}</span>
                 ) : (
                   <span
                     style={{
@@ -101,7 +103,7 @@ export default function TabWhisper({
                     }}
                   >
                     <ArrowDown size={11} />
-                    首次使用将自动下载 ~{selected.ramMinGB}GB
+                    {t('首次使用将自动下载')} ~{selected.ramMinGB}GB
                   </span>
                 )
               })()}
@@ -109,7 +111,7 @@ export default function TabWhisper({
           )}
           {modelScanStatus && (
             <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-              {modelScanStatus}
+              {t(modelScanStatus)}
             </div>
           )}
         </div>
@@ -119,23 +121,23 @@ export default function TabWhisper({
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="settings-link-button"
           >
-            {showAdvanced ? '▼' : '▶'} 高级设置
+            {showAdvanced ? '▼' : '▶'} {t('高级设置')}
           </button>
         </div>
 
         {showAdvanced && (
           <DirField
-            label="Whisper 可执行文件路径"
+            label={t('Whisper 可执行文件路径')}
             value={form.whisper_exe_path}
-            placeholder="选择 whisper 可执行文件（可选）"
+            placeholder={t('选择 whisper 可执行文件（可选）')}
             onBrowse={() => onBrowse('whisper_exe_path')}
           />
         )}
 
         <div className="settings-field">
-          <div className="settings-field-label">下载模型</div>
+          <div className="settings-field-label">{t('下载模型')}</div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。
+            {t('Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。')}
             <br />
             <span
               onClick={() =>
@@ -147,7 +149,7 @@ export default function TabWhisper({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <ExternalLink size={12} />
-                GitHub 下载 faster-whisper-xxl 模型
+                {t('GitHub 下载 faster-whisper-xxl 模型')}
               </span>
             </span>
           </div>
@@ -178,7 +180,7 @@ export default function TabWhisper({
               style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
             />
           )}
-          {hardwareWarn.warning}
+          {t(hardwareWarn.warning)}
         </div>
       )}
     </div>

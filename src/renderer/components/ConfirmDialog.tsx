@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { AlertTriangle, HelpCircle } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface Props {
   title: string
@@ -14,12 +15,13 @@ interface Props {
 export default function ConfirmDialog({
   title,
   message,
-  confirmText = '确定',
-  cancelText = '取消',
+  confirmText = '',
+  cancelText = '',
   danger = false,
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useI18n()
   const confirmRef = useRef<HTMLButtonElement>(null)
 
   // 自动聚焦确认按钮
@@ -57,14 +59,14 @@ export default function ConfirmDialog({
         {/* 按钮组 */}
         <div className="confirm-dialog-actions">
           <button className="confirm-dialog-cancel-btn" onClick={onCancel}>
-            {cancelText}
+            {cancelText || t('取消')}
           </button>
           <button
             ref={confirmRef}
             className={`confirm-dialog-confirm-btn ${danger ? 'confirm-dialog-confirm-btn--danger' : ''}`}
             onClick={onConfirm}
           >
-            {confirmText}
+            {confirmText || t('确定')}
           </button>
         </div>
       </div>

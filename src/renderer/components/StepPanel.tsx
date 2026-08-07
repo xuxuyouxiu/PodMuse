@@ -33,20 +33,20 @@ export default function StepPanel({ steps, processing }: Props) {
           <div className="step-panel-empty-icon">
             <Headphones size={48} />
           </div>
-          <div className="step-panel-empty-title">{t("steps.idle.title")}</div>
-          <div className="step-panel-empty-text">{t("steps.idle.subtitle")}</div>
+          <div className="step-panel-empty-title">{t("等待处理任务")}</div>
+          <div className="step-panel-empty-text">{t("输入小宇宙链接或等待飞书消息")}</div>
           <div className="onboarding-steps">
             <div className="onboarding-step">
               <Link size={14} className="onboarding-step-icon" />
-              <span>{t("steps.idle.step1")}</span>
+              <span>{t("粘贴播客链接")}</span>
             </div>
             <div className="onboarding-step">
               <FileText size={14} className="onboarding-step-icon" />
-              <span>{t("steps.idle.step2")}</span>
+              <span>{t("自动转写并生成笔记")}</span>
             </div>
             <div className="onboarding-step">
               <Bell size={14} className="onboarding-step-icon" />
-              <span>{t("steps.idle.step3")}</span>
+              <span>{t("结果推送至飞书群")}</span>
             </div>
           </div>
         </div>
@@ -67,10 +67,10 @@ export default function StepPanel({ steps, processing }: Props) {
       <div className="step-panel-body step-panel-body--active">
         <div className="step-panel-header">
           <div>
-            <div className="step-panel-eyebrow">流程面板</div>
-            <div className="step-panel-title">当前处理阶段</div>
+            <div className="step-panel-eyebrow">{t('流程面板')}</div>
+            <div className="step-panel-title">{t('当前处理阶段')}</div>
           </div>
-          <div className="step-panel-counter">5 个步骤</div>
+          <div className="step-panel-counter">{t('5 个步骤')}</div>
         </div>
         <div className="step-panel-track">
           {steps.map((s, i) => (
@@ -91,7 +91,7 @@ export default function StepPanel({ steps, processing }: Props) {
           <div className="step-panel-summary">
             <div className="step-panel-summary-header">
               <span className="step-panel-summary-title">{currentStep.title}</span>
-              <span className="step-panel-summary-step">步骤 {currentStep.step}/5</span>
+              <span className="step-panel-summary-step">{t('步骤')} {currentStep.step}/5</span>
             </div>
             <div className="step-panel-summary-text">
               {currentStep.detail || currentStep.subtitle}
@@ -115,21 +115,21 @@ export default function StepPanel({ steps, processing }: Props) {
             <div className="step-panel-state-icon step-panel-state-icon--success">
               <PartyPopper size={40} />
             </div>
-            <div className="step-panel-state-title success">笔记已保存到 Obsidian</div>
-            <div className="step-panel-state-text">可在 Obsidian → 小宇宙播客 中查看</div>
+            <div className="step-panel-state-title success">{t('笔记已保存到 Obsidian')}</div>
+            <div className="step-panel-state-text">{t('可在 Obsidian → 小宇宙播客 中查看')}</div>
           </div>
         )}
 
         {showPaused && (
           <div className="step-panel-state">
-            <div className="step-panel-state-title accent">处理已停止</div>
-            <div className="step-panel-state-text">可在右侧活跃任务中重新处理</div>
+            <div className="step-panel-state-title accent">{t('处理已停止')}</div>
+            <div className="step-panel-state-text">{t('可在右侧活跃任务中重新处理')}</div>
           </div>
         )}
 
         {!processing && hasError && (
           <div className="step-panel-state">
-            <div className="step-panel-state-title error">处理失败</div>
+            <div className="step-panel-state-title error">{t('处理失败')}</div>
             <div className="step-panel-state-text">
               {(() => {
                 const errStep = steps.find(s => s.status === 'error')

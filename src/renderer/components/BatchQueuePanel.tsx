@@ -54,13 +54,14 @@ function TaskIcon({ task }: { task: BatchTask }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n()
   return (
     <span className="batch-queue-status" style={{ color: STATUS_COLORS[status] }}>
       {status === 'processing' && <Loader2 size={11} className="batch-queue-spin" />}
       {status === 'completed' && <Check size={11} />}
       {status === 'failed' && <AlertCircle size={11} />}
       {status === 'skipped' && <SkipForward size={11} />}
-      {STATUS_LABELS[status] || status}
+      {t(STATUS_LABELS[status] || status)}
     </span>
   )
 }
@@ -98,6 +99,7 @@ function SummaryView({
   onRetryAllFailed: () => void
   onDismiss: () => void
 }) {
+  const { t } = useI18n()
   const minutes = Math.round(summary.duration / 60000)
   const allTasks = [...successTasks, ...failedTasks]
   const total = summary.succeeded + summary.failed + summary.skipped
@@ -108,10 +110,10 @@ function SummaryView({
     <div className="bq-report">
       {/* Header */}
       <div className="bq-report__header">
-        <div className="bq-report__eyebrow">处理报告</div>
-        <div className="bq-report__title">{allSuccess ? '全部处理完成' : '处理完成'}</div>
+        <div className="bq-report__eyebrow">{t('处理报告')}</div>
+        <div className="bq-report__title">{allSuccess ? t('全部处理完成') : t('处理完成')}</div>
         <div className="bq-report__sub">
-          共 {total} 个任务 · 耗时 {minutes} 分钟
+          {t('共')} {total} {t('个任务')} · {t('耗时')} {minutes} {t('分钟')}
         </div>
       </div>
 
@@ -119,21 +121,21 @@ function SummaryView({
       <div className="bq-report__stats">
         <div className="bq-report__pill bq-report__pill--ok">
           <span className="bq-report__pill-dot bq-report__pill-dot--ok" />
-          {summary.succeeded} 成功
+          {summary.succeeded} {t('成功')}
         </div>
         {summary.failed > 0 && (
           <div className="bq-report__pill bq-report__pill--err">
             <span className="bq-report__pill-dot bq-report__pill-dot--err" />
-            {summary.failed} 失败
+            {summary.failed} {t('失败')}
           </div>
         )}
         {summary.skipped > 0 && (
           <div className="bq-report__pill">
             <span className="bq-report__pill-dot" />
-            {summary.skipped} 跳过
+            {summary.skipped} {t('跳过')}
           </div>
         )}
-        <div className="bq-report__pill">{rate}% 成功率</div>
+        <div className="bq-report__pill">{rate}% {t('成功率')}</div>
       </div>
 
       {/* Progress bar */}
@@ -151,61 +153,61 @@ function SummaryView({
         <table className="bq-report__table">
           <thead>
             <tr>
-              <th className="bq-report__th bq-report__th--status">状态</th>
-              <th className="bq-report__th">标题</th>
-              <th className="bq-report__th bq-report__th--action">操作</th>
+              <th className="bq-report__th bq-report__th--status">{t('状态')}</th>
+              <th className="bq-report__th">{t('标题')}</th>
+              <th className="bq-report__th bq-report__th--action">{t('操作')}</th>
             </tr>
           </thead>
           <tbody>
-            {successTasks.map(t => (
-              <tr key={t.id} className="bq-report__row">
+            {successTasks.map(task => (
+              <tr key={task.id} className="bq-report__row">
                 <td className="bq-report__td bq-report__td--status">
                   <span className="bq-report__dot bq-report__dot--ok" />
-                  <span className="bq-report__stext bq-report__stext--ok">完成</span>
+                  <span className="bq-report__stext bq-report__stext--ok">{t('完成')}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--title">
-                  <span title={t.title || t.source}>{t.title || t.source}</span>
+                  <span title={task.title || task.source}>{task.title || task.source}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--action">
-                  {t.filename && obsidianDir && (
+                  {task.filename && obsidianDir && (
                     <motion.button
                       className="bq-report__btn bq-report__btn--open"
                       onClick={() => {
-                        const p = obsidianDir.replace(/[/\\]$/, '') + '/' + t.filename
+                        const p = obsidianDir.replace(/[/\\]$/, '') + '/' + task.filename
                         window.electronAPI.openPath(p)
                       }}
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
                     >
                       <ExternalLink size={11} />
-                      打开
+                      {t('打开')}
                     </motion.button>
                   )}
                 </td>
               </tr>
             ))}
-            {failedTasks.map(t => (
-              <tr key={t.id} className="bq-report__row bq-report__row--err">
+            {failedTasks.map(task => (
+              <tr key={task.id} className="bq-report__row bq-report__row--err">
                 <td className="bq-report__td bq-report__td--status">
                   <span className="bq-report__dot bq-report__dot--err" />
-                  <span className="bq-report__stext bq-report__stext--err">失败</span>
+                  <span className="bq-report__stext bq-report__stext--err">{t('失败')}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--title">
-                  <span title={t.title || t.source}>{t.title || t.source}</span>
-                  {t.failureReason && <span className="bq-report__reason">{t.failureReason}</span>}
+                  <span title={task.title || task.source}>{task.title || task.source}</span>
+                  {task.failureReason && <span className="bq-report__reason">{task.failureReason}</span>}
                 </td>
                 <td className="bq-report__td bq-report__td--action">
                   <motion.button
                     className="bq-report__btn bq-report__btn--retry"
                     onClick={() => {
-                      const idx = allTasks.findIndex(x => x.id === t.id)
+                      const idx = allTasks.findIndex(x => x.id === task.id)
                       if (idx >= 0) onRetry(idx)
                     }}
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                   >
                     <RotateCcw size={11} />
-                    重试
+                    {t('重试')}
                   </motion.button>
                 </td>
               </tr>
@@ -224,7 +226,7 @@ function SummaryView({
             whileTap={{ scale: 0.98 }}
           >
             <RotateCcw size={12} />
-            重试全部失败
+            {t('重试全部失败')}
           </motion.button>
         )}
         <motion.button
@@ -233,7 +235,7 @@ function SummaryView({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          关闭
+          {t('关闭')}
         </motion.button>
       </div>
     </div>
@@ -516,13 +518,13 @@ export default function BatchQueuePanel({
       {/* Header */}
       <div className="batch-queue-header">
         <div className="batch-queue-header-info">
-          <div className="batch-queue-eyebrow">{t("batch.title")}</div>
+          <div className="batch-queue-eyebrow">{t("批量处理")}</div>
           <div className="batch-queue-progress">
             <span className="batch-queue-progress-count">
               {completed + failed + skipped}/{total}
             </span>
-            <span className="batch-queue-progress-label">已完成</span>
-            {isPaused && <span className="batch-queue-paused-badge">{t("batch.paused")}</span>}
+            <span className="batch-queue-progress-label">{t('已完成')}</span>
+            {isPaused && <span className="batch-queue-paused-badge">{t("已暂停")}</span>}
           </div>
         </div>
         <div className="batch-queue-header-actions">
@@ -553,7 +555,7 @@ export default function BatchQueuePanel({
             onClick={onClear}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            title={t("batch.clear")}
+            title={t("清空")}
           >
             <Trash2 size={14} />
           </motion.button>

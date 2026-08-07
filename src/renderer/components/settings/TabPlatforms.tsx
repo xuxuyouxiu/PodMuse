@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { TabHeader } from './FieldComponents'
+import { useI18n } from '../../i18n'
 
 interface PlatformRow {
   id: string
@@ -73,6 +74,7 @@ const COMING_SOON = [
 ]
 
 export default function TabPlatforms() {
+  const { t } = useI18n()
   const [ytDlp, setYtDlp] = useState<YtDlpStatus | null>(null)
   const [checking, setChecking] = useState(false)
 
@@ -116,14 +118,14 @@ export default function TabPlatforms() {
             color: 'var(--text-muted)',
           }}
         >
-          <Clock size={13} /> 敬请期待
+          <Clock size={13} /> {t('敬请期待')}
         </span>
       )
     }
 
     if (row.depType === 'yt-dlp') {
       if (!ytDlp) {
-        return <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>检测中...</span>
+        return <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('检测中...')}</span>
       }
       if (ytDlp.available && !ytDlp.outdated) {
         return (
@@ -136,7 +138,7 @@ export default function TabPlatforms() {
               color: 'var(--success)',
             }}
           >
-            <Check size={13} /> 可用
+            <Check size={13} /> {t('可用')}
             <span
               style={{
                 color: 'var(--text-muted)',
@@ -161,7 +163,7 @@ export default function TabPlatforms() {
               color: 'var(--warning, #e6a817)',
             }}
           >
-            <AlertTriangle size={13} /> 版本过旧
+            <AlertTriangle size={13} /> {t('版本过旧')}
             <span
               style={{
                 color: 'var(--text-muted)',
@@ -185,7 +187,7 @@ export default function TabPlatforms() {
             color: 'var(--error)',
           }}
         >
-          <AlertTriangle size={13} /> 需安装 yt-dlp
+          <AlertTriangle size={13} /> {t('需安装 yt-dlp')}
           <button
             onClick={() =>
               window.electronAPI.openExternal('https://github.com/yt-dlp/yt-dlp/releases/latest')
@@ -203,7 +205,7 @@ export default function TabPlatforms() {
               textDecoration: 'underline',
             }}
           >
-            安装指南 <ExternalLink size={11} />
+            {t('安装指南')} <ExternalLink size={11} />
           </button>
         </span>
       )
@@ -220,14 +222,14 @@ export default function TabPlatforms() {
           color: 'var(--success)',
         }}
       >
-        <Check size={13} /> 可用
+        <Check size={13} /> {t('可用')}
       </span>
     )
   }
 
   return (
     <div>
-      <TabHeader title="支持平台" subtitle="查看各平台的支持状态和外部依赖" />
+      <TabHeader title={t('支持平台')} subtitle={t('查看各平台的支持状态和外部依赖')} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {PLATFORMS.map(row => {
@@ -249,7 +251,7 @@ export default function TabPlatforms() {
                 <Icon size={16} style={{ color: 'var(--accent)', opacity: 0.8, flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {row.name}
+                    {t(row.name)}
                   </div>
                   <div
                     style={{
@@ -258,7 +260,7 @@ export default function TabPlatforms() {
                       fontFamily: 'Consolas, monospace',
                     }}
                   >
-                    {row.urlExample}
+                    {t(row.urlExample)}
                   </div>
                 </div>
               </div>
@@ -280,7 +282,7 @@ export default function TabPlatforms() {
             letterSpacing: 1,
           }}
         >
-          即将支持
+          {t('即将支持')}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {COMING_SOON.map(p => {
@@ -301,7 +303,7 @@ export default function TabPlatforms() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{p.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t(p.name)}</div>
                 </div>
                 <span
                   style={{
@@ -312,7 +314,7 @@ export default function TabPlatforms() {
                     color: 'var(--text-muted)',
                   }}
                 >
-                  <Clock size={13} /> 敬请期待
+                  <Clock size={13} /> {t('敬请期待')}
                 </span>
               </div>
             )
@@ -339,7 +341,7 @@ export default function TabPlatforms() {
             opacity: checking ? 0.6 : 1,
           }}
         >
-          {checking ? '检测中...' : '重新检测 yt-dlp'}
+          {checking ? t('检测中...') : t('重新检测 yt-dlp')}
         </button>
       </div>
     </div>

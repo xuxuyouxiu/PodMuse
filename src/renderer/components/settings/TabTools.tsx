@@ -1,4 +1,5 @@
 import { TabHeader } from './FieldComponents'
+import { useI18n } from '../../i18n'
 
 export default function TabTools({
   cleaningTemp,
@@ -9,12 +10,13 @@ export default function TabTools({
   tempCleanResult: string | null
   onCleanTemp: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div>
-      <TabHeader title="工具与维护" subtitle="清理临时文件释放磁盘空间" />
+      <TabHeader title={t('工具与维护')} subtitle={t('清理临时文件释放磁盘空间')} />
       <div className="settings-grid">
         <div className="settings-field">
-          <div className="settings-field-label">清理临时文件</div>
+          <div className="settings-field-label">{t('清理临时文件')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={onCleanTemp}
@@ -22,7 +24,7 @@ export default function TabTools({
               className="settings-browse-button"
               style={{ whiteSpace: 'nowrap' }}
             >
-              {cleaningTemp ? '清理中…' : '立即清理'}
+              {cleaningTemp ? t('清理中…') : t('立即清理')}
             </button>
             {tempCleanResult && (
               <span
@@ -31,12 +33,12 @@ export default function TabTools({
                   color: tempCleanResult.includes('已清理') ? 'var(--success)' : 'var(--error)',
                 }}
               >
-                {tempCleanResult}
+                {t(tempCleanResult)}
               </span>
             )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            清理下载的音频缓存和临时文件，释放磁盘空间
+            {t('清理下载的音频缓存和临时文件，释放磁盘空间')}
           </div>
         </div>
       </div>

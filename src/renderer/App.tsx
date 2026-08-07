@@ -10,6 +10,7 @@ import {
   BatchTask,
 } from '@shared/types'
 import { Zap, Clock } from 'lucide-react'
+import { useI18n } from './i18n'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
 import FileDropArea from './components/FileDropArea'
@@ -40,6 +41,17 @@ const STEP_DEFS = [
 ]
 
 export default function App() {
+  const { t } = useI18n()
+
+  const buildSteps = useCallback(() =>
+    STEP_DEFS.map((s, i) => ({
+      title: t(s.title),
+      subtitle: t(s.subtitle),
+      step: i + 1,
+      status: 'pending' as const,
+    })),
+    [t])
+
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('podcast-theme')
     return saved === 'light' ? 'light' : 'dark'
@@ -50,9 +62,7 @@ export default function App() {
     monitoring: false,
     chatId: '',
   })
-  const [steps, setSteps] = useState<StepInfo[]>(
-    STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })),
-  )
+  const [steps, setSteps] = useState<StepInfo[]>(buildSteps())
   const [processing, setProcessing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -86,18 +96,18 @@ export default function App() {
     batchQueueState && (batchQueueState.status === 'running' || batchQueueState.status === 'paused')
   const workflowStateLabel = isBatchActive
     ? batchQueueState!.status === 'paused'
-      ? '批量已暂停'
-      : '批量处理中'
+      ? t('批量已暂停')
+      : t('批量处理中')
     : processing
-      ? '处理中'
+      ? t('处理中')
       : cancelling
-        ? '停止中'
+        ? t('停止中')
         : paused
-          ? '已暂停'
-          : '待命中'
+          ? t('已暂停')
+          : t('待命中')
 
   const step1 = steps[0]
-  const PLACEHOLDER_TITLES = new Set(['提取音频链接', '提取音频'])
+  const PLACEHOLDER_TITLES = new Set([t('提取音频链接'), t('提取音频')])
   const currentTitle =
     step1 && step1.status !== 'pending' && step1.subtitle && !PLACEHOLDER_TITLES.has(step1.subtitle)
       ? step1.subtitle
@@ -109,7 +119,7 @@ export default function App() {
       .then(setConfig)
       .catch(e => {
         console.error('加载配置失败:', e)
-        showToast('加载配置失败', 'error')
+        showToast(t('加载配置失败'), 'error')
       })
     window.electronAPI
       .getTasks()
@@ -121,7 +131,7 @@ export default function App() {
       })
       .catch(e => {
         console.error('加载任务列表失败:', e)
-        showToast('加载任务列表失败', 'error')
+        showToast(t('加载任务列表失败'), 'error')
       })
 
     const cleanups: (() => void)[] = []
@@ -140,7 +150,7 @@ export default function App() {
         setProcessing(p)
         if (p) {
           // 新任务开始，重置步骤面板
-          setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+          setSteps(buildSteps())
           if (url) setLastUrl(url)
         }
         if (!p && cancelFlag.current) {
@@ -243,7 +253,7 @@ export default function App() {
       cancelFlag.current = false
       setProcessing(true)
       setLastUrl(url)
-      setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+      setSteps(buildSteps())
       const result = await window.electronAPI.processPodcast(url, force, taskId, false)
       setProcessing(false)
       const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
@@ -257,7 +267,7 @@ export default function App() {
       }
       return result
     },
-    [],
+    [buildSteps],
   )
 
   const handleProcess = useCallback(
@@ -265,19 +275,19 @@ export default function App() {
       // Pre-check: has this URL been processed before?
       const wasProcessed = await window.electronAPI.checkProcessed(url).catch(() => false)
       if (wasProcessed) {
-        showToast('该播客已处理过，如需重新处理请从历史记录点击"重新处理"', 'error')
-        return { success: false, error: '该播客已处理过' }
+        showToast(t('该播客已处理过，如需重新处理请从历史记录点击"重新处理"'), 'error')
+        return { success: false, error: t('该播客已处理过') }
       }
       return handleProcessWithMode(url, false)
     },
-    [handleProcessWithMode],
+    [handleProcessWithMode, t],
   )
 
   const handleProcessFile = useCallback(async (filePath: string) => {
     cancelFlag.current = false
     setProcessing(true)
     setLastUrl(filePath)
-    setSteps(STEP_DEFS.map((s, i) => ({ ...s, step: i + 1, status: 'pending' as const })))
+    setSteps(buildSteps())
     const result = await window.electronAPI.processPodcast(filePath, false, undefined, true)
     setProcessing(false)
     const { activeTasks: aTasks, recentTasks: rTasks } = await window.electronAPI.getTasks()
@@ -291,7 +301,7 @@ export default function App() {
     }
     return result
      
-  }, [])
+  }, [buildSteps])
 
   const handleCancel = useCallback(async () => {
     cancelFlag.current = true
@@ -341,7 +351,7 @@ export default function App() {
   const handleSaveConfig = useCallback(async (c: PodcastConfig) => {
     await window.electronAPI.saveConfig(c)
     setConfig(c)
-    showToast('保存成功')
+    showToast(t('保存成功'))
     // 保存后自动重启飞书监听器，使用新凭据重新连接
     if (c.feishu_app_id && c.feishu_app_secret) {
       window.electronAPI
@@ -350,17 +360,17 @@ export default function App() {
           if (s) {
             setFeishuStatus(s)
             if (s.connected) {
-              showToast('飞书连接成功', 'success')
+              showToast(t('飞书连接成功'), 'success')
             } else {
-              showToast('飞书连接失败，请检查 App ID 和 App Secret', 'error')
+              showToast(t('飞书连接失败，请检查 App ID 和 App Secret'), 'error')
             }
           }
         })
         .catch(() => {
-          showToast('飞书连接异常，请检查配置', 'error')
+          showToast(t('飞书连接异常，请检查配置'), 'error')
         })
     }
-  }, [])
+  }, [t])
 
   const toggleTheme = useCallback(() => {
     setTheme(current => {
@@ -526,12 +536,12 @@ export default function App() {
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <section className="workspace-hero">
-                    <div className="workspace-hero__eyebrow">AI 播客工作区</div>
+                    <div className="workspace-hero__eyebrow">{t('AI 播客工作区')}</div>
                     <div className="workspace-hero__header">
                       <div>
-                        <h1 className="workspace-hero__title">欢迎回来</h1>
+                        <h1 className="workspace-hero__title">{t('欢迎回来')}</h1>
                         <p className="workspace-hero__description">
-                          粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。
+                          {t('粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。')}
                         </p>
                       </div>
                       <div className="workspace-hero__badge">{workflowStateLabel}</div>
@@ -539,7 +549,7 @@ export default function App() {
                     <div className="workspace-hero__footer">
                       {currentTitle && (
                         <div className="workspace-hero__meta">
-                          <span className="workspace-hero__meta-label">当前节目</span>
+                          <span className="workspace-hero__meta-label">{t('当前节目')}</span>
                           <span className="workspace-hero__meta-value">{currentTitle}</span>
                         </div>
                       )}
@@ -603,7 +613,7 @@ export default function App() {
                       onClick={() => setRpTab('active')}
                     >
                       <Zap size={13} />
-                      活跃任务
+                      {t('活跃任务')}
                       <span className="rp-tabs__count">
                         {activeTasks.length + (batchQueueState?.tasks.length || 0)}
                       </span>
@@ -613,7 +623,7 @@ export default function App() {
                       onClick={() => setRpTab('recent')}
                     >
                       <Clock size={13} />
-                      历史记录
+                      {t('历史记录')}
                       <span className="rp-tabs__count">{recentTasks.length}</span>
                     </button>
                   </div>
@@ -719,10 +729,10 @@ export default function App() {
       )}
       {deleteConfirmId && (
         <ConfirmDialog
-          title="删除任务记录"
-          message="确定要删除这条任务记录吗？此操作不可撤销。"
-          confirmText="删除"
-          cancelText="取消"
+          title={t('删除任务记录')}
+          message={t('确定要删除这条任务记录吗？此操作不可撤销。')}
+          confirmText={t('删除')}
+          cancelText={t('取消')}
           danger={true}
           onConfirm={confirmDeleteTask}
           onCancel={() => setDeleteConfirmId(null)}
@@ -730,14 +740,14 @@ export default function App() {
       )}
       {recoveryInfo && (
         <ConfirmDialog
-          title={recoveryInfo.allFailed ? '上次批量处理全部失败' : '有未完成的批量任务'}
+          title={recoveryInfo.allFailed ? t('上次批量处理全部失败') : t('有未完成的批量任务')}
           message={
             recoveryInfo.allFailed
-              ? `上次 ${recoveryInfo.failed} 个任务全部失败，是否查看并重试？`
-              : `上次有 ${recoveryInfo.pending} 个任务未完成${recoveryInfo.failed > 0 ? `，${recoveryInfo.failed} 个失败` : ''}，是否继续处理？`
+              ? `${t('上次')} ${recoveryInfo.failed}${t('个任务全部失败，是否查看并重试？')}`
+              : `${t('上次有')} ${recoveryInfo.pending}${t('个任务未完成')}${recoveryInfo.failed > 0 ? `${t('，')}${recoveryInfo.failed}${t('个失败')}` : ''}${t('，是否继续处理？')}`
           }
-          confirmText={recoveryInfo.allFailed ? '查看' : '继续'}
-          cancelText="放弃"
+          confirmText={recoveryInfo.allFailed ? t('查看') : t('继续')}
+          cancelText={t('放弃')}
           onConfirm={handleRecoveryContinue}
           onCancel={handleRecoveryDiscard}
         />

@@ -12,6 +12,8 @@ import {
   Network,
 } from 'lucide-react'
 
+import { useI18n } from '../i18n'
+
 // ── Entity type metadata ──
 
 const TYPE_META: Record<string, { icon: typeof Users; label: string; color: string }> = {
@@ -198,6 +200,7 @@ function computeSentenceDiff(older: string, newer: string): DiffSegment[] {
 // ── Component ──
 
 export default function BacklinkPanel() {
+  const { t } = useI18n()
   const [index, setIndex] = useState<BacklinkEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -455,7 +458,7 @@ export default function BacklinkPanel() {
 
   const openNote = (path: string) => {
     window.electronAPI.openPath(path).then(ok => {
-      if (!ok) alert('笔记文件不存在，可能已被移动或删除')
+      if (!ok) alert(t('笔记文件不存在，可能已被移动或删除'))
     })
   }
 
@@ -475,11 +478,11 @@ export default function BacklinkPanel() {
     return (
       <div className="backlink-panel">
         <div className="backlink-panel__header">
-          <h2 className="backlink-panel__title">知识关联</h2>
+          <h2 className="backlink-panel__title">{t('知识关联')}</h2>
         </div>
         <div className="backlink-panel__loading">
           <RefreshCw size={16} className="backlink-panel__spin" />
-          <span>正在扫描知识网络…</span>
+          <span>{t('正在扫描知识网络…')}</span>
         </div>
         <style>{`
           .backlink-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
@@ -497,13 +500,13 @@ export default function BacklinkPanel() {
     <div className="backlink-panel">
       {/* Header */}
       <div className="backlink-panel__header">
-        <h2 className="backlink-panel__title">知识关联</h2>
+        <h2 className="backlink-panel__title">{t('知识关联')}</h2>
         <div className="backlink-panel__topview">
           <button
             className={`backlink-topview__btn ${topView === 'entities' ? 'is-active' : ''}`}
             onClick={() => setTopView('entities')}
           >
-            实体
+            {t('实体')}
           </button>
           <button
             className={`backlink-topview__btn ${topView === 'tags' ? 'is-active' : ''}`}
@@ -514,10 +517,10 @@ export default function BacklinkPanel() {
               }
             }}
           >
-            标签
+            {t('标签')}
           </button>
         </div>
-        <button className="backlink-panel__refresh" onClick={handleRefresh} title="刷新索引">
+        <button className="backlink-panel__refresh" onClick={handleRefresh} title={t('刷新索引')}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -545,7 +548,7 @@ export default function BacklinkPanel() {
           <div className="tag-cloud">
             {filteredTagIndex.length === 0 ? (
               <div className="tag-cloud__empty">
-                {tagIndex.length === 0 ? '暂无标签数据' : '该分类下无标签'}
+                {tagIndex.length === 0 ? t('暂无标签数据') : t('该分类下无标签')}
               </div>
             ) : (
               filteredTagIndex.map(tag => (
@@ -567,7 +570,7 @@ export default function BacklinkPanel() {
             <div className="tag-detail">
               <div className="tag-detail__header">
                 <h3 className="tag-detail__title">{selectedTagEntry.tagName}</h3>
-                <span className="tag-detail__count">{selectedTagEntry.count} 篇笔记</span>
+                <span className="tag-detail__count">{selectedTagEntry.count} {t('篇笔记')}</span>
               </div>
               <div className="tag-detail__list">
                 {selectedTagEntry.podcastRefs
@@ -604,7 +607,7 @@ export default function BacklinkPanel() {
                         </div>
                         {related.length > 0 && (
                           <div className="tag-detail__related">
-                            <span className="tag-detail__related-label">相关笔记</span>
+                            <span className="tag-detail__related-label">{t('相关笔记')}</span>
                             {related.map(r => (
                               <button
                                 key={r.path}
@@ -614,7 +617,7 @@ export default function BacklinkPanel() {
                               >
                                 <span>{r.title}</span>
                                 <span className="tag-detail__related-shared">
-                                  {r.sharedTags.length} 个共同标签
+                                  {r.sharedTags.length} {t('个共同标签')}
                                 </span>
                               </button>
                             ))}
@@ -632,11 +635,11 @@ export default function BacklinkPanel() {
           {/* Stats bar */}
           <div className="backlink-panel__stats">
             <span className="backlink-panel__stat">
-              <strong>{totalEntities}</strong> 个实体
+              <strong>{totalEntities}</strong> {t('个实体')}
             </span>
             <span className="backlink-panel__stat-sep">·</span>
             <span className="backlink-panel__stat">
-              <strong>{totalLinks}</strong> 条关联
+              <strong>{totalLinks}</strong> {t('条关联')}
             </span>
           </div>
 
@@ -646,7 +649,7 @@ export default function BacklinkPanel() {
             <input
               type="text"
               className="backlink-panel__search-input"
-              placeholder="搜索当前分类…"
+              placeholder={t('搜索当前分类…')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -665,7 +668,7 @@ export default function BacklinkPanel() {
                   onClick={() => handleTabChange(type)}
                 >
                   <Icon size={12} style={{ color: meta.color }} />
-                  <span className="backlink-tab__label">{meta.label}</span>
+                  <span className="backlink-tab__label">{t(meta.label)}</span>
                   <span className="backlink-tab__count">{typeCounts[type]}</span>
                 </button>
               )
@@ -681,10 +684,10 @@ export default function BacklinkPanel() {
                   {index.length === 0 ? (
                     <>
                       <Lightbulb size={20} style={{ opacity: 0.3 }} />
-                      <span>处理播客后自动生成</span>
+                      <span>{t('处理播客后自动生成')}</span>
                     </>
                   ) : (
-                    <span>未找到匹配</span>
+                    <span>{t('未找到匹配')}</span>
                   )}
                 </div>
               ) : (
@@ -711,7 +714,7 @@ export default function BacklinkPanel() {
                   /* ── Graph View ── */
                   <div className="backlink-graph">
                     <div className="backlink-graph__header">
-                      <span className="backlink-graph__title">关系图谱 · {selectedEntity}</span>
+                      <span className="backlink-graph__title">{t('关系图谱')} · {selectedEntity}</span>
                       <button className="backlink-graph__close" onClick={toggleGraphMode}>
                         <X size={14} />
                       </button>
@@ -809,22 +812,22 @@ export default function BacklinkPanel() {
                               className="backlink-graph__legend-dot"
                               style={{ background: meta.color }}
                             />
-                            {meta.label}
-                          </span>
+                            {t(meta.label)}
+                                                      </span>
                         )
                       })}
                       <span className="backlink-graph__legend-item">
                         <span className="backlink-graph__legend-line" />
-                        共现次数
+                        {t('共现次数')}
                       </span>
                     </div>
-                    <div className="backlink-graph__tip">点击节点查看该实体详情</div>
+                    <div className="backlink-graph__tip">{t('点击节点查看该实体详情')}</div>
                   </div>
                 ) : compareMode ? (
                   /* ── Compare View ── */
                   <div className="backlink-compare">
                     <div className="backlink-compare__header">
-                      <span className="backlink-compare__title">选择 2-3 期对比</span>
+                      <span className="backlink-compare__title">{t('选择 2-3 期对比')}</span>
                       <button className="backlink-compare__close" onClick={toggleCompareMode}>
                         <X size={14} />
                       </button>
@@ -833,11 +836,11 @@ export default function BacklinkPanel() {
                     {/* Selection bar */}
                     <div className="backlink-compare__bar">
                       <span className="backlink-compare__bar-label">
-                        已选 <strong>{compareSelections.size}</strong> / 3
+                        {t('已选')} <strong>{compareSelections.size}</strong> / 3
                       </span>
                       {compareSelections.size >= 2 && (
                         <span className="backlink-compare__hint">
-                          选择完成，点击下方卡片查看对比
+                          {t('选择完成，点击下方卡片查看对比')}
                         </span>
                       )}
                     </div>
@@ -876,7 +879,7 @@ export default function BacklinkPanel() {
                                 <div className="backlink-tl__ctx">{ref.context}</div>
                               ) : (
                                 <div className="backlink-tl__ctx backlink-tl__ctx--empty">
-                                  无法提取上下文
+                                  {t('无法提取上下文')}
                                 </div>
                               )}
                             </div>
@@ -888,7 +891,7 @@ export default function BacklinkPanel() {
                     {/* Diff view when 2+ selected */}
                     {compareRefs.length >= 2 && (
                       <div className="backlink-compare__diff">
-                        <div className="backlink-detail__section-label">观点对比</div>
+                        <div className="backlink-detail__section-label">{t('观点对比')}</div>
                         <div
                           className="backlink-compare__columns"
                           style={{ gridTemplateColumns: `repeat(${compareRefs.length}, 1fr)` }}
@@ -934,7 +937,7 @@ export default function BacklinkPanel() {
                                     ))
                                   ) : (
                                     <span className="backlink-compare__col-ctx">
-                                      {ref.context || '无上下文'}
+                                      {ref.context || t('无上下文')}
                                     </span>
                                   )}
                                 </div>
@@ -943,8 +946,8 @@ export default function BacklinkPanel() {
                                     className="backlink-compare__open-btn"
                                     onClick={() => openNote(ref.path)}
                                   >
-                                    打开笔记
-                                  </button>
+                                    {t('打开笔记')}
+                                                                      </button>
                                 )}
                               </div>
                             )
@@ -954,15 +957,15 @@ export default function BacklinkPanel() {
                           <div className="backlink-compare__legend-diff">
                             <span className="backlink-compare__legend-item">
                               <span className="backlink-diff__dot backlink-diff__dot--added" />
-                              新增观点
+                              {t('新增观点')}
                             </span>
                             <span className="backlink-compare__legend-item">
                               <span className="backlink-diff__dot backlink-diff__dot--removed" />
-                              上期提及
+                              {t('上期提及')}
                             </span>
                             <span className="backlink-compare__legend-item">
                               <span className="backlink-diff__dot backlink-diff__dot--common" />
-                              持续讨论
+                              {t('持续讨论')}
                             </span>
                           </div>
                         )}
@@ -987,25 +990,25 @@ export default function BacklinkPanel() {
                         <button
                           className="backlink-detail__graph-btn"
                           onClick={toggleGraphMode}
-                          title="查看关系图谱"
+                          title={t('查看关系图谱')}
                         >
                           <Network size={12} />
-                          图谱
+                          {t('图谱')}
                         </button>
                       )}
                       {selectedEntry.podcastRefs.length >= 2 && (
                         <button
                           className="backlink-detail__compare-btn"
                           onClick={toggleCompareMode}
-                          title="对比不同期的观点"
+                          title={t('对比不同期的观点')}
                         >
-                          对比
+                          {t('对比')}
                         </button>
                       )}
                     </div>
 
                     {/* Timeline */}
-                    <div className="backlink-detail__section-label">时间线</div>
+                    <div className="backlink-detail__section-label">{t('时间线')}</div>
                     {selectedEntry.podcastRefs.map(ref => (
                       <div
                         key={ref.path}
@@ -1047,7 +1050,7 @@ export default function BacklinkPanel() {
                             <div className="backlink-tl__ctx">{ref.context}</div>
                           ) : (
                             <div className="backlink-tl__ctx backlink-tl__ctx--empty">
-                              无法提取上下文
+                              {t('无法提取上下文')}
                             </div>
                           )}
                         </div>
@@ -1057,7 +1060,7 @@ export default function BacklinkPanel() {
                     {/* Co-occurrence */}
                     {coEntities.length > 0 && (
                       <>
-                        <div className="backlink-detail__section-label">共现实体</div>
+                        <div className="backlink-detail__section-label">{t('共现实体')}</div>
                         <div className="backlink-co">
                           {displayedCo.map(co => {
                             const coMeta = TYPE_META[co.type] || TYPE_META.concepts
@@ -1080,7 +1083,7 @@ export default function BacklinkPanel() {
                               className="backlink-co__more"
                               onClick={() => setShowAllCo(true)}
                             >
-                              查看更多（{coEntities.length - 5}）
+                              {t('查看更多')}（{coEntities.length - 5}）
                             </button>
                           )}
                         </div>
@@ -1091,7 +1094,7 @@ export default function BacklinkPanel() {
               ) : (
                 <div className="backlink-split__empty">
                   <Lightbulb size={24} style={{ opacity: 0.2 }} />
-                  <span>选择左侧实体查看详情</span>
+                  <span>{t('选择左侧实体查看详情')}</span>
                 </div>
               )}
             </div>
@@ -1105,7 +1108,7 @@ export default function BacklinkPanel() {
               return (
                 <span key={type} className="backlink-panel__legend-item">
                   <Icon size={10} style={{ color: meta.color }} />
-                  {meta.label} {typeCounts[type]}
+                  {t(meta.label)} {typeCounts[type]}
                 </span>
               )
             })}
