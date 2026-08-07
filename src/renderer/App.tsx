@@ -9,7 +9,7 @@ import {
   BatchCompletionSummary,
   BatchTask,
 } from '@shared/types'
-import { Zap, Clock } from 'lucide-react'
+import { Zap, Clock, FolderOpen } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useI18n } from './i18n'
 import Header from './components/Header'
@@ -106,6 +106,24 @@ export default function App() {
         : paused
           ? t('已暂停')
           : t('待命中')
+
+
+  // 动态问候 + 今日统计
+  const heroHour = new Date().getHours()
+  const greetingKey =
+    heroHour >= 5 && heroHour < 12 ? '早上好' : heroHour >= 12 && heroHour < 18 ? '下午好' : '晚上好'
+  const heroToday = new Date().toDateString()
+  const completedToday = recentTasks.filter(
+    t => t.status === 'completed' && new Date(t.updatedAt).toDateString() === heroToday,
+  ).length
+  const totalProcessed = recentTasks.length
+  const heroBadgeClass = isBatchActive
+    ? 'is-batch'
+    : processing
+      ? 'is-processing'
+      : paused
+        ? 'is-paused'
+        : 'is-idle'
 
   const step1 = steps[0]
   const PLACEHOLDER_TITLES = new Set([t('提取音频链接'), t('提取音频')])
@@ -548,12 +566,28 @@ export default function App() {
                     <div className="workspace-hero__eyebrow">{t('AI 播客工作区')}</div>
                     <div className="workspace-hero__header">
                       <div>
-                        <h1 className="workspace-hero__title">{t('欢迎回来')}</h1>
+                        <h1 className="workspace-hero__title">
+                          {t(greetingKey)}，{t('欢迎回来')}
+                        </h1>
                         <p className="workspace-hero__description">
-                          {t('粘贴播客、视频或音频链接，应用会依次完成提取、下载、转写、校对和笔记整理。')}
+                          {t('粘贴链接，AI 自动转写并生成结构化笔记')}
                         </p>
                       </div>
-                      <div className="workspace-hero__badge">{workflowStateLabel}</div>
+                      <div className={`workspace-hero__badge ${heroBadgeClass}`}>
+                        <span className="workspace-hero__badge-dot" />
+                        {workflowStateLabel}
+                      </div>
+                    </div>
+                    <div className="workspace-hero__stats">
+                      <div className="hero-stat">
+                        <span className="hero-stat__num">{completedToday}</span>
+                        <span className="hero-stat__label">{t('今日完成')}</span>
+                      </div>
+                      <div className="hero-stat__divider" />
+                      <div className="hero-stat">
+                        <span className="hero-stat__num">{totalProcessed}</span>
+                        <span className="hero-stat__label">{t('累计处理')}</span>
+                      </div>
                     </div>
                     <div className="workspace-hero__footer">
                       {currentTitle && (
@@ -561,6 +595,16 @@ export default function App() {
                           <span className="workspace-hero__meta-label">{t('当前节目')}</span>
                           <span className="workspace-hero__meta-value">{currentTitle}</span>
                         </div>
+                      )}
+                      {config?.obsidian_dir && (
+                        <button
+                          className="hero-open-btn"
+                          onClick={() => window.electronAPI.openPath(config.obsidian_dir)}
+                          title={t('打开 Obsidian 库')}
+                        >
+                          <FolderOpen size={12} />
+                          {t('打开 Obsidian 库')}
+                        </button>
                       )}
                     </div>
                   </section>
