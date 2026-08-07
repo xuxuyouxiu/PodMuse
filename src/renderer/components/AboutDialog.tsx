@@ -16,11 +16,11 @@ export default function AboutDialog({ onClose }: Props) {
     <div onClick={onClose} className="settings-dialog-overlay">
       <div onClick={e => e.stopPropagation()} className="settings-dialog about-dialog-card">
         {/* Logo */}
-        <img src="./icon.png" alt="播客笔记助手" className="about-dialog-logo" />
+        <img src="./icon.png" alt="PodMuse" className="about-dialog-logo" />
 
         {/* 名称与版本 */}
         <div className="about-dialog-name-block">
-          <div className="about-dialog-name">播客笔记助手</div>
+          <div className="about-dialog-name">PodMuse</div>
           <div className="about-dialog-version">v{version || '...'}</div>
         </div>
 

@@ -50,7 +50,7 @@ export function getUserDataDir(): string {
       try {
         _userDataDir = app.getPath('userData')
       } catch {
-        _userDataDir = path.join(process.env.APPDATA || process.cwd(), '播客笔记助手')
+        _userDataDir = path.join(process.env.APPDATA || process.cwd(), 'PodMuse')
       }
     }
   }

@@ -125,9 +125,9 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div className="workspace-topbar__content">
-        <img src="./icon.png" alt="播客笔记助手" className="topbar-logo" />
+        <img src="./icon.png" alt="PodMuse" className="topbar-logo" />
         <span className="topbar-title">
-          播客笔记助手
+          PodMuse
           {version && <span className="topbar-version">v{version}</span>}
         </span>
         <div

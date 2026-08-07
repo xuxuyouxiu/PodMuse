@@ -1,5 +1,5 @@
 appId: com.podcastnotes.app
-productName: 播客笔记助手
+productName: PodMuse
 directories:
   output: dist-exe
 files:
@@ -24,4 +24,4 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  artifactName: 播客笔记助手-Setup-${version}.${ext}
+  artifactName: PodMuse-Setup-${version}.${ext}

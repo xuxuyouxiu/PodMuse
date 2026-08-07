@@ -93,14 +93,14 @@ export class PodcastDispatchService {
           `笔记已生成！\n文件：${filename}\n位置：Obsidian → 小宇宙播客`,
         )
         if (this.notificationEnabled) {
-          sendNotification('播客笔记助手', `笔记已生成：${filename}`)
+          sendNotification('PodMuse', `笔记已生成：${filename}`)
         }
       } else {
         const errorReason = lastErrorDetail || '处理失败，请检查日志'
         this.updateRecentState(state => failRecentTask(state, errorReason))
         await this.client.sendMessage(this.chatId, `❌ 处理失败：${errorReason}`)
         if (this.notificationEnabled) {
-          sendNotification('播客笔记助手', `处理失败：${errorReason}`)
+          sendNotification('PodMuse', `处理失败：${errorReason}`)
         }
       }
     } catch (e: unknown) {
@@ -122,7 +122,7 @@ export class PodcastDispatchService {
         this.logFunc(`处理异常: ${msg}`)
         await this.client.sendMessage(this.chatId, `❌ 处理出错: ${msg}`)
         if (this.notificationEnabled) {
-          sendNotification('播客笔记助手', `处理出错：${msg}`)
+          sendNotification('PodMuse', `处理出错：${msg}`)
         }
       }
     } finally {

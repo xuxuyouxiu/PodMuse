@@ -480,7 +480,7 @@ export class BatchQueueService {
       const config = loadConfig()
       if (config.notification_enabled !== false) {
         sendNotification(
-          '播客笔记助手',
+          'PodMuse',
           `批量处理完成：${summary.succeeded} 成功，${summary.failed} 失败，${summary.skipped} 跳过`,
         )
       }

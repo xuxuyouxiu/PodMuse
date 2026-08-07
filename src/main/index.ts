@@ -114,7 +114,7 @@ function createWindow() {
     height: 780,
     minWidth: 960,
     minHeight: 680,
-    title: '播客笔记助手',
+    title: 'PodMuse',
     icon,
     backgroundColor: '#0a0a0f',
     show: false,
@@ -449,13 +449,13 @@ function setupIPC() {
             completeRecentTask(state, { taskId: actualTaskId, url, episodeId, filename: result }),
           )
           if (config.notification_enabled !== false) {
-            sendNotification('播客笔记助手', `笔记已生成：${result}`)
+            sendNotification('PodMuse', `笔记已生成：${result}`)
           }
         } else {
           const errorReason = lastErrorDetail || '处理失败，请检查日志'
           updateRecentState(state => failRecentTask(state, errorReason))
           if (config.notification_enabled !== false) {
-            sendNotification('播客笔记助手', `处理失败：${errorReason}`)
+            sendNotification('PodMuse', `处理失败：${errorReason}`)
           }
         }
         return { success: true, filename: result }
@@ -479,7 +479,7 @@ function setupIPC() {
         }
         updateRecentState(state => failRecentTask(state, errMsg))
         if (config.notification_enabled !== false) {
-          sendNotification('播客笔记助手', `处理出错：${errMsg}`)
+          sendNotification('PodMuse', `处理出错：${errMsg}`)
         }
         return { success: false, error: errMsg }
       } finally {
@@ -630,7 +630,7 @@ function createTray() {
   } catch {}
 
   tray = new Tray(icon || nativeImage.createEmpty())
-  tray.setToolTip('播客笔记助手')
+  tray.setToolTip('PodMuse')
 
   const contextMenu = Menu.buildFromTemplate([
     {

@@ -41,9 +41,9 @@ export default function WorkspaceSidebar({
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar__brand">
-        <img className="workspace-sidebar__logo" src="./icon.png" alt="播客笔记助手" />
+        <img className="workspace-sidebar__logo" src="./icon.png" alt="PodMuse" />
         <div>
-          <div className="workspace-sidebar__title">播客笔记助手</div>
+          <div className="workspace-sidebar__title">PodMuse</div>
           <div className="workspace-sidebar__subtitle">Workspace</div>
         </div>
       </div>
