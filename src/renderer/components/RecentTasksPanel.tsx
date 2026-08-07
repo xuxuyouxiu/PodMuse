@@ -2,6 +2,7 @@ import { Clock, RotateCcw, Play, Trash2 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { cleanTitle } from '@shared/utils'
 import ExportMenu from './ExportMenu'
+import { useI18n, type TranslationKey } from '../i18n'
 
 interface Props {
   tasks: RecentTaskState[]
@@ -14,11 +15,11 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void
 }
 
-const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
-  running: { label: '处理中' },
-  stopped: { label: '已停止' },
-  error: { label: '失败' },
-  completed: { label: '已完成' },
+const STATUS_META: Record<RecentTaskState['status'], { label: TranslationKey }> = {
+  running: { label: 'tasks.status.running' },
+  stopped: { label: 'tasks.status.stopped' },
+  error: { label: 'tasks.status.error' },
+  completed: { label: 'tasks.status.done' },
 }
 
 export default function RecentTasksPanel({
@@ -31,6 +32,7 @@ export default function RecentTasksPanel({
   notionConfigured,
   onToast,
 }: Props) {
+  const { t } = useI18n()
   return (
     <aside className="task-panel" style={{ height: '100%' }}>
       <div className="task-panel-header">
@@ -47,7 +49,7 @@ export default function RecentTasksPanel({
             <div className="task-panel-empty-icon">
               <Clock size={24} />
             </div>
-            <div className="task-panel-empty-title">暂无历史记录</div>
+            <div className="task-panel-empty-title">{t("tasks.recentEmpty")}</div>
             <div className="task-panel-empty-copy">已结束的任务会归档到这里</div>
           </div>
         )}
@@ -67,7 +69,7 @@ export default function RecentTasksPanel({
                     <div className="task-card-error">{task.error}</div>
                   )}
                 </div>
-                <span className={`task-status-badge ${task.status}`}>{meta.label}</span>
+                <span className={`task-status-badge ${task.status}`}>{t(meta.label)}</span>
               </div>
               <div className="task-card-actions">
                 {canResume && (
@@ -84,7 +86,7 @@ export default function RecentTasksPanel({
                   disabled={processing}
                   className="recent-task-secondary"
                 >
-                  <RotateCcw size={12} /> 重新处理
+                  <RotateCcw size={12} /> {t("tasks.retry")}
                 </button>
                 {canExport && (
                   <ExportMenu

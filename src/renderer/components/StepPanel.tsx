@@ -14,6 +14,7 @@ import {
   FileText,
   Bell,
 } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface Props {
   steps: StepInfo[]
@@ -23,6 +24,7 @@ interface Props {
 const STEP_ICONS_LUCIDE = [Search, Download, Mic, PenTool, Sparkles]
 
 export default function StepPanel({ steps, processing }: Props) {
+  const { t } = useI18n()
   if (!processing && steps.every(s => s.status === 'pending')) {
     return (
       <div className="step-panel-card step-panel-card--idle">
@@ -31,20 +33,20 @@ export default function StepPanel({ steps, processing }: Props) {
           <div className="step-panel-empty-icon">
             <Headphones size={48} />
           </div>
-          <div className="step-panel-empty-title">等待处理任务</div>
-          <div className="step-panel-empty-text">输入小宇宙链接或等待飞书消息</div>
+          <div className="step-panel-empty-title">{t("steps.idle.title")}</div>
+          <div className="step-panel-empty-text">{t("steps.idle.subtitle")}</div>
           <div className="onboarding-steps">
             <div className="onboarding-step">
               <Link size={14} className="onboarding-step-icon" />
-              <span>粘贴小宇宙播客链接</span>
+              <span>{t("steps.idle.step1")}</span>
             </div>
             <div className="onboarding-step">
               <FileText size={14} className="onboarding-step-icon" />
-              <span>自动转写并生成笔记</span>
+              <span>{t("steps.idle.step2")}</span>
             </div>
             <div className="onboarding-step">
               <Bell size={14} className="onboarding-step-icon" />
-              <span>结果推送至飞书群</span>
+              <span>{t("steps.idle.step3")}</span>
             </div>
           </div>
         </div>

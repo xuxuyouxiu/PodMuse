@@ -16,6 +16,7 @@ import {
   ChevronUp,
   ExternalLink,
 } from 'lucide-react'
+import { useI18n } from '../i18n'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
 interface Props {
@@ -251,6 +252,7 @@ export default function BatchQueuePanel({
   completionSummary,
   obsidianDir,
 }: Props) {
+  const { t } = useI18n()
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const { tasks, status, completed, failed, skipped, total } = queueState
   const isPaused = status === 'paused'
@@ -514,13 +516,13 @@ export default function BatchQueuePanel({
       {/* Header */}
       <div className="batch-queue-header">
         <div className="batch-queue-header-info">
-          <div className="batch-queue-eyebrow">批量处理</div>
+          <div className="batch-queue-eyebrow">{t("batch.title")}</div>
           <div className="batch-queue-progress">
             <span className="batch-queue-progress-count">
               {completed + failed + skipped}/{total}
             </span>
             <span className="batch-queue-progress-label">已完成</span>
-            {isPaused && <span className="batch-queue-paused-badge">已暂停</span>}
+            {isPaused && <span className="batch-queue-paused-badge">{t("batch.paused")}</span>}
           </div>
         </div>
         <div className="batch-queue-header-actions">
@@ -530,7 +532,7 @@ export default function BatchQueuePanel({
               onClick={onPause}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title="暂停"
+              title={t("batch.pause")}
             >
               <Pause size={14} />
             </motion.button>
@@ -551,7 +553,7 @@ export default function BatchQueuePanel({
             onClick={onClear}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            title="清空队列"
+            title={t("batch.clear")}
           >
             <Trash2 size={14} />
           </motion.button>

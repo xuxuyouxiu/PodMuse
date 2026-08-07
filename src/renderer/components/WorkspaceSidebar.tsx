@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
+import { useI18n } from '../i18n'
 
 export type SidebarView = 'workspace' | 'backlinks' | 'search'
 
@@ -31,6 +32,7 @@ export default function WorkspaceSidebar({
   activeTasks,
   recentTasks,
 }: Props) {
+  const { t } = useI18n()
   const [version, setVersion] = useState<string>('')
 
   // 获取应用版本号
@@ -59,7 +61,7 @@ export default function WorkspaceSidebar({
         </div>
       </div>
 
-      <nav className="workspace-sidebar__nav" aria-label="工作台导航">
+      <nav className="workspace-sidebar__nav" aria-label="main-navigation">
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'workspace' ? 'is-active' : ''}`}
@@ -68,7 +70,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <LayoutDashboard size={16} />
-          工作台
+          {t("sidebar.notes")}
         </motion.button>
         <motion.button
           type="button"
@@ -78,7 +80,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Link2 size={16} />
-          知识关联
+          {t("sidebar.backlinks")}
         </motion.button>
         <motion.button
           type="button"
@@ -88,7 +90,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Search size={16} />
-          搜索
+          {t("sidebar.search")}
         </motion.button>
       </nav>
 
@@ -96,20 +98,20 @@ export default function WorkspaceSidebar({
 
       {/* 快速统计 - 放在底部操作区上方 */}
       <div className="sidebar-stats">
-        <div className="sidebar-stats__title">任务概览</div>
+        <div className="sidebar-stats__title">{t("sidebar.stats.title")}</div>
         <div className="sidebar-stat">
           <Zap size={13} className="sidebar-stat__icon sidebar-stat__icon--active" />
-          <span className="sidebar-stat__label">进行中</span>
+          <span className="sidebar-stat__label">{t("sidebar.stats.running")}</span>
           <span className="sidebar-stat__value">{runningCount}</span>
         </div>
         <div className="sidebar-stat">
           <Clock size={13} className="sidebar-stat__icon sidebar-stat__icon--queued" />
-          <span className="sidebar-stat__label">排队中</span>
+          <span className="sidebar-stat__label">{t("sidebar.stats.queued")}</span>
           <span className="sidebar-stat__value">{activeTasks.length - runningCount}</span>
         </div>
         <div className="sidebar-stat">
           <CheckCircle2 size={13} className="sidebar-stat__icon sidebar-stat__icon--done" />
-          <span className="sidebar-stat__label">今日完成</span>
+          <span className="sidebar-stat__label">{t("sidebar.stats.done")}</span>
           <span className="sidebar-stat__value">{completedToday}</span>
         </div>
       </div>
@@ -127,7 +129,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Settings size={16} />
-          设置
+          {t("sidebar.settings")}
         </motion.button>
         <motion.button
           type="button"
@@ -138,7 +140,7 @@ export default function WorkspaceSidebar({
           whileTap={{ scale: 0.98 }}
         >
           <Info size={16} />
-          关于
+          {t("sidebar.about")}
         </motion.button>
       </div>
 

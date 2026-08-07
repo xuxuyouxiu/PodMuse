@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Zap, Square, Loader2, Play, Trash2, ListOrdered } from 'lucide-react'
 import type { RecentTaskState, BatchTask, BatchQueueStatus } from '@shared/types'
+import { useI18n, type TranslationKey } from '../i18n'
 
 interface Props {
   tasks: RecentTaskState[]
@@ -12,19 +13,19 @@ interface Props {
   batchStatus?: BatchQueueStatus
 }
 
-const STATUS_META: Record<RecentTaskState['status'], { label: string }> = {
-  running: { label: '处理中' },
-  stopped: { label: '已停止' },
-  error: { label: '失败' },
-  completed: { label: '已完成' },
+const STATUS_META: Record<RecentTaskState['status'], { label: TranslationKey }> = {
+  running: { label: 'tasks.status.running' },
+  stopped: { label: 'tasks.status.stopped' },
+  error: { label: 'tasks.status.error' },
+  completed: { label: 'tasks.status.done' },
 }
 
-const BATCH_STATUS_META: Record<BatchTask['status'], { label: string; className: string }> = {
-  pending: { label: '排队中', className: 'pending' },
-  processing: { label: '处理中', className: 'running' },
-  completed: { label: '已完成', className: 'completed' },
-  failed: { label: '失败', className: 'error' },
-  skipped: { label: '已跳过', className: 'stopped' },
+const BATCH_STATUS_META: Record<BatchTask['status'], { label: TranslationKey; className: string }> = {
+  pending: { label: 'sidebar.stats.queued', className: 'pending' },
+  processing: { label: 'tasks.status.running', className: 'running' },
+  completed: { label: 'tasks.status.done', className: 'completed' },
+  failed: { label: 'tasks.status.error', className: 'error' },
+  skipped: { label: 'batch.skipped', className: 'stopped' },
 }
 
 export default function ActiveTasksPanel({
@@ -36,6 +37,7 @@ export default function ActiveTasksPanel({
   batchTasks,
   batchStatus,
 }: Props) {
+  const { t } = useI18n()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const hasBatch = batchTasks && batchTasks.length > 0
   const batchPending = hasBatch ? batchTasks.filter(t => t.status === 'pending').length : 0
@@ -88,7 +90,7 @@ export default function ActiveTasksPanel({
                 <div className="task-card-copy">
                   <div className="task-card-title">{task.title || task.url}</div>
                 </div>
-                <span className={`task-status-badge ${task.status}`}>{meta.label}</span>
+                <span className={`task-status-badge ${task.status}`}>{t(meta.label)}</span>
               </div>
               <div className="task-card-actions">
                 {canStop && (
@@ -149,7 +151,7 @@ export default function ActiveTasksPanel({
                     </div>
                     <span className={`task-status-badge ${meta.className}`}>
                       {isProcessing && <Loader2 size={10} className="animate-spin" />}
-                      {meta.label}
+                      {t(meta.label)}
                     </span>
                   </div>
                   {isFailed && task.failureReason && (

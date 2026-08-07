@@ -12,16 +12,17 @@ import {
 } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport } from './settings'
+import { useI18n, type TranslationKey } from '../i18n'
 
 type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
 
-const TABS: { key: TabKey; icon: LucideIcon; label: string }[] = [
-  { key: 'api', icon: Link, label: '接口与通知' },
-  { key: 'transcribe', icon: FileText, label: '转写偏好' },
-  { key: 'whisper', icon: Mic, label: '语音模型' },
-  { key: 'platforms', icon: Layers, label: '支持平台' },
-  { key: 'export', icon: Download, label: '导出' },
-  { key: 'tools', icon: Wrench, label: '工具维护' },
+const TABS: { key: TabKey; icon: LucideIcon; label: TranslationKey }[] = [
+  { key: 'api', icon: Link, label: 'settings.api' },
+  { key: 'transcribe', icon: FileText, label: 'settings.transcribe' },
+  { key: 'whisper', icon: Mic, label: 'settings.whisper' },
+  { key: 'platforms', icon: Layers, label: 'settings.platforms' },
+  { key: 'export', icon: Download, label: 'settings.export' },
+  { key: 'tools', icon: Wrench, label: 'settings.tools' },
 ]
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export default function SettingsDialog({ config, onSave, onClose }: Props) {
+  const { t } = useI18n()
   // 确保 ai_providers 存在，如果不存在则初始化
   const initialConfig = {
     ...config,
@@ -307,7 +309,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 }}
               >
                 <tab.icon size={16} />
-                {tab.label}
+                {t(tab.label)}
               </button>
             ))}
           </nav>

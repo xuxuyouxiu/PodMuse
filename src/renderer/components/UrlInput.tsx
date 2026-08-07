@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useI18n } from '../i18n'
 import {
   Link,
   Play,
@@ -91,6 +92,7 @@ function detectPlatform(url: string): DetectedPlatform | null {
 }
 
 export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
+  const { t } = useI18n()
   const [url, setUrl] = useState('')
   const [focused, setFocused] = useState(false)
   const [showTip, setShowTip] = useState(false)
@@ -142,8 +144,8 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="url-input-copy">
-        <div className="url-input-eyebrow">开始新任务</div>
-        <h2 className="url-input-title">粘贴链接开始处理</h2>
+        <div className="url-input-eyebrow">{t("url.eyebrow")}</div>
+        <h2 className="url-input-title">{t("url.title")}</h2>
         <p className="url-input-hint">
           支持小宇宙、B 站、YouTube、喜马拉雅、Apple Podcasts 及直接音频链接，按 Enter 发起。
           <button
@@ -229,7 +231,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
           whileTap={{ scale: 0.98 }}
         >
           <Play size={14} />
-          开始处理
+          {t("url.process")}
         </motion.button>
       </div>
 
@@ -240,7 +242,7 @@ export default function UrlInput({ onProcess, onBatchUrls, disabled }: Props) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
         >
-          暂不支持该平台，请使用本地文件方式
+          {t("url.unsupported")}
         </motion.p>
       )}
     </motion.div>

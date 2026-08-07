@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Minus, Square, X, Sun, Moon, Search } from 'lucide-react'
+import { Minus, Square, X, Sun, Moon, Search, Languages } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 import StatusBar from './StatusBar'
+import { useI18n } from '../i18n'
 
 interface SearchResult {
   path: string
@@ -17,6 +18,7 @@ interface HeaderProps {
 }
 
 export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
+  const { lang, setLang, t } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [open, setOpen] = useState(false)
@@ -137,7 +139,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
               }}
               onBlur={() => setFocused(false)}
               onKeyDown={handleKeyDown}
-              placeholder="搜索笔记、播客、关键词..."
+              placeholder={t("header.searchPlaceholder")}
               className="topbar-search-input"
             />
             {query && (
@@ -149,7 +151,7 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
                   setResults([])
                   inputRef.current?.focus()
                 }}
-                aria-label="清除搜索"
+                aria-label={t("header.clear")}
               >
                 <X size={11} />
               </button>
@@ -160,9 +162,9 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           {/* 搜索结果下拉 */}
           {open && (query.trim() || results.length > 0) && (
             <div className="topbar-dropdown">
-              {loading && <div className="topbar-status-msg">搜索中...</div>}
+              {loading && <div className="topbar-status-msg">{t("header.searching")}</div>}
               {!loading && query.trim() && results.length === 0 && (
-                <div className="topbar-status-msg">未找到匹配结果</div>
+                <div className="topbar-status-msg">{t("header.noResults")}</div>
               )}
               {!loading &&
                 results.map((r, i) => (
@@ -191,9 +193,17 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <StatusBar status={status} />
+          <button
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            className="topbar-theme-btn"
+            title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
+          >
+            <Languages size={14} />
+            {lang === 'zh' ? 'EN' : '中文'}
+          </button>
           <button onClick={onToggleTheme} className="topbar-theme-btn">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-            {theme === 'dark' ? '浅色' : '深色'}
+            {theme === 'dark' ? t('header.light') : t('header.dark')}
           </button>
         </div>
       </div>
@@ -201,13 +211,13 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
         className="workspace-topbar__window-controls"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button onClick={handleMinimize} className="topbar-winctl-btn" aria-label="最小化">
+        <button onClick={handleMinimize} className="topbar-winctl-btn" aria-label={t("header.minimize")}>
           <Minus size={14} />
         </button>
-        <button onClick={handleMaximize} className="topbar-winctl-btn" aria-label="最大化">
+        <button onClick={handleMaximize} className="topbar-winctl-btn" aria-label={t("header.maximize")}>
           <Square size={14} />
         </button>
-        <button onClick={handleClose} className="topbar-winctl-btn" aria-label="关闭">
+        <button onClick={handleClose} className="topbar-winctl-btn" aria-label={t("header.close")}>
           <X size={14} />
         </button>
       </div>
