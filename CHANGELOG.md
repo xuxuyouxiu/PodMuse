@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.18.4] - 2026-08-07
+
+### 修复
+- 活跃任务/历史记录 Tab 栏底部 border 直线改为两端渐隐的渐变分隔线，圆角顶部不再有生硬直线
+
 ## [1.18.3] - 2026-08-07
 
 ### 修复
