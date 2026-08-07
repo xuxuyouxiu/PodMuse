@@ -452,11 +452,29 @@ function setupIPC() {
             sendNotification('PodMuse', `笔记已生成：${result}`)
           }
         } else {
+          // 用户取消时 processPodcast 可能返回 null（whisper abort 后 finish(null) 等），
+          // 此时应标记为「已停止」而非「失败」，也不发失败通知
+          if (signal.aborted) {
+            updateRecentState(state => stopRecentTask(state))
+            mainWindow?.webContents.send('log', '■ 处理已取消')
+            for (let i = 1; i <= 5; i++) {
+              const titles = ['解析页面', '下载音频', '语音转文字', '修正专有名词', 'AI 提炼笔记']
+              mainWindow?.webContents.send('podcast:step', {
+                step: i,
+                title: titles[i - 1],
+                subtitle: '已取消',
+                status: 'stopped',
+                detail: '用户取消了处理',
+              })
+            }
+            return { success: false, error: '处理已取消' }
+          }
           const errorReason = lastErrorDetail || '处理失败，请检查日志'
           updateRecentState(state => failRecentTask(state, errorReason))
           if (config.notification_enabled !== false) {
             sendNotification('PodMuse', `处理失败：${errorReason}`)
           }
+          return { success: false, error: errorReason }
         }
         return { success: true, filename: result }
       } catch (err: unknown) {

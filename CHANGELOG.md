@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.20.2] - 2026-08-07
+
+### 修复
+- 停止任务时误报"处理失败"：取消后 processPodcast 返回 null 会被当成失败处理，现在先检查取消状态，标记为「已停止」且不发失败通知
+- 停止任务后流程面板继续转圈：取消时补充发送全部步骤的 stopped 状态
+- 处理失败时 IPC 返回 success:false（原来误返回 success:true）
+
 ## [1.20.1] - 2026-08-07
 
 ### 改进
