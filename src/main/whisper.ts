@@ -1,7 +1,8 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { loadConfig } from './config'
+import { loadConfig, saveConfig } from './config'
+import { autoDetectExePath } from './whisper-model-manager'
 import {
   formatWhisperProgress,
   parseWhisperPercent,
@@ -26,8 +27,23 @@ export function runWhisper(
     console.log(m)
   }
   const cfg = loadConfig()
-  const WHISPER_EXE = cfg.whisper_exe_path
+  let WHISPER_EXE = cfg.whisper_exe_path
   const WHISPER_MODEL = cfg.whisper_model
+
+  // exe 路径未配置或不存在时，自动搜索并写回配置（用户无需手动找路径）
+  if (!WHISPER_EXE || !fs.existsSync(WHISPER_EXE)) {
+    try {
+      const detected = autoDetectExePath()
+      if (detected) {
+        WHISPER_EXE = detected
+        // 写回配置，让设置页也能显示
+        try {
+          saveConfig({ ...cfg, whisper_exe_path: detected })
+          log(`🔍 已自动检测到 Whisper 引擎: ${detected}`)
+        } catch {}
+      }
+    } catch {}
+  }
 
   return new Promise(resolve => {
     let settled = false

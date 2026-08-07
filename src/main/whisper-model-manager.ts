@@ -16,20 +16,73 @@ const STANDARD_MODELS: Omit<WhisperModelInfo, 'downloaded'>[] = [
   { id: 'small', label: 'Small', size: '~2 GB', ramMinGB: 2 },
   { id: 'medium', label: 'Medium', size: '~5 GB', ramMinGB: 4 },
   { id: 'large-v3', label: 'Large v3', size: '~10 GB', ramMinGB: 8 },
-  { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~6 GB', ramMinGB: 6 },
+  { id: 'large-v3-turbo', label: 'Large v3 Turbo', size: '~6 GB', ramMinGB: 4 },
 ]
 
 export function getStandardModels(): Omit<WhisperModelInfo, 'downloaded'>[] {
   return STANDARD_MODELS
 }
 
-/** 自动检测 Faster-Whisper-XXL 可执行文件路径 */
-function autoDetectExePath(): string | undefined {
-  const exeName = 'faster-whisper-xxl.exe'
+/** 递归搜索指定目录下（深度受限）的 whisper exe */
+function searchRecursive(dir: string, depth: number, exeNames: string[]): string | undefined {
+  if (depth <= 0) return undefined
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return undefined
+  }
+  for (const entry of entries) {
+    try {
+      if (entry.isFile()) {
+        const name = entry.name.toLowerCase()
+        if (exeNames.some(e => name === e)) {
+          return path.join(dir, entry.name)
+        }
+      } else if (entry.isDirectory()) {
+        // 跳过系统/无意义目录，避免超时
+        const lower = entry.name.toLowerCase()
+        if (
+          lower === 'windows' ||
+          lower === 'program files' ||
+          lower === 'program files (x86)' ||
+          lower === '$recycle.bin' ||
+          lower === 'system volume information' ||
+          lower === 'node_modules' ||
+          lower === '.git' ||
+          lower === 'appdata' ||
+          lower === 'intel' ||
+          lower === 'nvidia'
+        ) {
+          continue
+        }
+        const found = searchRecursive(path.join(dir, entry.name), depth - 1, exeNames)
+        if (found) return found
+      }
+    } catch {}
+  }
+  return undefined
+}
+
+/** 获取所有可用盘符（含 C-Z 中存在的固定盘） */
+function getAllDrives(): string[] {
+  const drives: string[] = []
+  for (let letter = 67; letter <= 90; letter++) {
+    const d = String.fromCharCode(letter) + ':'
+    try {
+      if (fs.existsSync(d + '\\')) drives.push(d)
+    } catch {}
+  }
+  return drives
+}
+
+/** 自动检测 Faster-Whisper-XXL 可执行文件路径（快速候选 + 全盘递归兜底） */
+export function autoDetectExePath(): string | undefined {
+  const exeNames = ['faster-whisper-xxl.exe', 'faster-whisper.exe']
   const candidates: string[] = []
 
-  // 常见安装路径
-  const drives = ['C:', 'D:', 'E:', 'F:']
+  // 1. 常见安装路径（快）
+  const drives = getAllDrives()
   const commonDirs = [
     'Faster-Whisper-XXL',
     'faster-whisper-xxl',
@@ -37,18 +90,24 @@ function autoDetectExePath(): string | undefined {
     path.join('Program Files', 'Faster-Whisper-XXL'),
     path.join('Program Files (x86)', 'Faster-Whisper-XXL'),
     path.join(os.homedir(), 'Downloads', 'Faster-Whisper-XXL'),
+    path.join(os.homedir(), 'Downloads', 'faster-whisper-xxl'),
     path.join(os.homedir(), 'Desktop', 'Faster-Whisper-XXL'),
+    path.join(os.homedir(), 'Desktop', 'faster-whisper-xxl'),
   ]
   for (const drive of drives) {
     for (const dir of commonDirs) {
-      candidates.push(path.join(drive + '\\', dir, exeName))
+      for (const exe of exeNames) {
+        candidates.push(path.join(drive + '\\', dir, exe))
+      }
     }
   }
 
-  // PATH 环境变量
+  // 2. PATH 环境变量
   const pathDirs = (process.env.PATH || '').split(path.delimiter)
   for (const dir of pathDirs) {
-    candidates.push(path.join(dir, exeName))
+    for (const exe of exeNames) {
+      candidates.push(path.join(dir, exe))
+    }
   }
 
   for (const p of candidates) {
@@ -56,6 +115,15 @@ function autoDetectExePath(): string | undefined {
       if (fs.existsSync(p)) return p
     } catch {}
   }
+
+  // 3. 全盘递归搜索（深度 4，跳过系统目录）——处理非标准安装位置
+  for (const drive of drives) {
+    try {
+      const found = searchRecursive(drive + '\\', 4, exeNames)
+      if (found) return found
+    } catch {}
+  }
+
   return undefined
 }
 

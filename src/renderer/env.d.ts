@@ -189,6 +189,7 @@ declare global {
       selectFile: () => Promise<string | null>
       scanWhisperModels: () => Promise<WhisperModelInfo[]>
       checkWhisperHardware: (modelId: string) => Promise<HardwareCheckResult>
+      autoDetectWhisper: () => Promise<{ path: string | null; error?: string }>
       fetchAIModels: (baseUrl: string, apiKey: string) => Promise<AIModelListResult>
       detectYtDlp: () => Promise<YtDlpStatus>
       getBacklinkIndex: () => Promise<BacklinkEntry[]>

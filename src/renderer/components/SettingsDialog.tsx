@@ -178,10 +178,10 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
     setSaveSuccess(true)
     setIsDirty(false)
     initialFormRef.current = { ...form }
+    // 保存成功提示保留 3 秒，不自动关闭设置界面
     setTimeout(() => {
       setSaveSuccess(false)
-      onClose()
-    }, 1000)
+    }, 3000)
   }
 
   function handleClose() {

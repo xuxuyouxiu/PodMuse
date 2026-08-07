@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, session } from 'electron'
 import { join, basename, extname } from 'path'
-import { loadConfig, saveState, loadState, maskSecret } from './config'
+import { loadConfig, saveConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
 import { registerCoreIPC } from './ipc'
 import { FeishuMonitor } from './feishu'
@@ -8,7 +8,7 @@ import { processPodcast } from './podcast'
 import { getActiveProviderConfig } from './ai-providers'
 import { fetchPodcastTitle } from './podcast'
 import { platformRegistry } from './platforms'
-import { scanLocalModels, checkHardware } from './whisper-model-manager'
+import { scanLocalModels, checkHardware, autoDetectExePath } from './whisper-model-manager'
 import { setPromptDir, exportBuiltInTemplates } from './ai-client'
 import * as fs from 'fs'
 import {
@@ -544,6 +544,20 @@ function setupIPC() {
 
   ipcMain.handle('whisper:checkHardware', (_e, modelId: string) => {
     return checkHardware(modelId)
+  })
+
+  ipcMain.handle('whisper:autoDetect', () => {
+    try {
+      const detected = autoDetectExePath()
+      if (detected) {
+        const cfg = loadConfig()
+        saveConfig({ ...cfg, whisper_exe_path: detected })
+        return { path: detected }
+      }
+      return { path: null }
+    } catch (e) {
+      return { path: null, error: (e as Error).message }
+    }
   })
 
   ipcMain.handle(

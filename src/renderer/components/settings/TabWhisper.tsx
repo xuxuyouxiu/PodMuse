@@ -1,11 +1,12 @@
+import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
 import { useI18n } from '../../i18n'
-import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown } from 'lucide-react'
+import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown, Search, CheckCircle2 } from 'lucide-react'
 
 export default function TabWhisper({
   form,
-  update: _update,
+  update,
   models,
   scanningModels,
   modelScanStatus,
@@ -34,6 +35,26 @@ export default function TabWhisper({
   onModelChange: (id: string) => void
   onBrowse: (key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') => void
 }) {
+  const [detecting, setDetecting] = useState(false)
+  const [detectResult, setDetectResult] = useState<string | null>(null)
+  const handleAutoDetect = async () => {
+    setDetecting(true)
+    setDetectResult(null)
+    try {
+      const res = await window.electronAPI.autoDetectWhisper()
+      if (res.path) {
+        update('whisper_exe_path', res.path)
+        setDetectResult('found')
+      } else {
+        setDetectResult('notfound')
+      }
+    } catch {
+      setDetectResult('notfound')
+    } finally {
+      setDetecting(false)
+    }
+  }
+
   const { t } = useI18n()
   return (
     <div>
@@ -126,12 +147,35 @@ export default function TabWhisper({
         </div>
 
         {showAdvanced && (
+          <>
           <DirField
             label={t('Whisper 可执行文件路径')}
             value={form.whisper_exe_path}
             placeholder={t('选择 whisper 可执行文件（可选）')}
             onBrowse={() => onBrowse('whisper_exe_path')}
           />
+          <div className="settings-test-row">
+            <button
+              onClick={handleAutoDetect}
+              disabled={detecting}
+              className="settings-browse-button"
+            >
+              <Search size={12} />
+              {detecting ? t('自动检测中…') : t('自动检测引擎')}
+            </button>
+            {detectResult === 'found' && (
+              <span className="settings-test-result--success">
+                <CheckCircle2 size={12} />
+                {t('已自动检测并填入路径')}
+              </span>
+            )}
+            {detectResult === 'notfound' && (
+              <span className="settings-test-result--error">
+                {t('未找到 Whisper 引擎，请手动选择或安装 faster-whisper-xxl')}
+              </span>
+            )}
+          </div>
+          </>
         )}
 
         <div className="settings-field">

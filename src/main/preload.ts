@@ -77,6 +77,7 @@ try {
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
     scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
+    autoDetectWhisper: () => ipcRenderer.invoke('whisper:autoDetect'),
     fetchAIModels: (baseUrl: string, apiKey: string) =>
       ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
     detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
