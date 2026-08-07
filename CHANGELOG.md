@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.19.0] - 2026-08-07
+
+### 改进
+- 重新设计右侧任务面板：Tab 栏与面板融合为整体卡片
+- Tab 按钮改为 pill 式（选中高亮背景 + accent 色），去掉底部直线分隔
+- 任务卡片 hover 提升（accent 微光背景 + 轻阴影）
+- 面板间距、圆角、层次重新打磨
+
 ## [1.18.4] - 2026-08-07
 
 ### 修复
