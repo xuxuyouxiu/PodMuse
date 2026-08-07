@@ -22,7 +22,6 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const [version, setVersion] = useState<string>('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -31,14 +30,6 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
   const handleMinimize = () => window.electronAPI?.minimizeWindow?.()
   const handleMaximize = () => window.electronAPI?.maximizeWindow?.()
   const handleClose = () => window.electronAPI?.closeWindow?.()
-
-  // 获取应用版本号
-  useEffect(() => {
-    window.electronAPI
-      .getAppVersion()
-      .then(v => setVersion(v))
-      .catch(() => {})
-  }, [])
 
   // Ctrl+K 全局快捷键
   useEffect(() => {
@@ -125,11 +116,6 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div className="workspace-topbar__content">
-        <img src="./icon.png" alt="PodMuse" className="topbar-logo" />
-        <span className="topbar-title">
-          PodMuse
-          {version && <span className="topbar-version">v{version}</span>}
-        </span>
         <div
           ref={wrapRef}
           className="workspace-topbar__search-wrap"

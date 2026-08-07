@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import {
   Settings,
@@ -30,6 +31,16 @@ export default function WorkspaceSidebar({
   activeTasks,
   recentTasks,
 }: Props) {
+  const [version, setVersion] = useState<string>('')
+
+  // 获取应用版本号
+  useEffect(() => {
+    window.electronAPI
+      .getAppVersion()
+      .then(v => setVersion(v))
+      .catch(() => {})
+  }, [])
+
   const runningCount = activeTasks.filter(t => t.status === 'running').length
   const completedToday = recentTasks.filter(t => {
     if (t.status !== 'completed') return false
@@ -130,6 +141,10 @@ export default function WorkspaceSidebar({
           关于
         </motion.button>
       </div>
+
+      {version && (
+        <div className="workspace-sidebar__version">v{version}</div>
+      )}
     </aside>
   )
 }

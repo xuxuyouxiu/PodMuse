@@ -3,9 +3,7 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { app } from 'electron'
 import type { PlatformAdapter, AudioExtractResult } from './types'
-import { loadConfig } from '../config'
 
 /** douyin-downloader 路径 */
 function getDownloaderPath(): string {

@@ -218,8 +218,8 @@ function setupIPC() {
     // 安装依赖
     try {
       execSync('pip install -r requirements.txt', { cwd: downloadPath, encoding: 'utf-8', timeout: 120000 })
-    } catch (e: any) {
-      return { success: false, error: '安装依赖失败: ' + (e.message || e) }
+    } catch (e: unknown) {
+      return { success: false, error: '安装依赖失败: ' + (e instanceof Error ? e.message : String(e)) }
     }
 
     return { success: true, path: downloadPath }

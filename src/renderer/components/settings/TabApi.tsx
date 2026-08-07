@@ -445,8 +445,8 @@ export default function TabApi({
                     success: result.success,
                     message: result.success ? '环境检查通过！' : result.error || '检查失败',
                   })
-                } catch (e: any) {
-                  setDouyinSetupResult({ success: false, message: e.message || '检查失败' })
+                } catch (e: unknown) {
+                  setDouyinSetupResult({ success: false, message: e instanceof Error ? e.message : '检查失败' })
                 } finally {
                   setDouyinSetupChecking(false)
                 }
@@ -472,7 +472,7 @@ export default function TabApi({
                   if (cookie) {
                     update('douyin_cookie', cookie)
                   }
-                } catch (e: any) {
+                } catch {
                   // 错误处理在 App.tsx 的 toast 中
                 } finally {
                   setDouyinLoginLoading(false)
@@ -492,7 +492,7 @@ export default function TabApi({
             )}
           </div>
           <p className="settings-hint" style={{ marginTop: 8 }}>
-            首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击"检查环境" ④ 点击"自动获取 Cookie"。<br/>
+            首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击「检查环境」 ④ 点击「自动获取 Cookie」。<br/>
             下载地址：<a href="#" onClick={e => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/jiji262/douyin-downloader') }}>github.com/jiji262/douyin-downloader</a>
           </p>
         </div>
