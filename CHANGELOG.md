@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.18.3] - 2026-08-07
+
+### 修复
+- 任务面板（活跃任务/历史记录）圆角边缘阴影直线问题：去掉 panel-shadow 的 1px outline 层和 backdrop-filter（Electron 渲染伪影）
+
 ## [1.18.2] - 2026-08-07
 
 ### 新增

@@ -48,7 +48,7 @@
 
   /* 阴影 */
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 
   /* 侧边栏 */
   --sidebar-bg: rgba(255, 255, 255, 0.6);
@@ -92,7 +92,7 @@ body[data-theme='dark'] {
   --border-light: rgba(255, 255, 255, 0.1);
   --border-soft: rgba(255, 255, 255, 0.04);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
   --sidebar-bg: rgba(255, 255, 255, 0.02);
   --sidebar-footer-bg: rgba(255, 255, 255, 0.03);
   --menu-bg: #1a1a2e;
@@ -1213,8 +1213,6 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   box-shadow: var(--panel-shadow);
 }
 
