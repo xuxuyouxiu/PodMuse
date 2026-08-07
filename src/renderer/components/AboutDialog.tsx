@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Star, MessageSquare, FileText } from 'lucide-react'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -14,6 +14,13 @@ export default function AboutDialog({ onClose }: Props) {
     window.electronAPI.getAppVersion().then(setVersion)
   }, [])
 
+  const features = [
+    { icon: <MessageSquare size={13} />, text: t('多平台支持：小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音') },
+    { icon: <FileText size={13} />, text: t('AI 自动转写：Whisper 本地语音识别，无需上传云端') },
+    { icon: <Star size={13} />, text: t('AI 笔记生成：核心观点、关键对话、术语词典、金句摘录') },
+    { icon: <ExternalLink size={13} />, text: t('自动实体卡片与双向链接，构建 Obsidian 知识网络') },
+  ]
+
   return (
     <div onClick={onClose} className="settings-dialog-overlay">
       <div onClick={e => e.stopPropagation()} className="settings-dialog about-dialog-card">
@@ -22,19 +29,30 @@ export default function AboutDialog({ onClose }: Props) {
 
         {/* 名称与版本 */}
         <div className="about-dialog-name-block">
-          <div className="about-dialog-name">PodMuse</div>
-          <div className="about-dialog-version">v{version || '...'}</div>
+          <div className="about-dialog-name">PodMuse 播客笔记助手</div>
+          <div className="about-dialog-version">
+            v{version || '...'} · {t('把播客变成知识库')}
+          </div>
         </div>
 
-        {/* 描述 */}
+        {/* 流程描述 */}
         <div className="about-dialog-desc">
-          {t('小宇宙播客')} → {t('下载音频')} → {t('Whisper 语音转写')}
-          <br />→ {t('DeepSeek 修正专有名词')} → {t('AI 提炼笔记')} → Obsidian
+          {t('粘贴任意播客/视频链接，自动完成提取、下载、转写、校对和笔记整理，并写入 Obsidian 知识库。')}
+        </div>
+
+        {/* 功能特性 */}
+        <div className="about-dialog-features">
+          {features.map((f, i) => (
+            <div key={i} className="about-dialog-feature">
+              <span className="about-dialog-feature-icon">{f.icon}</span>
+              <span>{f.text}</span>
+            </div>
+          ))}
         </div>
 
         {/* 技术栈 */}
         <div className="about-dialog-tags">
-          {['Electron', 'React', 'TypeScript', 'DeepSeek AI', 'Whisper', t('飞书'), 'Obsidian'].map(
+          {['Electron', 'React', 'TypeScript', 'Whisper', 'DeepSeek', 'Obsidian', t('飞书'), t('抖音')].map(
             tag => (
               <span key={tag} className="about-dialog-tag">
                 {tag}
