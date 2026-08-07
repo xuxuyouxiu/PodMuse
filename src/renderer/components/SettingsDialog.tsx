@@ -64,7 +64,6 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [cleaningTemp, setCleaningTemp] = useState(false)
   const [tempCleanResult, setTempCleanResult] = useState<string | null>(null)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const initialFormRef = useRef<PodcastConfig>(initialConfig)
 
@@ -347,8 +346,6 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
                 scanningModels={scanningModels}
                 modelScanStatus={modelScanStatus}
                 hardwareWarn={hardwareWarn}
-                showAdvanced={showAdvanced}
-                setShowAdvanced={setShowAdvanced}
                 onScanModels={handleScanModels}
                 onModelChange={handleModelChange}
                 onBrowse={handleBrowse}

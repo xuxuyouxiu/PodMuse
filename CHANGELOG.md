@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.20.1] - 2026-08-07
+
+### 改进
+- Whisper 可执行文件路径从「高级设置」移到显眼位置，标记为必填（红色 *）
+- placeholder 文案改为「必填：选择或自动检测 whisper 引擎文件」
+- 新增引擎说明 + GitHub 下载链接提示
+
 ## [1.20.0] - 2026-08-07
 
 ### 新增

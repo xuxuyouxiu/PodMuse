@@ -11,8 +11,6 @@ export default function TabWhisper({
   scanningModels,
   modelScanStatus,
   hardwareWarn,
-  showAdvanced,
-  setShowAdvanced,
   onScanModels,
   onModelChange,
   onBrowse,
@@ -29,8 +27,6 @@ export default function TabWhisper({
   scanningModels: boolean
   modelScanStatus: string | null
   hardwareWarn: { pass: boolean; warning: string | null } | null
-  showAdvanced: boolean
-  setShowAdvanced: (v: boolean) => void
   onScanModels: () => void
   onModelChange: (id: string) => void
   onBrowse: (key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') => void
@@ -138,20 +134,14 @@ export default function TabWhisper({
         </div>
 
         <div className="settings-field">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="settings-link-button"
-          >
-            {showAdvanced ? '▼' : '▶'} {t('高级设置')}
-          </button>
-        </div>
-
-        {showAdvanced && (
-          <>
+          <div className="settings-field-label">
+            {t('Whisper 可执行文件路径')}
+            <span style={{ color: 'var(--error)', marginLeft: 4 }}>*</span>
+          </div>
           <DirField
-            label={t('Whisper 可执行文件路径')}
+            label=""
             value={form.whisper_exe_path}
-            placeholder={t('选择 whisper 可执行文件（可选）')}
+            placeholder={t('必填：选择或自动检测 whisper 引擎文件')}
             onBrowse={() => onBrowse('whisper_exe_path')}
           />
           <div className="settings-test-row">
@@ -175,8 +165,23 @@ export default function TabWhisper({
               </span>
             )}
           </div>
-          </>
-        )}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            {t('Whisper 引擎是本地语音转文字的必需组件，可从 GitHub 下载')}
+            <span
+              onClick={() =>
+                window.electronAPI.openExternal(
+                  'https://github.com/Purfview/whisper-standalone-win/releases',
+                )
+              }
+              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer', marginLeft: 4 }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <ExternalLink size={11} />
+                {t('GitHub 下载')}
+              </span>
+            </span>
+          </div>
+        </div>
 
         <div className="settings-field">
           <div className="settings-field-label">{t('下载模型')}</div>
