@@ -3,6 +3,28 @@ import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
+
+// 飞书测试连接结果 → 多语言显示
+function formatFeishuResult(
+  result: { success: boolean; code?: string; message?: string; chatName?: string; detail?: string },
+  t: (key: string) => string,
+): string {
+  switch (result.code) {
+    case 'auth_failed':
+      return t('飞书鉴权失败，请检查 App ID 和 App Secret')
+    case 'chat_ok':
+      return t('凭据有效，群聊') + '「' + (result.chatName || '') + '」' + t('可访问')
+    case 'chat_invalid':
+      return t('凭据有效，但 Chat ID 无效或应用未加入该群聊（需在飞书开放平台给应用添加 im:chat 权限）')
+    case 'no_chat_skipped':
+      return t('飞书凭据验证成功（未填写 Chat ID，跳过群聊验证）')
+    case 'test_error':
+      return t('测试失败') + ': ' + (result.detail || '')
+    default:
+      return result.message || ''
+  }
+}
+
 import {
   Fish,
   Bot,
@@ -59,7 +81,10 @@ export default function TabApi({
   const [douyinLoginLoading, setDouyinLoginLoading] = useState(false)
   const [feishuTestResult, setFeishuTestResult] = useState<{
     success: boolean
-    message: string
+    code?: string
+    message?: string
+    chatName?: string
+    detail?: string
   } | null>(null)
 
   // 获取当前供应商配置
@@ -380,7 +405,7 @@ export default function TabApi({
               }
             >
               {feishuTestResult.success ? '✓ ' : '✗ '}
-              {t(feishuTestResult.message)}
+              {formatFeishuResult(feishuTestResult, t)}
             </span>
           )}
         </div>

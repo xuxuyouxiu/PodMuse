@@ -396,13 +396,22 @@ body {
 }
 
 .workspace-topbar__search-wrap {
-  flex: 1 1 260px;
+  flex: 0 1 420px;
+  max-width: 420px;
   min-width: 220px;
   margin-left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+/* 可拖动空白区：小窗口时也能舒适拖动窗口 */
+.topbar-drag-spacer {
+  flex: 1 1 auto;
+  min-width: 24px;
+  height: 100%;
+  -webkit-app-region: drag;
 }
 
 .workspace-topbar__actions {

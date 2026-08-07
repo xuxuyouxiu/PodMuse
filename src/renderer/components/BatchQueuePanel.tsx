@@ -534,7 +534,7 @@ export default function BatchQueuePanel({
               onClick={onPause}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title={t("batch.pause")}
+              title={t('暂停')}
             >
               <Pause size={14} />
             </motion.button>

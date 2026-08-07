@@ -353,23 +353,23 @@ function setupIPC() {
         const client = new FeishuClient(params.appId, params.appSecret, () => {})
         const ok = await client.ensureToken()
         if (!ok) {
-          return { success: false, message: '飞书鉴权失败，请检查 App ID 和 App Secret' }
+          return { success: false, code: 'auth_failed' }
         }
         // 如果填了 Chat ID，验证是否有效
         if (params.chatId?.trim()) {
           const chatName = await client.getChatInfo(params.chatId.trim())
           if (chatName) {
-            return { success: true, message: `凭据有效，群聊「${chatName}」可访问` }
+            return { success: true, code: 'chat_ok', chatName }
           }
-          return {
-            success: false,
-            message:
-              '凭据有效，但 Chat ID 无效或应用未加入该群聊（需在飞书开放平台给应用添加 im:chat 权限）',
-          }
+          return { success: false, code: 'chat_invalid' }
         }
-        return { success: true, message: '飞书凭据验证成功（未填写 Chat ID，跳过群聊验证）' }
+        return { success: true, code: 'no_chat_skipped' }
       } catch (e) {
-        return { success: false, message: `测试失败: ${(e as Error).message}` }
+        return {
+          success: false,
+          code: 'test_error',
+          detail: (e as Error).message,
+        }
       }
     },
   )

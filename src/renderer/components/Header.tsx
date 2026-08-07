@@ -188,6 +188,8 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
             </div>
           )}
         </div>
+        {/* 可拖动空白区（小窗口时也能舒适拖动） */}
+        <div className="topbar-drag-spacer" />
         <div
           className="workspace-topbar__actions"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
