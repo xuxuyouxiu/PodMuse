@@ -1,4 +1,5 @@
 import { Clock, RotateCcw, Play, Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import { RecentTaskState } from '@shared/types'
 import { cleanTitle } from '@shared/utils'
 import ExportMenu from './ExportMenu'
@@ -34,7 +35,13 @@ export default function RecentTasksPanel({
 }: Props) {
   const { t } = useI18n()
   return (
-    <aside className="task-panel" style={{ height: '100%' }}>
+    <motion.aside
+      className="task-panel"
+      style={{ height: '100%' }}
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
       <div className="task-panel-header">
         <div>
           <div className="task-panel-title">{t('历史记录')}</div>
@@ -44,6 +51,7 @@ export default function RecentTasksPanel({
       </div>
 
       <div className="task-panel-list">
+        <AnimatePresence initial={false}>
         {tasks.length === 0 && (
           <div className="task-panel-empty">
             <div className="task-panel-empty-icon">
@@ -59,7 +67,15 @@ export default function RecentTasksPanel({
           const canResume = task.status !== 'completed'
           const canExport = task.status === 'completed' && !!task.filename
           return (
-            <article key={task.id} className="task-card">
+            <motion.article
+              key={task.id}
+              layout
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="task-card"
+            >
               <div className="task-card-header">
                 <div className="task-card-copy">
                   <div className="task-card-title">
@@ -104,10 +120,11 @@ export default function RecentTasksPanel({
                   <Trash2 size={12} /> {t('删除')}
                 </button>
               </div>
-            </article>
+            </motion.article>
           )
         })}
+        </AnimatePresence>
       </div>
-    </aside>
+    </motion.aside>
   )
 }

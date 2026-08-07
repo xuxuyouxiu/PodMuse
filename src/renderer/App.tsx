@@ -10,6 +10,7 @@ import {
   BatchTask,
 } from '@shared/types'
 import { Zap, Clock } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useI18n } from './i18n'
 import Header from './components/Header'
 import UrlInput from './components/UrlInput'
@@ -531,8 +532,16 @@ export default function App() {
         />
         <div className="workspace-main">
           <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
+          <AnimatePresence mode="wait">
           {activeView === 'workspace' && (
-            <div className="workspace-body">
+            <motion.div
+              className="workspace-body"
+              key="workspace"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <section className="workspace-hero">
@@ -671,26 +680,41 @@ export default function App() {
                   </div>
                 </div>
               </aside>
-            </div>
+            </motion.div>
           )}
           {activeView === 'backlinks' && (
-            <div className="workspace-body">
+            <motion.div
+              className="workspace-body"
+              key="backlinks"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <BacklinkPanel />
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
           {activeView === 'search' && (
-            <div className="workspace-body">
+            <motion.div
+              className="workspace-body"
+              key="search"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <SearchPanel />
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
       {settingsOpen && config && (
