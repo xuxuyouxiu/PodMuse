@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.6] - 2026-08-12
+
+### 改进
+- 知识关联图谱改用 D3.js 力导向布局，节点有物理模拟动画，支持拖拽交互
+
 ## [1.21.5] - 2026-08-12
 
 ### 移除

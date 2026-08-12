@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Users,
   FolderOpen,
@@ -12,6 +12,14 @@ import {
 } from 'lucide-react'
 
 import { useI18n } from '../i18n'
+import {
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+  type SimulationNodeDatum,
+} from 'd3-force'
 
 // ── Entity type metadata ──
 
@@ -57,12 +65,10 @@ function computeCoEntities(index: BacklinkEntry[], selectedEntity: string): CoEn
 
 // ── Graph computation ──
 
-interface GraphNode {
+interface GraphNode extends SimulationNodeDatum {
   name: string
   type: string
   refCount: number
-  x: number
-  y: number
   radius: number
 }
 
@@ -255,11 +261,92 @@ export default function BacklinkPanel() {
 
   // Compare mode: selected refs
 
-  // Graph data computation
-  const graphData = useMemo(() => {
-    if (!selectedEntity || !graphMode) return { nodes: [], edges: [] }
-    return computeGraph(index, selectedEntity, 400, 320)
+  // Graph data with force simulation
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] })
+  const simulationRef = useRef<ReturnType<typeof forceSimulation<GraphNode>> | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const dragNodeRef = useRef<GraphNode | null>(null)
+
+  useEffect(() => {
+    if (!selectedEntity || !graphMode) {
+      if (simulationRef.current) {
+        simulationRef.current.stop()
+        simulationRef.current = null
+      }
+      return
+    }
+
+    const data = computeGraph(index, selectedEntity, 400, 320)
+    if (data.nodes.length === 0) return
+
+    // Stop previous simulation
+    if (simulationRef.current) {
+      simulationRef.current.stop()
+    }
+
+    // Create force simulation
+    const sim = forceSimulation(data.nodes)
+      .force(
+        'link',
+        forceLink<GraphNode, GraphEdge>(data.edges)
+          .id(d => d.name)
+          .distance(d => 60 + (d as GraphEdge).count * 10)
+          .strength(0.6),
+      )
+      .force('charge', forceManyBody<GraphNode>().strength(-200))
+      .force('center', forceCenter(200, 160).strength(0.1))
+      .force(
+        'collide',
+        forceCollide<GraphNode>().radius(d => d.radius + 8).strength(0.8),
+      )
+      .alphaDecay(0.02)
+      .velocityDecay(0.3)
+
+    // Update positions on each tick
+    sim.on('tick', () => {
+      setGraphData({
+        nodes: [...data.nodes],
+        edges: [...data.edges],
+      })
+    })
+
+    simulationRef.current = sim
+
+    return () => {
+      sim.stop()
+    }
   }, [index, selectedEntity, graphMode])
+
+  // Drag handlers
+  function handleDragStart(e: React.MouseEvent, node: GraphNode) {
+    e.preventDefault()
+    dragNodeRef.current = node
+    node.fx = node.x
+    node.fy = node.y
+    if (simulationRef.current) {
+      simulationRef.current.alphaTarget(0.3).restart()
+    }
+  }
+
+  function handleDragMove(e: React.MouseEvent) {
+    if (!dragNodeRef.current || !svgRef.current) return
+    const svg = svgRef.current
+    const rect = svg.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 400
+    const y = ((e.clientY - rect.top) / rect.height) * 320
+    dragNodeRef.current.fx = x
+    dragNodeRef.current.fy = y
+  }
+
+  function handleDragEnd() {
+    if (!dragNodeRef.current) return
+    dragNodeRef.current.fx = null
+    dragNodeRef.current.fy = null
+    dragNodeRef.current = null
+    if (simulationRef.current) {
+      simulationRef.current.alphaTarget(0)
+    }
+  }
 
   // ── Tag view computed values ──
 
@@ -381,6 +468,7 @@ export default function BacklinkPanel() {
 
 
   function toggleGraphMode() {
+    if (graphMode) setGraphData({ nodes: [], edges: [] })
     setGraphMode(!graphMode)
     setHoveredNode(null)
   }
@@ -659,10 +747,14 @@ export default function BacklinkPanel() {
                     </div>
                     <div className="backlink-graph__canvas-wrap">
                       <svg
+                        ref={svgRef}
                         className="backlink-graph__svg"
                         viewBox="0 0 400 320"
                         width="100%"
                         height="100%"
+                        onMouseMove={handleDragMove}
+                        onMouseUp={handleDragEnd}
+                        onMouseLeave={handleDragEnd}
                       >
                         {/* Edges */}
                         {graphData.edges.map((edge, i) => {
@@ -675,10 +767,10 @@ export default function BacklinkPanel() {
                           return (
                             <line
                               key={`edge-${i}`}
-                              x1={sourceNode.x}
-                              y1={sourceNode.y}
-                              x2={targetNode.x}
-                              y2={targetNode.y}
+                              x1={sourceNode.x!}
+                              y1={sourceNode.y!}
+                              x2={targetNode.x!}
+                              y2={targetNode.y!}
                               stroke={isHighlighted ? 'var(--accent)' : 'var(--border)'}
                               strokeWidth={thickness}
                               opacity={isHighlighted ? 0.8 : 0.3}
@@ -703,22 +795,23 @@ export default function BacklinkPanel() {
                             <g
                               key={`node-${node.name}`}
                               className="backlink-graph__node"
-                              style={{ cursor: 'pointer', opacity: dimmed ? 0.2 : 1 }}
-                              onClick={() => handleGraphNodeClick(node.name)}
+                              style={{ cursor: 'grab', opacity: dimmed ? 0.2 : 1 }}
+                              onClick={() => { if (!dragNodeRef.current) handleGraphNodeClick(node.name) }}
                               onMouseEnter={() => setHoveredNode(node.name)}
                               onMouseLeave={() => setHoveredNode(null)}
+                              onMouseDown={e => handleDragStart(e, node)}
                             >
                               <circle
-                                cx={node.x}
-                                cy={node.y}
+                                cx={node.x!}
+                                cy={node.y!}
                                 r={node.radius}
                                 fill={isCenter ? 'var(--accent)' : 'var(--bg-card)'}
                                 stroke={meta.color}
                                 strokeWidth={isCenter ? 3 : 2}
                               />
                               <text
-                                x={node.x}
-                                y={node.y + node.radius + 14}
+                                x={node.x!}
+                                y={node.y! + node.radius + 14}
                                 textAnchor="middle"
                                 fill="var(--text-primary)"
                                 fontSize={isCenter ? 11 : 10}
@@ -727,8 +820,8 @@ export default function BacklinkPanel() {
                                 {node.name.length > 6 ? node.name.slice(0, 6) + '…' : node.name}
                               </text>
                               <text
-                                x={node.x}
-                                y={node.y + 4}
+                                x={node.x!}
+                                y={node.y! + 4}
                                 textAnchor="middle"
                                 fill={isCenter ? '#fff' : 'var(--text-muted)'}
                                 fontSize={9}
