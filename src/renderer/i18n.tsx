@@ -529,6 +529,7 @@ const enDict: Record<string, string> = {
   '关系图谱': 'Relation Graph',
   '共现次数': 'Co-occurrences',
   '点击节点查看该实体详情': 'Click a node to view entity details',
+  '拖拽节点调整布局 · 点击查看详情': 'Drag nodes to adjust layout · Click for details',
   '无法提取上下文': 'Context unavailable',
   '无上下文': 'No context',
   '查看关系图谱': 'View Relation Graph',

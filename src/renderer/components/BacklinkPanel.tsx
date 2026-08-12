@@ -19,6 +19,7 @@ import {
   forceCenter,
   forceCollide,
   type SimulationNodeDatum,
+  type SimulationLinkDatum,
 } from 'd3-force'
 
 // ── Entity type metadata ──
@@ -73,8 +74,8 @@ interface GraphNode extends SimulationNodeDatum {
 }
 
 interface GraphEdge {
-  source: string
-  target: string
+  source: string | GraphNode
+  target: string | GraphNode
   count: number
 }
 
@@ -93,54 +94,50 @@ function computeGraph(
   if (!target) return { nodes: [], edges: [] }
 
   const coEntities = computeCoEntities(index, selectedEntity)
-  // Limit to top 15 co-entities for readability
-  const topCo = coEntities.slice(0, 15)
+  const topCo = coEntities.slice(0, 20)
 
   const centerX = width / 2
   const centerY = height / 2
-  const orbitRadius = Math.min(width, height) * 0.35
 
-  // Center node (selected entity)
   const centerRef = target.podcastRefs.length
-  const centerRadius = Math.max(12, Math.min(24, 8 + centerRef * 2))
+  const centerRadius = Math.max(16, Math.min(28, 10 + centerRef * 2))
 
   const nodes: GraphNode[] = [
     {
       name: selectedEntity,
       type: target.entityType,
       refCount: centerRef,
+      radius: centerRadius,
       x: centerX,
       y: centerY,
-      radius: centerRadius,
+      fx: centerX,
+      fy: centerY,
     },
   ]
 
-  // Surrounding nodes arranged in a circle
   const angleStep = topCo.length > 0 ? (2 * Math.PI) / topCo.length : 0
   topCo.forEach((co, i) => {
-    const angle = angleStep * i - Math.PI / 2 // start from top
+    const angle = angleStep * i - Math.PI / 2
     const entry = index.find(e => e.entityName === co.name)
     const refCount = entry ? entry.podcastRefs.length : 1
-    const radius = Math.max(8, Math.min(18, 6 + refCount * 2))
+    const radius = Math.max(10, Math.min(20, 7 + refCount * 2))
 
     nodes.push({
       name: co.name,
       type: co.type,
       refCount,
-      x: centerX + orbitRadius * Math.cos(angle),
-      y: centerY + orbitRadius * Math.sin(angle),
       radius,
+      x: centerX + 100 * Math.cos(angle),
+      y: centerY + 100 * Math.sin(angle),
     })
   })
 
-  // Edges from center to each co-entity
   const edges: GraphEdge[] = topCo.map(co => ({
     source: selectedEntity,
     target: co.name,
     count: co.count,
   }))
 
-  // Edges between co-entities that share podcasts
   for (let i = 0; i < topCo.length; i++) {
     for (let j = i + 1; j < topCo.length; j++) {
       const a = topCo[i]
@@ -148,13 +145,12 @@ function computeGraph(
       const entryA = index.find(e => e.entityName === a.name)
       const entryB = index.find(e => e.entityName === b.name)
       if (!entryA || !entryB) continue
-
       const pathsA = new Set(entryA.podcastRefs.map(r => r.path))
       let overlap = 0
       for (const ref of entryB.podcastRefs) {
         if (pathsA.has(ref.path)) overlap++
       }
-      if (overlap > 0) {
+      if (overlap >= 2) {
         edges.push({ source: a.name, target: b.name, count: overlap })
       }
     }
@@ -266,6 +262,7 @@ export default function BacklinkPanel() {
   const simulationRef = useRef<ReturnType<typeof forceSimulation<GraphNode>> | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const dragNodeRef = useRef<GraphNode | null>(null)
+  const W = 500, H = 400
 
   useEffect(() => {
     if (!selectedEntity || !graphMode) {
@@ -276,66 +273,43 @@ export default function BacklinkPanel() {
       return
     }
 
-    const data = computeGraph(index, selectedEntity, 400, 320)
+    const data = computeGraph(index, selectedEntity, W, H)
     if (data.nodes.length === 0) return
 
-    // Stop previous simulation
-    if (simulationRef.current) {
-      simulationRef.current.stop()
-    }
+    if (simulationRef.current) simulationRef.current.stop()
 
-    // Create force simulation
     const sim = forceSimulation(data.nodes)
-      .force(
-        'link',
-        forceLink<GraphNode, GraphEdge>(data.edges)
-          .id(d => d.name)
-          .distance(d => 60 + (d as GraphEdge).count * 10)
-          .strength(0.6),
-      )
-      .force('charge', forceManyBody<GraphNode>().strength(-200))
-      .force('center', forceCenter(200, 160).strength(0.1))
-      .force(
-        'collide',
-        forceCollide<GraphNode>().radius(d => d.radius + 8).strength(0.8),
-      )
-      .alphaDecay(0.02)
-      .velocityDecay(0.3)
+      .force('link', forceLink<GraphNode, SimulationLinkDatum<GraphNode>>(data.edges as unknown as SimulationLinkDatum<GraphNode>[])
+        .id(d => d.name)
+        .distance(90)
+        .strength(0.4))
+      .force('charge', forceManyBody<GraphNode>().strength(-350).distanceMax(250))
+      .force('center', forceCenter(W / 2, H / 2).strength(0.05))
+      .force('collide', forceCollide<GraphNode>().radius(d => d.radius + 12).strength(0.9))
+      .alphaDecay(0.025)
+      .velocityDecay(0.35)
 
-    // Update positions on each tick
     sim.on('tick', () => {
-      setGraphData({
-        nodes: [...data.nodes],
-        edges: [...data.edges],
-      })
+      setGraphData({ nodes: [...data.nodes], edges: [...data.edges] })
     })
 
     simulationRef.current = sim
-
-    return () => {
-      sim.stop()
-    }
+    return () => { sim.stop() }
   }, [index, selectedEntity, graphMode])
 
-  // Drag handlers
   function handleDragStart(e: React.MouseEvent, node: GraphNode) {
     e.preventDefault()
     dragNodeRef.current = node
     node.fx = node.x
     node.fy = node.y
-    if (simulationRef.current) {
-      simulationRef.current.alphaTarget(0.3).restart()
-    }
+    simulationRef.current?.alphaTarget(0.3).restart()
   }
 
   function handleDragMove(e: React.MouseEvent) {
     if (!dragNodeRef.current || !svgRef.current) return
-    const svg = svgRef.current
-    const rect = svg.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 400
-    const y = ((e.clientY - rect.top) / rect.height) * 320
-    dragNodeRef.current.fx = x
-    dragNodeRef.current.fy = y
+    const rect = svgRef.current.getBoundingClientRect()
+    dragNodeRef.current.fx = ((e.clientX - rect.left) / rect.width) * W
+    dragNodeRef.current.fy = ((e.clientY - rect.top) / rect.height) * H
   }
 
   function handleDragEnd() {
@@ -343,9 +317,21 @@ export default function BacklinkPanel() {
     dragNodeRef.current.fx = null
     dragNodeRef.current.fy = null
     dragNodeRef.current = null
-    if (simulationRef.current) {
-      simulationRef.current.alphaTarget(0)
+    simulationRef.current?.alphaTarget(0)
+  }
+
+  // Helper: get node position from edge endpoint (d3 mutates source/target to objects)
+  function getNodePos(edge: GraphEdge, side: 'source' | 'target'): { x: number; y: number } | null {
+    const ref = edge[side]
+    if (typeof ref === 'object' && ref !== null && 'x' in ref) {
+      return { x: (ref as GraphNode).x ?? 0, y: (ref as GraphNode).y ?? 0 }
     }
+    const node = graphData.nodes.find(n => n.name === ref)
+    return node ? { x: node.x ?? 0, y: node.y ?? 0 } : null
+  }
+
+  function getEdgeEndpoints(edge: GraphEdge) {
+    return { src: getNodePos(edge, 'source'), tgt: getNodePos(edge, 'target') }
   }
 
   // ── Tag view computed values ──
@@ -749,85 +735,133 @@ export default function BacklinkPanel() {
                       <svg
                         ref={svgRef}
                         className="backlink-graph__svg"
-                        viewBox="0 0 400 320"
+                        viewBox={`0 0 ${W} ${H}`}
                         width="100%"
                         height="100%"
                         onMouseMove={handleDragMove}
                         onMouseUp={handleDragEnd}
                         onMouseLeave={handleDragEnd}
                       >
+                        <defs>
+                          {/* Glow filter for center node */}
+                          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                          {/* Soft glow for connected nodes */}
+                          <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                          {/* Gradient for edges */}
+                          <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.6" />
+                            <stop offset="50%" stopColor="var(--accent)" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.6" />
+                          </linearGradient>
+                        </defs>
+
                         {/* Edges */}
                         {graphData.edges.map((edge, i) => {
-                          const sourceNode = graphData.nodes.find(n => n.name === edge.source)
-                          const targetNode = graphData.nodes.find(n => n.name === edge.target)
-                          if (!sourceNode || !targetNode) return null
-                          const isHighlighted =
-                            hoveredNode === edge.source || hoveredNode === edge.target
-                          const thickness = Math.max(1, Math.min(4, edge.count))
+                          const { src, tgt } = getEdgeEndpoints(edge)
+                          if (!src || !tgt) return null
+                          const edgeSrc = typeof edge.source === 'string' ? edge.source : (edge.source as GraphNode).name
+                          const edgeTgt = typeof edge.target === 'string' ? edge.target : (edge.target as GraphNode).name
+                          const isHighlighted = hoveredNode === edgeSrc || hoveredNode === edgeTgt
+                          const thickness = Math.max(1.5, Math.min(4, edge.count * 0.8))
                           return (
                             <line
                               key={`edge-${i}`}
-                              x1={sourceNode.x!}
-                              y1={sourceNode.y!}
-                              x2={targetNode.x!}
-                              y2={targetNode.y!}
-                              stroke={isHighlighted ? 'var(--accent)' : 'var(--border)'}
-                              strokeWidth={thickness}
-                              opacity={isHighlighted ? 0.8 : 0.3}
-                              className="backlink-graph__edge"
+                              x1={src.x}
+                              y1={src.y}
+                              x2={tgt.x}
+                              y2={tgt.y}
+                              stroke={isHighlighted ? 'url(#edge-gradient)' : 'var(--border)'}
+                              strokeWidth={isHighlighted ? thickness + 1 : thickness}
+                              opacity={isHighlighted ? 0.9 : 0.25}
+                              strokeLinecap="round"
                             />
                           )
                         })}
+
                         {/* Nodes */}
                         {graphData.nodes.map(node => {
                           const meta = TYPE_META[node.type] || TYPE_META.concepts
                           const isCenter = node.name === selectedEntity
                           const isHovered = hoveredNode === node.name
-                          const isConnected =
-                            hoveredNode &&
-                            graphData.edges.some(
-                              e =>
-                                (e.source === hoveredNode && e.target === node.name) ||
-                                (e.target === hoveredNode && e.source === node.name),
-                            )
+                          const isConnected = hoveredNode && graphData.edges.some(e => {
+                            const s = typeof e.source === 'object' ? (e.source as GraphNode).name : e.source
+                            const t = typeof e.target === 'object' ? (e.target as GraphNode).name : e.target
+                            return (s === hoveredNode && t === node.name) || (t === hoveredNode && s === node.name)
+                          })
                           const dimmed = hoveredNode && !isHovered && !isConnected && !isCenter
                           return (
                             <g
                               key={`node-${node.name}`}
-                              className="backlink-graph__node"
-                              style={{ cursor: 'grab', opacity: dimmed ? 0.2 : 1 }}
-                              onClick={() => { if (!dragNodeRef.current) handleGraphNodeClick(node.name) }}
+                              style={{ cursor: 'grab', opacity: dimmed ? 0.15 : 1, transition: 'opacity 0.3s' }}
                               onMouseEnter={() => setHoveredNode(node.name)}
                               onMouseLeave={() => setHoveredNode(null)}
                               onMouseDown={e => handleDragStart(e, node)}
+                              onClick={() => { if (!dragNodeRef.current) handleGraphNodeClick(node.name) }}
                             >
+                              {/* Outer glow ring for center */}
+                              {isCenter && (
+                                <circle
+                                  cx={node.x!}
+                                  cy={node.y!}
+                                  r={node.radius + 6}
+                                  fill="none"
+                                  stroke={meta.color}
+                                  strokeWidth={2}
+                                  opacity={0.3}
+                                  filter="url(#glow)"
+                                />
+                              )}
+                              {/* Main circle */}
                               <circle
                                 cx={node.x!}
                                 cy={node.y!}
                                 r={node.radius}
-                                fill={isCenter ? 'var(--accent)' : 'var(--bg-card)'}
+                                fill={isCenter ? meta.color : 'var(--bg-card)'}
                                 stroke={meta.color}
-                                strokeWidth={isCenter ? 3 : 2}
+                                strokeWidth={isCenter ? 2.5 : 1.5}
+                                filter={isCenter ? 'url(#glow)' : isHovered ? 'url(#soft-glow)' : undefined}
                               />
-                              <text
-                                x={node.x!}
-                                y={node.y! + node.radius + 14}
-                                textAnchor="middle"
-                                fill="var(--text-primary)"
-                                fontSize={isCenter ? 11 : 10}
-                                fontWeight={isCenter ? 600 : 400}
-                              >
-                                {node.name.length > 6 ? node.name.slice(0, 6) + '…' : node.name}
-                              </text>
+                              {/* Inner highlight */}
+                              <circle
+                                cx={node.x!}
+                                cy={node.y! - node.radius * 0.2}
+                                r={node.radius * 0.5}
+                                fill="white"
+                                opacity={0.1}
+                              />
+                              {/* Count text */}
                               <text
                                 x={node.x!}
                                 y={node.y! + 4}
                                 textAnchor="middle"
-                                fill={isCenter ? '#fff' : 'var(--text-muted)'}
-                                fontSize={9}
-                                fontWeight={600}
+                                fill={isCenter ? '#fff' : 'var(--text-primary)'}
+                                fontSize={isCenter ? 12 : 10}
+                                fontWeight={700}
                               >
                                 {node.refCount}
+                              </text>
+                              {/* Name label */}
+                              <text
+                                x={node.x!}
+                                y={node.y! + node.radius + 16}
+                                textAnchor="middle"
+                                fill="var(--text-primary)"
+                                fontSize={isCenter ? 11 : 9.5}
+                                fontWeight={isCenter ? 600 : 400}
+                              >
+                                {node.name.length > 8 ? node.name.slice(0, 8) + '…' : node.name}
                               </text>
                             </g>
                           )
@@ -839,20 +873,13 @@ export default function BacklinkPanel() {
                         const meta = TYPE_META[type]
                         return (
                           <span key={type} className="backlink-graph__legend-item">
-                            <span
-                              className="backlink-graph__legend-dot"
-                              style={{ background: meta.color }}
-                            />
+                            <span className="backlink-graph__legend-dot" style={{ background: meta.color }} />
                             {t(meta.label)}
-                                                      </span>
+                          </span>
                         )
                       })}
-                      <span className="backlink-graph__legend-item">
-                        <span className="backlink-graph__legend-line" />
-                        {t('共现次数')}
-                      </span>
                     </div>
-                    <div className="backlink-graph__tip">{t('点击节点查看该实体详情')}</div>
+                    <div className="backlink-graph__tip">{t('拖拽节点调整布局 · 点击查看详情')}</div>
                   </div>
                 ) : (
                   /* ── Normal Detail View ── */
@@ -1463,62 +1490,46 @@ export default function BacklinkPanel() {
         }
         .backlink-graph__canvas-wrap {
           flex: 1;
-          min-height: 200px;
-          background: var(--bg-surface);
+          min-height: 250px;
+          background: radial-gradient(ellipse at center, var(--bg-surface) 0%, var(--bg-base) 100%);
           border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius);
           overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: inset 0 0 40px rgba(0,0,0,0.15);
         }
         .backlink-graph__svg {
           max-width: 100%;
           max-height: 100%;
         }
-        .backlink-graph__edge {
-          transition: opacity 0.15s, stroke 0.15s;
-        }
-        .backlink-graph__node {
-          transition: opacity 0.15s;
-        }
-        .backlink-graph__node circle {
-          transition: stroke-width 0.15s;
-        }
-        .backlink-graph__node:hover circle {
-          stroke-width: 3;
-        }
         .backlink-graph__legend {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
-          gap: 10px;
-          padding: 8px 0 4px;
+          gap: 12px;
+          padding: 10px 0 4px;
           font-size: var(--fs-xs);
           color: var(--text-muted);
         }
         .backlink-graph__legend-item {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 5px;
         }
         .backlink-graph__legend-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-        }
-        .backlink-graph__legend-line {
-          display: inline-block;
-          width: 16px;
-          height: 2px;
-          background: var(--border);
-          border-radius: 1px;
+          box-shadow: 0 0 4px currentColor;
         }
         .backlink-graph__tip {
           font-size: var(--fs-xs);
           color: var(--text-muted);
           text-align: center;
-          padding-top: 4px;
+          padding-top: 6px;
+          opacity: 0.7;
         }
 
         /* ── Top view toggle ── */
