@@ -101,6 +101,8 @@ export default function NoteMarkdown({
         } catch {
           /* keep raw */
         }
+        // wiki: 协议（旧笔记 [[名称]] 转换而来）→ 提取名称
+        if (href.startsWith('wiki:')) href = href.slice(5)
         const name = href.split('/').pop()?.replace(/\.md$/i, '') || ''
         const type = linkTypeMap.get(name)
         if (type && LINK_TYPE_COLORS[type]) {
