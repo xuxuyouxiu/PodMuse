@@ -108,65 +108,131 @@ export default function NotesPanel() {
     [t],
   )
 
-  // 解析链接 href → 绝对路径
-  const resolveHref = useCallback(
-    (href: string): string | null => {
-      if (!rootDir) return null
-      if (href.startsWith('file://')) return decodeURIComponent(href.slice(7))
-      if (href.startsWith('/') || /^[a-zA-Z]:/.test(href)) return href.replace(/\\/g, '/')
-      if (!currentPath) return null
-      const normPath = currentPath.replace(/\\/g, '/')
-      const base = normPath.substring(0, normPath.lastIndexOf('/') + 1)
-      const parts = (base + href).split('/')
-      const stack: string[] = []
-      for (const p of parts) {
-        if (p === '..') stack.pop()
-        else if (p === '.' || p === '') continue
-        else stack.push(p)
+  // 解析链接 href → 候选绝对路径列表（相对当前笔记 + 库根全局，Obsidian 语义）
+  const resolveHrefs = useCallback(
+    (href: string): string[] => {
+      if (!rootDir) return []
+      // marked 会把中文路径 URL 编码（../项目/xxx.md → ../%E9%A1%B9...），需先解码
+      let decoded = href
+      try {
+        decoded = decodeURIComponent(href)
+      } catch {
+        /* 解码失败用原始值 */
       }
-      return stack.join('/')
+      if (decoded.startsWith('file://')) return [decoded.slice(7).replace(/\\/g, '/')]
+      if (decoded.startsWith('/') || /^[a-zA-Z]:/.test(decoded)) {
+        return [decoded.replace(/\\/g, '/')]
+      }
+
+      const root = rootDir.replace(/\\/g, '/')
+      const candidates: string[] = []
+      const seen = new Set<string>()
+
+      const normalize = (input: string): string => {
+        const parts = input.split('/')
+        const stack: string[] = []
+        for (const p of parts) {
+          if (p === '..') stack.pop()
+          else if (p === '.' || p === '') continue
+          else stack.push(p)
+        }
+        return stack.join('/')
+      }
+
+      // 1) 相对当前笔记目录
+      if (currentPath) {
+        const normPath = currentPath.replace(/\\/g, '/')
+        const base = normPath.substring(0, normPath.lastIndexOf('/') + 1)
+        const abs = normalize(base + decoded)
+        if (abs.startsWith(root) && abs.length > root.length && !seen.has(abs)) {
+          candidates.push(abs)
+          seen.add(abs)
+        }
+      }
+
+      // 2) 从库根解析（处理作者漏写 ../ 的情况）
+      const rootAbs = normalize(root + '/' + decoded)
+      if (!seen.has(rootAbs)) {
+        candidates.push(rootAbs)
+        seen.add(rootAbs)
+      }
+
+      // 3) 去掉首段 .. 后从库根解析（../项目/x.md → 项目/x.md）
+      const stripped = decoded.replace(/^(?:\.\.\/)+/, '')
+      if (stripped !== decoded) {
+        const strippedAbs = normalize(root + '/' + stripped)
+        if (!seen.has(strippedAbs)) {
+          candidates.push(strippedAbs)
+          seen.add(strippedAbs)
+        }
+      }
+
+      return candidates
     },
     [rootDir, currentPath],
   )
 
-  const loadPreview = useCallback((absPath: string, anchor: DOMRect) => {
-    // 用 portal 渲染到 body，位置基于 viewport 坐标
-    const left = Math.min(anchor.left, window.innerWidth - 360)
-    const top = Math.min(anchor.bottom + 8, window.innerHeight - 320)
-    setPreviewLoading(true)
-    setPreview({ content: '', name: '', left, top })
-    window.electronAPI
-      .readNote(absPath)
-      .then(res => {
-        setPreviewLoading(false)
-        if (res.success && res.content) {
-          setPreview({
-            content: res.content,
-            name: res.filename?.replace(/\.md$/i, '') || '',
-            left,
-            top,
-          })
-        } else {
-          setPreview({ content: '', name: '', left, top })
+  // 从候选列表中读取第一个存在的笔记
+  const readFirstExisting = useCallback(
+    (
+      candidates: string[],
+    ): Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }> => {
+      let index = 0
+      const tryNext = (): Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }> => {
+        if (index >= candidates.length) {
+          return Promise.resolve({ success: false, error: '笔记不存在' })
         }
-      })
-      .catch(() => {
-        setPreviewLoading(false)
-        setPreview({ content: '', name: '', left, top })
-      })
-  }, [])
+        const abs = candidates[index]
+        index++
+        return window.electronAPI.readNote(abs).then(res => {
+          if (res.success) return res
+          return tryNext()
+        })
+      }
+      return tryNext()
+    },
+    [],
+  )
+
+  const loadPreview = useCallback(
+    (href: string, anchor: DOMRect) => {
+      // 用 portal 渲染到 body，位置基于 viewport 坐标
+      const left = Math.min(anchor.left, window.innerWidth - 360)
+      const top = Math.min(anchor.bottom + 8, window.innerHeight - 320)
+      setPreviewLoading(true)
+      setPreview({ content: '', name: '', left, top })
+      readFirstExisting(resolveHrefs(href))
+        .then(res => {
+          setPreviewLoading(false)
+          if (res.success && res.content) {
+            setPreview({
+              content: res.content,
+              name: res.filename?.replace(/\.md$/i, '') || '',
+              left,
+              top,
+            })
+          } else {
+            setPreview({ content: '', name: '', left, top })
+          }
+        })
+        .catch(() => {
+          setPreviewLoading(false)
+          setPreview({ content: '', name: '', left, top })
+        })
+    },
+    [readFirstExisting, resolveHrefs],
+  )
 
   const handleLinkHover = useCallback(
     (href: string, el: HTMLElement) => {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
       if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
-      const abs = resolveHref(href)
-      if (!abs) return
+      if (resolveHrefs(href).length === 0) return
       hoverTimerRef.current = setTimeout(() => {
-        loadPreview(abs, el.getBoundingClientRect())
+        loadPreview(href, el.getBoundingClientRect())
       }, 300)
     },
-    [resolveHref, loadPreview],
+    [resolveHrefs, loadPreview],
   )
 
   const handleLinkLeave = useCallback(() => {
@@ -177,13 +243,19 @@ export default function NotesPanel() {
 
   const handleLinkClick = useCallback(
     (href: string) => {
-      const abs = resolveHref(href)
-      if (!abs) return
-      const name = abs.split('/').pop()?.replace(/\.md$/i, '') || ''
-      openNote(abs, name)
-      setPreview(null)
+      readFirstExisting(resolveHrefs(href)).then(res => {
+        if (res.success && res.content && res.path) {
+          const name = res.filename?.replace(/\.md$/i, '') || ''
+          setCurrentPath(res.path)
+          setCurrentName(name)
+          setCurrentContent(res.content)
+          setReaderLoading(false)
+          setReaderError('')
+          setPreview(null)
+        }
+      })
     },
-    [resolveHref, openNote],
+    [readFirstExisting, resolveHrefs],
   )
 
   const toggleGroup = (dir: string) => {
@@ -328,12 +400,7 @@ export default function NotesPanel() {
                 content={preview.content}
                 className="notes-preview-pop__body"
                 onLinkClick={href => {
-                  const abs = resolveHref(href)
-                  if (abs) {
-                    const name = abs.split('/').pop()?.replace(/\.md$/i, '') || ''
-                    openNote(abs, name)
-                  }
-                  setPreview(null)
+                  handleLinkClick(href)
                 }}
               />
             ) : (

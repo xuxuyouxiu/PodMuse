@@ -196,7 +196,7 @@ declare global {
       searchEnhanced: (params: SearchParams) => Promise<SearchResponse>
       searchFacets: () => Promise<SearchFacets>
       openPath: (filePath: string) => Promise<boolean>
-      readNote: (filePath: string) => Promise<{ success: boolean; content?: string; filename?: string; error?: string }>
+      readNote: (filePath: string) => Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }>
       listNotes: () => Promise<{ success: boolean; groups?: NoteDirGroup[]; rootDir?: string | null; error?: string }>
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>

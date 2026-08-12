@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.13] - 2026-08-12
+
+### 修复
+- 笔记库链接悬停预览全部显示「笔记不存在」：marked v18 会把中文路径 URL 编码（`../项目/x.md` → `../%E9%A1%B9...`），解析前未解码导致路径找不到。现在先 decodeURIComponent 再解析
+- 链接解析改为候选列表逐个尝试（相对当前笔记目录 → 库根目录 → 去 `../` 前缀），兼容 AI 生成时漏写 `../` 的链接（Obsidian wiki-link 全局解析语义）
+
 ## [1.21.12] - 2026-08-12
 
 ### 重构

@@ -46,7 +46,7 @@ export function registerNoteIpc(): void {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8')
-      return { success: true, content, filename: path.basename(filePath) }
+      return { success: true, content, filename: path.basename(filePath), path: filePath }
     } catch (e) {
       return { success: false, error: (e as Error).message || '读取失败' }
     }
