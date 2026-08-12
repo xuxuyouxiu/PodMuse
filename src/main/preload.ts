@@ -73,6 +73,7 @@ try {
     searchFacets: () => ipcRenderer.invoke('search:facets'),
     openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
     readNote: (filePath: string) => ipcRenderer.invoke('notes:read', filePath),
+    listNotes: () => ipcRenderer.invoke('notes:list'),
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),

@@ -9,11 +9,12 @@ import {
   Link2,
   LayoutDashboard,
   Search,
+  BookOpen,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
 
-export type SidebarView = 'workspace' | 'backlinks' | 'search'
+export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search'
 
 interface Props {
   activeView: SidebarView
@@ -64,13 +65,23 @@ export default function WorkspaceSidebar({
       <nav className="workspace-sidebar__nav" aria-label="main-navigation">
         <motion.button
           type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'notes' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('notes')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <BookOpen size={16} />
+          {t("笔记库")}
+        </motion.button>
+        <motion.button
+          type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'workspace' ? 'is-active' : ''}`}
           onClick={() => onViewChange('workspace')}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <LayoutDashboard size={16} />
-          {t("笔记")}
+          {t("工作台")}
         </motion.button>
         <motion.button
           type="button"

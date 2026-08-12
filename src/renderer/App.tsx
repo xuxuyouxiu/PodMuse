@@ -25,6 +25,7 @@ import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import type { SidebarView } from './components/WorkspaceSidebar'
 import BacklinkPanel from './components/BacklinkPanel'
+import NotesPanel from './components/NotesPanel'
 import SearchPanel from './components/SearchPanel'
 import BatchConfirmPanel from './components/BatchConfirmPanel'
 import BatchQueuePanel from './components/BatchQueuePanel'
@@ -728,6 +729,18 @@ export default function App() {
                   </div>
                 </div>
               </aside>
+            </motion.div>
+          )}
+          {activeView === 'notes' && (
+            <motion.div
+              className="workspace-body"
+              key="notes"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <NotesPanel />
             </motion.div>
           )}
           {activeView === 'backlinks' && (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, ExternalLink, Loader2 } from 'lucide-react'
-import { marked } from 'marked'
+import NoteMarkdown from './NoteMarkdown'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -8,11 +8,6 @@ interface Props {
   filename?: string
   obsidianDir?: string
   onClose: () => void
-}
-
-/** 简单清理：移除 script 标签等危险内容 */
-function sanitizeHtml(html: string): string {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, '')
 }
 
 /**
@@ -46,20 +41,6 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
       cancelled = true
     }
   }, [filePath, t])
-
-  // 渲染 markdown（移除 frontmatter）
-  const renderHtml = () => {
-    let md = content
-    const fmEnd = md.indexOf('\n---', 3)
-    if (md.startsWith('---') && fmEnd > 0) {
-      md = md.substring(fmEnd + 4)
-    }
-    try {
-      return sanitizeHtml(marked.parse(md, { breaks: true }) as string)
-    } catch {
-      return `<pre>${md.replace(/</g, '&lt;')}</pre>`
-    }
-  }
 
   return (
     <div
@@ -96,10 +77,7 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
           ) : error ? (
             <div className="note-preview__status note-preview__status--error">{error}</div>
           ) : (
-            <div
-              className="note-preview__markdown markdown-body"
-              dangerouslySetInnerHTML={{ __html: renderHtml() }}
-            />
+            <NoteMarkdown content={content} />
           )}
         </div>
       </div>

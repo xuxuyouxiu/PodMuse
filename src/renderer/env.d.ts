@@ -18,6 +18,18 @@ interface NoteSearchResult {
   type: string
 }
 
+interface NoteFileEntry {
+  name: string
+  path: string
+  relPath: string
+  mtime: number
+}
+
+interface NoteDirGroup {
+  dir: string
+  files: NoteFileEntry[]
+}
+
 interface WhisperModelInfo {
   id: string
   label: string
@@ -185,6 +197,7 @@ declare global {
       searchFacets: () => Promise<SearchFacets>
       openPath: (filePath: string) => Promise<boolean>
       readNote: (filePath: string) => Promise<{ success: boolean; content?: string; filename?: string; error?: string }>
+      listNotes: () => Promise<{ success: boolean; groups?: NoteDirGroup[]; rootDir?: string | null; error?: string }>
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>
