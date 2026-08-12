@@ -9,7 +9,7 @@ import {
   BatchCompletionSummary,
   BatchTask,
 } from '@shared/types'
-import { Zap, Clock, FolderOpen, RotateCcw } from 'lucide-react'
+import { Zap, Clock, FolderOpen } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useI18n } from './i18n'
 import Header from './components/Header'
@@ -553,7 +553,7 @@ export default function App() {
           recentTasks={recentTasks}
         />
         <div className="workspace-main">
-          <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} />
+          <Header theme={theme} onToggleTheme={toggleTheme} status={feishuStatus} onRefresh={handleResetView} />
           <AnimatePresence mode="wait">
           {activeView === 'workspace' && (
             <motion.div
@@ -599,17 +599,6 @@ export default function App() {
                           <span className="workspace-hero__meta-label">{t('当前节目')}</span>
                           <span className="workspace-hero__meta-value">{currentTitle}</span>
                         </div>
-                      )}
-                      {!processing && (
-                        <button
-                          className="hero-open-btn"
-                          onClick={handleResetView}
-                          title={t('重置视图')}
-                          style={{ marginRight: config?.obsidian_dir ? 6 : 0 }}
-                        >
-                          <RotateCcw size={12} />
-                          {t('重置')}
-                        </button>
                       )}
                       {config?.obsidian_dir && (
                         <button

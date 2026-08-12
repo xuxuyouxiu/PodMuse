@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.4] - 2026-08-12
+
+### 改进
+- 刷新按钮移至右上角顶栏，改名为「刷新」
+
 ## [1.21.3] - 2026-08-12
 
 ### 改进

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Minus, Square, X, Sun, Moon, Search, Languages } from 'lucide-react'
+import { Minus, Square, X, Sun, Moon, Search, Languages, RotateCcw } from 'lucide-react'
 import { FeishuStatus } from '@shared/types'
 import StatusBar from './StatusBar'
 import { useI18n } from '../i18n'
@@ -15,9 +15,10 @@ interface HeaderProps {
   theme: 'dark' | 'light'
   onToggleTheme: () => void
   status: FeishuStatus
+  onRefresh?: () => void
 }
 
-export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
+export default function Header({ theme, onToggleTheme, status, onRefresh }: HeaderProps) {
   const { lang, setLang, t } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -195,6 +196,12 @@ export default function Header({ theme, onToggleTheme, status }: HeaderProps) {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <StatusBar status={status} />
+          {onRefresh && (
+            <button onClick={onRefresh} className="topbar-theme-btn" title={t('刷新')}>
+              <RotateCcw size={14} />
+              {t('刷新')}
+            </button>
+          )}
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
             className="topbar-theme-btn"
