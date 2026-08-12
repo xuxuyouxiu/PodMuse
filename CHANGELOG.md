@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.9] - 2026-08-12
+
+### 新增
+- 应用内笔记预览：批量处理完成报告的每个任务新增「预览」按钮，直接查看渲染后的 Markdown 笔记，无需跳转 Obsidian
+
 ## [1.21.8] - 2026-08-12
 
 ### 修复

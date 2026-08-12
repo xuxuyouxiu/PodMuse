@@ -15,8 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  FileText,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
+import NotePreviewDialog from './NotePreviewDialog'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
 interface Props {
@@ -105,6 +107,8 @@ function SummaryView({
   const total = summary.succeeded + summary.failed + summary.skipped
   const rate = total > 0 ? Math.round((summary.succeeded / total) * 100) : 0
   const allSuccess = summary.failed === 0 && summary.skipped === 0
+  const [previewPath, setPreviewPath] = useState<string | null>(null)
+  const [previewName, setPreviewName] = useState<string>('')
 
   return (
     <div className="bq-report">
@@ -170,18 +174,33 @@ function SummaryView({
                 </td>
                 <td className="bq-report__td bq-report__td--action">
                   {task.filename && obsidianDir && (
-                    <motion.button
-                      className="bq-report__btn bq-report__btn--open"
-                      onClick={() => {
-                        const p = obsidianDir.replace(/[/\\]$/, '') + '/' + task.filename
-                        window.electronAPI.openPath(p)
-                      }}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                    >
-                      <ExternalLink size={11} />
-                      {t('打开')}
-                    </motion.button>
+                    <>
+                      <motion.button
+                        className="bq-report__btn bq-report__btn--preview"
+                        onClick={() => {
+                          const p = obsidianDir.replace(/[/\\]$/, '') + '/' + task.filename
+                          setPreviewPath(p)
+                          setPreviewName(task.title || task.filename || '')
+                        }}
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                      >
+                        <FileText size={11} />
+                        {t('预览')}
+                      </motion.button>
+                      <motion.button
+                        className="bq-report__btn bq-report__btn--open"
+                        onClick={() => {
+                          const p = obsidianDir.replace(/[/\\]$/, '') + '/' + task.filename
+                          window.electronAPI.openPath(p)
+                        }}
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                      >
+                        <ExternalLink size={11} />
+                        {t('打开')}
+                      </motion.button>
+                    </>
                   )}
                 </td>
               </tr>
@@ -238,6 +257,13 @@ function SummaryView({
           {t('关闭')}
         </motion.button>
       </div>
+      {previewPath && (
+        <NotePreviewDialog
+          filePath={previewPath}
+          filename={previewName}
+          onClose={() => setPreviewPath(null)}
+        />
+      )}
     </div>
   )
 }
@@ -471,6 +497,11 @@ export default function BatchQueuePanel({
           .bq-report__btn--open:hover {
             background: var(--accent-glow);
             border-color: var(--accent);
+          }
+          .bq-report__btn--preview { color: var(--success); }
+          .bq-report__btn--preview:hover {
+            background: rgba(34,197,94,.08);
+            border-color: var(--success);
           }
           .bq-report__btn--retry { color: var(--warning); }
           .bq-report__btn--retry:hover {
@@ -1056,6 +1087,11 @@ export default function BatchQueuePanel({
         .bq-report__btn--open:hover {
           background: var(--accent-glow);
           border-color: var(--accent);
+        }
+        .bq-report__btn--preview { color: var(--success); }
+        .bq-report__btn--preview:hover {
+          background: rgba(34,197,94,.08);
+          border-color: var(--success);
         }
         .bq-report__btn--retry { color: var(--warning); }
         .bq-report__btn--retry:hover {
