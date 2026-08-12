@@ -40,8 +40,11 @@ export function normalizeLinkName(name: string): string {
     .trim()
 }
 
-// ── Wiki-link regex (matches [[name]] but not [[name|alias]]) ──
+// ── Link regex patterns ──
+// Wiki-link: matches [[name]] but not [[name|alias]]
 const WIKILINK_RE = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g
+// Standard markdown link: matches [name](path)
+const MD_LINK_RE = /\[([^\]]+)\]\([^)]+\)/g
 
 // ── Frontmatter parser (read first ~30 lines) ──
 
@@ -117,13 +120,22 @@ function parseFrontmatter(filePath: string): FrontmatterMeta {
 // Export parseFrontmatter so search module can reuse it
 export { parseFrontmatter }
 
-// ── Extract wiki-link names from arbitrary markdown content ──
+// ── Extract link names from arbitrary markdown content ──
+// Supports both [[wiki-link]] and [name](path) formats
 export function extractWikiLinks(content: string): string[] {
   const links: string[] = []
   let match: RegExpExecArray | null
+  // Match [[wiki-link]] format
   WIKILINK_RE.lastIndex = 0
   while ((match = WIKILINK_RE.exec(content)) !== null) {
     links.push(match[1])
+  }
+  // Match [name](path) standard markdown link format
+  MD_LINK_RE.lastIndex = 0
+  while ((match = MD_LINK_RE.exec(content)) !== null) {
+    // Skip if this is inside a wiki-link (already captured)
+    const name = match[1]
+    if (!links.includes(name)) links.push(name)
   }
   return links
 }

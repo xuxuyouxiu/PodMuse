@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.0] - 2026-08-12
+
+### 改进
+- 笔记链接格式从 Obsidian wiki-link (`[[名称]]`) 改为标准 Markdown 链接 (`[名称](路径.md)`)，兼容所有 Markdown 编辑器（Typora、VS Code 等），不再依赖 Obsidian
+- 实体卡片的「来源内容」和「相关概念/术语」链接使用相对路径，可直接点击跳转
+- 播客笔记正文中的实体链接在写入前自动转换为标准格式
+- 向后兼容：反向链接索引同时支持新旧两种链接格式解析
+- 导出为纯文本时正确去除标准 Markdown 链接语法
+
 ## [1.20.2] - 2026-08-07
 
 ### 修复

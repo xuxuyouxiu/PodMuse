@@ -10,6 +10,7 @@ import {
   fillMissingTermCards,
   extractBodyWikiLinks,
   fillMissingEntityCards,
+  convertWikiLinks,
 } from './entity-cards'
 import { isSubPathOf } from './security'
 import {
@@ -841,6 +842,38 @@ export async function processPodcast(
     log(`  📁 已创建笔记目录: ${obsDir}`)
   }
 
+  // 提前解析 category，用于计算实体卡片→播客笔记的相对路径和确定存储目录
+  const filename = cleanTitleForFilename(title || '未命名播客')
+  const category = parseCategory(notes.content || '')
+  let podcastRelPath = `${filename}.md`
+  let targetDir = obsDir
+
+  if (category) {
+    const cleanedCategory = category
+      .replace(/\.\./g, '')
+      .replace(/[<>:"|?*\x00-\x1f]/g, '_')
+      .trim()
+
+    if (cleanedCategory && !cleanedCategory.includes('/') && !cleanedCategory.includes('\\')) {
+      const candidateDir = path.join(obsDir, cleanedCategory)
+      if (isSubPathOf(candidateDir, obsDir)) {
+        targetDir = candidateDir
+        podcastRelPath = `${cleanedCategory}/${filename}.md`
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true })
+          log(`  📁 已创建分类文件夹: ${cleanedCategory}`)
+        }
+        log(`  📂 笔记分类: ${cleanedCategory}`)
+      } else {
+        log(`  ⚠ 分类路径不安全，已忽略: ${category}`)
+      }
+    } else {
+      log(`  ⚠ 分类名称包含非法字符，已忽略: ${category}`)
+    }
+  } else {
+    log(`  ⚠ 未检测到分类信息，笔记将保存到根目录`)
+  }
+
   if (
     finalEntities.people.length ||
     finalEntities.projects.length ||
@@ -861,7 +894,8 @@ export async function processPodcast(
       {
         entities: finalEntities,
         obsidianDir: obsDir,
-        podcastFilename: `${cleanTitleForFilename(title || '未命名播客')}.md`,
+        podcastFilename: `${filename}.md`,
+        podcastRelativePath: podcastRelPath,
         podcastTitle: title || '未命名播客',
         podcastDate,
         podcastEpisode,
@@ -885,40 +919,21 @@ export async function processPodcast(
     log(`  🃏 生成实体卡片: ${parts.join(', ')}`)
   }
 
-  const filename = cleanTitleForFilename(title || '未命名播客')
-
-  // 解析笔记中的 category 字段，按分类存储到对应文件夹
-  const category = parseCategory(notes.content || '')
-  let targetDir = obsDir
-
-  if (category) {
-    // 安全检查：category 来自 AI 输出（不可信来源），需防止路径遍历
-    const cleanedCategory = category
-      .replace(/\.\./g, '') // 移除 .. 防止路径遍历
-      .replace(/[<>:"|?*\x00-\x1f]/g, '_') // 移除非法字符
-      .trim()
-
-    if (cleanedCategory && !cleanedCategory.includes('/') && !cleanedCategory.includes('\\')) {
-      const candidateDir = path.join(obsDir, cleanedCategory)
-      // 二次验证：确保解析后的路径仍在 obsDir 范围内
-      if (isSubPathOf(candidateDir, obsDir)) {
-        targetDir = candidateDir
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true })
-          log(`  📁 已创建分类文件夹: ${cleanedCategory}`)
-        }
-        log(`  📂 笔记分类: ${cleanedCategory}`)
-      } else {
-        log(`  ⚠ 分类路径不安全，已忽略: ${category}`)
-      }
-    } else {
-      log(`  ⚠ 分类名称包含非法字符，已忽略: ${category}`)
-    }
-  } else {
-    log(`  ⚠ 未检测到分类信息，笔记将保存到根目录`)
-  }
-
   const filepath = path.join(targetDir, `${filename}.md`)
+
+  // ===== Post-process: 将正文中的 [[wiki links]] 转换为标准 Markdown 链接 =====
+  const entityMap = new Map<string, string>()
+  for (const entityDir of ['人物', '项目', '概念', '术语']) {
+    const dir = path.join(obsDir, entityDir)
+    if (!fs.existsSync(dir)) continue
+    for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.md'))) {
+      const name = file.replace(/\.md$/i, '')
+      entityMap.set(name, path.join(dir, file))
+    }
+  }
+  const noteDir = path.dirname(filepath)
+  notes.content = convertWikiLinks(notes.content, noteDir, entityMap)
+
   fs.writeFileSync(filepath, notes.content, 'utf-8')
 
   log(`  📝 笔记已保存: ${path.relative(obsDir, filepath)}`)

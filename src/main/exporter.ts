@@ -5,14 +5,16 @@ import { exportToNotion, testNotionConnection } from './notion-converter'
 import type { ExportResult } from './exporter-types'
 
 /**
- * 把 markdown 内容中的 Obsidian wiki-link 转换为纯文本
- * - [[xxx|alias]] → alias（有 alias 时取 alias）
- * - [[xxx]]       → xxx（无 alias 时取链接目标）
+ * 把 markdown 内容中的链接转换为纯文本
+ * - [[xxx|alias]] → alias（wiki-link 有 alias 时取 alias）
+ * - [[xxx]]       → xxx（wiki-link 无 alias 时取链接目标）
+ * - [xxx](path)   → xxx（标准 Markdown 链接取显示文本）
  */
 export function stripWikiLinks(content: string): string {
   return content
     .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2') // [[xxx|alias]] → alias
     .replace(/\[\[([^\]]+)\]\]/g, '$1') // [[xxx]] → xxx
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [xxx](path) → xxx
 }
 
 /**

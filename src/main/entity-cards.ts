@@ -175,10 +175,41 @@ export function sanitizeName(name: string): string {
   )
 }
 
+/**
+ * 计算从 fromDir 到 toFile 的相对路径（POSIX 风格，用 / 分隔）
+ * 用于生成标准 Markdown 链接 [name](relative/path.md)
+ */
+export function relativePath(fromDir: string, toFile: string): string {
+  const rel = path.relative(fromDir, toFile).replace(/\\/g, '/')
+  return rel
+}
+
+/**
+ * 将 [[wiki-link]] 转换为标准 Markdown 链接 [wiki-link](relative/path.md)
+ * @param content 笔记内容
+ * @param noteDir 笔记所在目录（用于计算相对路径）
+ * @param entityMap 实体名 → 实体文件绝对路径的映射
+ */
+export function convertWikiLinks(
+  content: string,
+  noteDir: string,
+  entityMap: Map<string, string>,
+): string {
+  return content.replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, (_match, name: string) => {
+    const trimmed = name.trim()
+    const absPath = entityMap.get(trimmed)
+    if (!absPath) return `[${trimmed}](${trimmed}.md)` // fallback
+    const rel = relativePath(noteDir, absPath)
+    return `[${trimmed}](${rel})`
+  })
+}
+
 export interface WriteEntityOptions {
   entities: EntityResult
   obsidianDir: string
   podcastFilename: string
+  /** 播客笔记相对于 obsidianDir 的路径（含分类子目录），如 "科技/某播客.md" */
+  podcastRelativePath?: string
   podcastTitle?: string
   podcastDate?: string
   podcastEpisode?: string
@@ -369,12 +400,18 @@ export async function writeEntityNotes(
     fs.mkdirSync(baseDir, { recursive: true })
   }
 
+  // 计算播客笔记的绝对路径（用于生成标准 Markdown 链接）
+  const podcastRelPath = options.podcastRelativePath || podcastFilename
+  const podcastAbsPath = path.join(baseDir, podcastRelPath)
+  const podcastNameNoExt = podcastFilename.replace(/\.md$/i, '')
+
   for (const person of entities.people) {
     if (!person.name) continue
     const dir = path.join(baseDir, '人物')
     const filePath = path.join(dir, `${sanitizeName(person.name)}.md`)
+    const sourceRelPath = relativePath(dir, podcastAbsPath)
     if (fs.existsSync(filePath)) {
-      appendSourceLink(filePath, podcastFilename)
+      appendSourceLink(filePath, podcastNameNoExt, sourceRelPath)
     } else {
       const tmpl = loadTemplate('People_Template.md')
       const content = fillTemplate(tmpl, {
@@ -384,7 +421,7 @@ export async function writeEntityNotes(
         opinions: (person.opinions || []).map(o => `- ${o}`).join('\n'),
         timeline: person.timeline || '',
         quotes: (person.quotes || []).map(q => `> ${q}`).join('\n'),
-        source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
+        source: `[${podcastNameNoExt}](${sourceRelPath})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -396,8 +433,9 @@ export async function writeEntityNotes(
     if (!project.name) continue
     const dir = path.join(baseDir, '项目')
     const filePath = path.join(dir, `${sanitizeName(project.name)}.md`)
+    const sourceRelPath = relativePath(dir, podcastAbsPath)
     if (fs.existsSync(filePath)) {
-      appendSourceLink(filePath, podcastFilename)
+      appendSourceLink(filePath, podcastNameNoExt, sourceRelPath)
     } else {
       const tmpl = loadTemplate('Project_Template.md')
       const content = fillTemplate(tmpl, {
@@ -407,7 +445,7 @@ export async function writeEntityNotes(
         timeline: project.timeline || '',
         links: project.links || '',
         achievements: (project.achievements || []).map(a => `- ${a}`).join('\n'),
-        source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
+        source: `[${podcastNameNoExt}](${sourceRelPath})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -479,8 +517,9 @@ export async function writeEntityNotes(
     if (!concept.name) continue
     const dir = path.join(baseDir, '概念')
     const filePath = path.join(dir, `${sanitizeName(concept.name)}.md`)
+    const sourceRelPath = relativePath(dir, podcastAbsPath)
     if (fs.existsSync(filePath)) {
-      appendSourceLink(filePath, podcastFilename)
+      appendSourceLink(filePath, podcastNameNoExt, sourceRelPath)
     } else {
       // 使用预获取的定义，或原始解释，或空
       let explanation = concept.explanation || ''
@@ -492,8 +531,8 @@ export async function writeEntityNotes(
         date: today,
         name: concept.name,
         explanation,
-        related: (concept.related || []).map(r => `- [[${r}]]`).join('\n'),
-        source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
+        related: (concept.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
+        source: `[${podcastNameNoExt}](${sourceRelPath})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -508,8 +547,9 @@ export async function writeEntityNotes(
     if (hasRealContext(term)) {
       const dir = path.join(baseDir, '术语')
       const filePath = path.join(dir, `${sanitizeName(term.name)}.md`)
+      const sourceRelPath = relativePath(dir, podcastAbsPath)
       if (fs.existsSync(filePath)) {
-        appendSourceLink(filePath, podcastFilename)
+        appendSourceLink(filePath, podcastNameNoExt, sourceRelPath)
       } else {
         const tmpl = loadTemplate('Term_Template.md')
         const content = fillTemplate(tmpl, {
@@ -518,8 +558,8 @@ export async function writeEntityNotes(
           cardType: term.cardType || '',
           contextExplanation: term.contextExplanation || '',
           supplementary: term.supplementary || '',
-          related: (term.related || []).map(r => `- [[${r}]]`).join('\n'),
-          source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
+          related: (term.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
+          source: `[${podcastNameNoExt}](${sourceRelPath})`,
         })
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
         fs.writeFileSync(filePath, content, 'utf-8')
@@ -534,8 +574,9 @@ export async function writeEntityNotes(
 
       const dir = path.join(baseDir, '概念')
       const filePath = path.join(dir, `${sanitizeName(term.name)}.md`)
+      const sourceRelPath = relativePath(dir, podcastAbsPath)
       if (fs.existsSync(filePath)) {
-        appendSourceLink(filePath, podcastFilename)
+        appendSourceLink(filePath, podcastNameNoExt, sourceRelPath)
       } else {
         const tmpl = loadTemplate('Concept_Template.md')
         const explanation =
@@ -545,8 +586,8 @@ export async function writeEntityNotes(
           date: today,
           name: term.name,
           explanation,
-          related: (term.related || []).map(r => `- [[${r}]]`).join('\n'),
-          source: `[[${podcastFilename.replace(/\.md$/i, '')}]]`,
+          related: (term.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
+          source: `[${podcastNameNoExt}](${sourceRelPath})`,
         })
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
         fs.writeFileSync(filePath, content, 'utf-8')
@@ -567,7 +608,9 @@ export async function writeEntityNotes(
       if (!name) continue
       const filePath = path.join(baseDir, dir, `${sanitizeName(name)}.md`)
       if (fs.existsSync(filePath)) {
-        updateRecentMentions(filePath, podcastFilename, podcastDate, podcastEpisode)
+        const entityDir = path.join(baseDir, dir)
+        const sourceRelPath = relativePath(entityDir, podcastAbsPath)
+        updateRecentMentions(filePath, podcastNameNoExt, sourceRelPath, podcastDate, podcastEpisode)
       }
     }
   }
@@ -575,16 +618,17 @@ export async function writeEntityNotes(
   return result
 }
 
-function appendSourceLink(filePath: string, podcastFilename: string): void {
+function appendSourceLink(filePath: string, linkName: string, relPath: string): void {
   const content = fs.readFileSync(filePath, 'utf-8')
-  const link = `[[${podcastFilename.replace(/\.md$/i, '')}]]`
+  const link = `[${linkName}](${relPath})`
   if (content.includes(link)) return
   fs.appendFileSync(filePath, `\n- ${link}\n`, 'utf-8')
 }
 
 function updateRecentMentions(
   filePath: string,
-  podcastTitle: string,
+  linkName: string,
+  relPath: string,
   podcastDate?: string,
   podcastEpisode?: string,
 ): void {
@@ -595,11 +639,11 @@ function updateRecentMentions(
     return
   }
 
-  const title = podcastTitle.replace(/\.md$/i, '')
   const datePart = podcastDate || ''
   const episodePart = podcastEpisode && podcastEpisode !== '单集' ? ` ${podcastEpisode}` : ''
   const meta = `(${datePart}${episodePart})`.replace(/\(\s*\)/, '').trim()
-  const newEntry = meta ? `- [[${title}]] ${meta}` : `- [[${title}]]`
+  const link = `[${linkName}](${relPath})`
+  const newEntry = meta ? `- ${link} ${meta}` : `- ${link}`
 
   const sectionRe = /\n# 近期提及\n([\s\S]*?)(?=\n# |\n---\s*$|$)/
   const match = content.match(sectionRe)
@@ -609,7 +653,7 @@ function updateRecentMentions(
       .trim()
       .split('\n')
       .filter(l => l.startsWith('- '))
-    const filtered = existingLines.filter(l => !l.includes(`[[${title}]]`))
+    const filtered = existingLines.filter(l => !l.includes(link))
     const updated = [newEntry, ...filtered].slice(0, 3)
     const newSection = `\n# 近期提及\n${updated.join('\n')}\n`
     content = content.replace(sectionRe, newSection)
