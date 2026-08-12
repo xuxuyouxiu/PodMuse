@@ -49,7 +49,14 @@ export default function NotesPanel() {
       .listNotes()
       .then(res => {
         if (res.success) {
-          setGroups(res.groups || [])
+          const list = res.groups || []
+          setGroups(list)
+          // 默认折叠所有分组（实体卡片目录默认收起，播客分类目录展开）
+          const entityDirs = new Set(['人物', '项目', '概念', '术语'])
+          const defaultCollapsed = new Set(
+            list.filter(g => entityDirs.has(g.dir)).map(g => g.dir),
+          )
+          setCollapsed(defaultCollapsed)
           setRootDir(res.rootDir || null)
         } else {
           setError(res.error || t('加载失败'))
@@ -86,9 +93,11 @@ export default function NotesPanel() {
     (href: string): string | null => {
       if (!rootDir) return null
       if (href.startsWith('file://')) return decodeURIComponent(href.slice(7))
-      if (href.startsWith('/') || /^[a-zA-Z]:/.test(href)) return href
+      if (href.startsWith('/') || /^[a-zA-Z]:/.test(href)) return href.replace(/\\/g, '/')
       if (!currentPath) return null
-      const base = currentPath.substring(0, currentPath.lastIndexOf('/') + 1)
+      // Windows 路径可能是反斜杠，统一转正斜杠再处理
+      const normPath = currentPath.replace(/\\/g, '/')
+      const base = normPath.substring(0, normPath.lastIndexOf('/') + 1)
       // 标准化：去 ./ 和 ../
       const parts = (base + href).split('/')
       const stack: string[] = []
@@ -97,8 +106,7 @@ export default function NotesPanel() {
         else if (p === '.' || p === '') continue
         else stack.push(p)
       }
-      const abs = stack.join('/')
-      return abs.replace(/\\/g, '/')
+      return stack.join('/')
     },
     [rootDir, currentPath],
   )

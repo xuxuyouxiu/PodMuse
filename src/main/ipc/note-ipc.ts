@@ -110,7 +110,13 @@ export function registerNoteIpc(): void {
         groups.unshift({ dir: '根目录', files: rootFiles })
       }
 
-      return { success: true, groups, rootDir }
+      // 播客分类目录在前，实体目录（人物/项目/概念/术语）在后
+      const entityDirs = new Set(['人物', '项目', '概念', '术语'])
+      const podcastGroups = groups.filter(g => !entityDirs.has(g.dir))
+      const entityGroups = groups.filter(g => entityDirs.has(g.dir))
+      const orderedGroups = [...podcastGroups, ...entityGroups]
+
+      return { success: true, groups: orderedGroups, rootDir }
     } catch (e) {
       return { success: false, error: (e as Error).message || '扫描失败' }
     }
