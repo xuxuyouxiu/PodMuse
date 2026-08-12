@@ -8,7 +8,6 @@ import {
   Search,
   ChevronRight,
   X,
-  Check,
   Network,
 } from 'lucide-react'
 
@@ -160,42 +159,8 @@ function computeGraph(
 
 // ── Sentence-level diff ──
 
-function splitSentences(text: string): string[] {
-  return text.split(/(?<=[。！？.!?]\s*)/).filter(s => s.trim().length > 0)
-}
 
-interface DiffSegment {
-  text: string
-  type: 'common' | 'added' | 'removed'
-}
 
-function computeSentenceDiff(older: string, newer: string): DiffSegment[] {
-  const oldSentences = splitSentences(older)
-  const newSentences = splitSentences(newer)
-
-  const oldSet = new Set(oldSentences.map(s => s.trim()))
-  const newSet = new Set(newSentences.map(s => s.trim()))
-
-  const segments: DiffSegment[] = []
-
-  for (const sentence of newSentences) {
-    const trimmed = sentence.trim()
-    if (oldSet.has(trimmed)) {
-      segments.push({ text: sentence, type: 'common' })
-    } else {
-      segments.push({ text: sentence, type: 'added' })
-    }
-  }
-
-  for (const sentence of oldSentences) {
-    const trimmed = sentence.trim()
-    if (!newSet.has(trimmed)) {
-      segments.push({ text: sentence, type: 'removed' })
-    }
-  }
-
-  return segments
-}
 
 // ── Component ──
 
@@ -207,8 +172,6 @@ export default function BacklinkPanel() {
   const [activeTab, setActiveTab] = useState<string>('people')
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
   const [showAllCo, setShowAllCo] = useState(false)
-  const [compareMode, setCompareMode] = useState(false)
-  const [compareSelections, setCompareSelections] = useState<Set<string>>(new Set())
   const [graphMode, setGraphMode] = useState(false)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 
@@ -291,10 +254,6 @@ export default function BacklinkPanel() {
   const displayedCo = showAllCo ? coEntities : coEntities.slice(0, 5)
 
   // Compare mode: selected refs
-  const compareRefs = useMemo(() => {
-    if (!selectedEntry) return []
-    return selectedEntry.podcastRefs.filter(ref => compareSelections.has(ref.path))
-  }, [selectedEntry, compareSelections])
 
   // Graph data computation
   const graphData = useMemo(() => {
@@ -397,8 +356,6 @@ export default function BacklinkPanel() {
   function handleTabChange(type: string) {
     setActiveTab(type)
     setShowAllCo(false)
-    setCompareMode(false)
-    setCompareSelections(new Set())
     setGraphMode(false)
     setHoveredNode(null)
     const first = index.find(e => e.entityType === type)
@@ -409,8 +366,6 @@ export default function BacklinkPanel() {
   function handleEntityClick(name: string) {
     setSelectedEntity(name)
     setShowAllCo(false)
-    setCompareMode(false)
-    setCompareSelections(new Set())
     setGraphMode(false)
     setHoveredNode(null)
   }
@@ -419,28 +374,11 @@ export default function BacklinkPanel() {
     if (type !== activeTab) setActiveTab(type)
     setSelectedEntity(name)
     setShowAllCo(false)
-    setCompareMode(false)
-    setCompareSelections(new Set())
     setGraphMode(false)
     setHoveredNode(null)
   }
 
-  function toggleCompareMode() {
-    setCompareMode(!compareMode)
-    setCompareSelections(new Set())
-  }
 
-  function toggleCompareSelection(path: string) {
-    setCompareSelections(prev => {
-      const next = new Set(prev)
-      if (next.has(path)) {
-        next.delete(path)
-      } else {
-        if (next.size < 3) next.add(path)
-      }
-      return next
-    })
-  }
 
   function toggleGraphMode() {
     setGraphMode(!graphMode)
@@ -823,155 +761,6 @@ export default function BacklinkPanel() {
                     </div>
                     <div className="backlink-graph__tip">{t('点击节点查看该实体详情')}</div>
                   </div>
-                ) : compareMode ? (
-                  /* ── Compare View ── */
-                  <div className="backlink-compare">
-                    <div className="backlink-compare__header">
-                      <span className="backlink-compare__title">{t('选择 2-3 期对比')}</span>
-                      <button className="backlink-compare__close" onClick={toggleCompareMode}>
-                        <X size={14} />
-                      </button>
-                    </div>
-
-                    {/* Selection bar */}
-                    <div className="backlink-compare__bar">
-                      <span className="backlink-compare__bar-label">
-                        {t('已选')} <strong>{compareSelections.size}</strong> / 3
-                      </span>
-                      {compareSelections.size >= 2 && (
-                        <span className="backlink-compare__hint">
-                          {t('选择完成，点击下方卡片查看对比')}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Selectable timeline */}
-                    <div className="backlink-compare__list">
-                      {selectedEntry.podcastRefs.map(ref => {
-                        const isSelected = compareSelections.has(ref.path)
-                        return (
-                          <div
-                            key={ref.path}
-                            className={`backlink-tl ${isSelected ? 'backlink-tl--selected' : ''}`}
-                            onClick={() => toggleCompareSelection(ref.path)}
-                          >
-                            <div className="backlink-tl__checkbox">
-                              {isSelected && <Check size={12} />}
-                            </div>
-                            <div className="backlink-tl__body">
-                              <div className="backlink-tl__meta">
-                                {ref.date && <span className="backlink-tl__date">{ref.date}</span>}
-                                {ref.episode && (
-                                  <>
-                                    <span className="backlink-tl__sep">·</span>
-                                    <span className="backlink-tl__ep">{ref.episode}</span>
-                                  </>
-                                )}
-                                {ref.show && (
-                                  <>
-                                    <span className="backlink-tl__sep">·</span>
-                                    <span className="backlink-tl__show">{ref.show}</span>
-                                  </>
-                                )}
-                              </div>
-                              <div className="backlink-tl__title">{ref.title}</div>
-                              {ref.context ? (
-                                <div className="backlink-tl__ctx">{ref.context}</div>
-                              ) : (
-                                <div className="backlink-tl__ctx backlink-tl__ctx--empty">
-                                  {t('无法提取上下文')}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {/* Diff view when 2+ selected */}
-                    {compareRefs.length >= 2 && (
-                      <div className="backlink-compare__diff">
-                        <div className="backlink-detail__section-label">{t('观点对比')}</div>
-                        <div
-                          className="backlink-compare__columns"
-                          style={{ gridTemplateColumns: `repeat(${compareRefs.length}, 1fr)` }}
-                        >
-                          {compareRefs.map((ref, i) => {
-                            const isLast = i === compareRefs.length - 1
-                            const prevRef = i > 0 ? compareRefs[i - 1] : null
-                            const segments =
-                              prevRef && prevRef.context && ref.context
-                                ? computeSentenceDiff(prevRef.context, ref.context)
-                                : null
-
-                            return (
-                              <div key={ref.path} className="backlink-compare__col">
-                                <div className="backlink-compare__col-header">
-                                  <span className="backlink-compare__col-date">{ref.date}</span>
-                                  {ref.episode && (
-                                    <span className="backlink-compare__col-ep">{ref.episode}</span>
-                                  )}
-                                </div>
-                                <div className="backlink-compare__col-title">{ref.title}</div>
-                                <div className="backlink-compare__col-meta-row">
-                                  {ref.show && <span>{ref.show}</span>}
-                                  {ref.category && (
-                                    <span
-                                      style={{
-                                        color: CATEGORY_COLORS[ref.category] || 'var(--text-muted)',
-                                      }}
-                                    >
-                                      {ref.category}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="backlink-compare__col-context">
-                                  {segments ? (
-                                    segments.map((seg, si) => (
-                                      <span
-                                        key={si}
-                                        className={`backlink-diff__seg backlink-diff__seg--${seg.type}`}
-                                      >
-                                        {seg.text}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="backlink-compare__col-ctx">
-                                      {ref.context || t('无上下文')}
-                                    </span>
-                                  )}
-                                </div>
-                                {isLast && (
-                                  <button
-                                    className="backlink-compare__open-btn"
-                                    onClick={() => openNote(ref.path)}
-                                  >
-                                    {t('打开笔记')}
-                                                                      </button>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        {compareRefs.length >= 2 && compareRefs.some(r => r.context) && (
-                          <div className="backlink-compare__legend-diff">
-                            <span className="backlink-compare__legend-item">
-                              <span className="backlink-diff__dot backlink-diff__dot--added" />
-                              {t('新增观点')}
-                            </span>
-                            <span className="backlink-compare__legend-item">
-                              <span className="backlink-diff__dot backlink-diff__dot--removed" />
-                              {t('上期提及')}
-                            </span>
-                            <span className="backlink-compare__legend-item">
-                              <span className="backlink-diff__dot backlink-diff__dot--common" />
-                              {t('持续讨论')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
                 ) : (
                   /* ── Normal Detail View ── */
                   <>
@@ -996,15 +785,7 @@ export default function BacklinkPanel() {
                           {t('图谱')}
                         </button>
                       )}
-                      {selectedEntry.podcastRefs.length >= 2 && (
-                        <button
-                          className="backlink-detail__compare-btn"
-                          onClick={toggleCompareMode}
-                          title={t('对比不同期的观点')}
-                        >
-                          {t('对比')}
-                        </button>
-                      )}
+
                     </div>
 
                     {/* Timeline */}
@@ -1358,23 +1139,6 @@ export default function BacklinkPanel() {
           font-weight: 600;
           flex-shrink: 0;
         }
-        .backlink-detail__compare-btn {
-          display: flex;
-          align-items: center;
-          padding: 4px 10px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          background: var(--bg-card);
-          color: var(--text-secondary);
-          font-size: var(--fs-xs);
-          cursor: pointer;
-          transition: all 0.15s;
-          white-space: nowrap;
-        }
-        .backlink-detail__compare-btn:hover {
-          color: var(--accent);
-          border-color: var(--accent);
-        }
         .backlink-detail__section-label {
           font-size: var(--fs-xs);
           font-weight: 600;
@@ -1483,179 +1247,8 @@ export default function BacklinkPanel() {
         }
 
         /* ── Compare view ── */
-        .backlink-compare__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 8px;
-        }
-        .backlink-compare__title {
-          font-size: var(--fs-lg);
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-        .backlink-compare__close {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          background: var(--bg-card);
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .backlink-compare__close:hover {
-          color: var(--error);
-          border-color: var(--error);
-        }
-        .backlink-compare__bar {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 10px;
-          background: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          margin-bottom: 8px;
-          font-size: var(--fs-sm);
-          color: var(--text-muted);
-        }
-        .backlink-compare__bar-label strong {
-          color: var(--accent);
-          font-weight: 700;
-        }
-        .backlink-compare__hint {
-          color: var(--success);
-          font-size: var(--fs-xs);
-        }
-        .backlink-compare__list {
-          max-height: 240px;
-          overflow-y: auto;
-          border: 1px solid var(--border-soft);
-          border-radius: var(--radius-sm);
-          padding: 4px;
-        }
-        .backlink-compare__diff {
-          margin-top: 12px;
-        }
-        .backlink-compare__columns {
-          display: grid;
-          gap: 8px;
-          margin-top: 6px;
-        }
-        .backlink-compare__col {
-          background: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          padding: 10px;
-          min-width: 0;
-        }
-        .backlink-compare__col-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-bottom: 4px;
-          font-size: var(--fs-xs);
-          color: var(--text-muted);
-        }
-        .backlink-compare__col-date {
-          font-weight: 600;
-          color: var(--text-secondary);
-        }
-        .backlink-compare__col-ep {
-          color: var(--accent);
-          font-weight: 500;
-        }
-        .backlink-compare__col-title {
-          font-size: var(--fs-sm);
-          font-weight: 500;
-          color: var(--text-primary);
-          margin-bottom: 4px;
-          line-height: 1.3;
-        }
-        .backlink-compare__col-meta-row {
-          display: flex;
-          gap: 6px;
-          font-size: var(--fs-xs);
-          color: var(--text-muted);
-          margin-bottom: 8px;
-        }
-        .backlink-compare__col-context {
-          font-size: 11px;
-          color: var(--text-muted);
-          line-height: 1.6;
-          border-top: 1px solid var(--border-soft);
-          padding-top: 8px;
-        }
-        .backlink-compare__col-ctx {
-          color: var(--text-muted);
-        }
-        .backlink-compare__open-btn {
-          display: block;
-          width: 100%;
-          padding: 5px;
-          margin-top: 8px;
-          border: 1px solid var(--border);
-          border-radius: 4px;
-          background: transparent;
-          color: var(--accent);
-          font-size: var(--fs-xs);
-          cursor: pointer;
-          text-align: center;
-          transition: all 0.1s;
-        }
-        .backlink-compare__open-btn:hover {
-          background: var(--bg-elevated);
-        }
 
         /* ── Diff segments ── */
-        .backlink-diff__seg {
-          line-height: 1.6;
-        }
-        .backlink-diff__seg--common {
-          color: var(--text-muted);
-        }
-        .backlink-diff__seg--added {
-          background: rgba(16, 185, 129, 0.12);
-          color: var(--success);
-          border-radius: 2px;
-          padding: 0 2px;
-        }
-        .backlink-diff__seg--removed {
-          background: rgba(239, 68, 68, 0.08);
-          color: var(--error);
-          text-decoration: line-through;
-          opacity: 0.6;
-          border-radius: 2px;
-          padding: 0 2px;
-        }
-
-        .backlink-compare__legend-diff {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-top: 8px;
-          padding-top: 6px;
-          border-top: 1px solid var(--border-soft);
-          font-size: var(--fs-xs);
-          color: var(--text-muted);
-        }
-        .backlink-compare__legend-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .backlink-diff__dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-        }
-        .backlink-diff__dot--added { background: var(--success); }
-        .backlink-diff__dot--removed { background: var(--error); }
-        .backlink-diff__dot--common { background: var(--text-muted); }
 
         /* ── Co-occurrence ── */
         .backlink-co {
