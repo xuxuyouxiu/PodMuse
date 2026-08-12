@@ -69,6 +69,15 @@ export class PodcastDispatchService {
       if (step.status === 'error') {
         lastErrorDetail = step.detail || step.subtitle
       }
+      // 当 step 1 完成且有有效标题时，更新任务标题
+      if (step.step === 1 && step.status === 'done' && step.subtitle && step.subtitle !== '未知标题') {
+        this.updateRecentState(state => ({
+          ...state,
+          activeTasks: state.activeTasks.map(t =>
+            t.url === url ? { ...t, title: step.subtitle } : t,
+          ),
+        }))
+      }
       this.stepFunc?.(step)
     }
     try {

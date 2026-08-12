@@ -410,14 +410,10 @@ export async function processPodcast(
         const audioName = cleanTitleForFilename(title || 'episode')
         audioPath = path.join(tmp, `${audioName}.${ext}`)
 
-        // 如果 audioUrl 是本地文件路径，直接复制而非下载
+        // 如果 audioUrl 是本地文件路径，直接使用原始路径（不复制到音频目录）
         if (fs.existsSync(audioUrl)) {
           log('  ⏭ 音频为本地文件，直接使用')
-          const localExt = audioUrl.split('.').pop()?.toLowerCase() || 'mp4'
-          audioPath = path.join(tmp, `${audioName}.${localExt}`)
-          if (!fs.existsSync(audioPath)) {
-            fs.copyFileSync(audioUrl, audioPath)
-          }
+          audioPath = audioUrl
           step({
             step: 2,
             title: '下载音频',
