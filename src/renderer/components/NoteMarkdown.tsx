@@ -46,6 +46,8 @@ interface Props {
   onLinkClick?: (href: string) => void
   /** 文件名（不含 .md）→ 实体类型映射，用于链接着色 */
   linkTypeMap?: Map<string, string>
+  /** 已知卡片文件名集合（不含 .md）；wiki: 链接指向不存在的卡片时显示为纯文本 */
+  knownNames?: Set<string>
 }
 
 /**
@@ -59,6 +61,7 @@ export default function NoteMarkdown({
   onLinkLeave,
   onLinkClick,
   linkTypeMap,
+  knownNames,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -94,7 +97,7 @@ export default function NoteMarkdown({
     }
 
     // 按实体类型着色（人物紫/概念黄/项目绿/术语灰）
-    if (linkTypeMap) {
+    if (linkTypeMap || knownNames) {
       anchors.forEach(a => {
         let href = a.getAttribute('href') || ''
         try {
@@ -102,10 +105,20 @@ export default function NoteMarkdown({
         } catch {
           /* keep raw */
         }
+        const isWiki = href.startsWith('wiki:')
         // wiki: 协议（旧笔记 [[名称]] 转换而来）→ 提取名称
-        if (href.startsWith('wiki:')) href = href.slice(5)
+        if (isWiki) href = href.slice(5)
         const name = href.split('/').pop()?.replace(/\.md$/i, '') || ''
-        const type = linkTypeMap.get(name)
+
+        // wiki: 链接指向的卡片不存在（如被过滤的主持人）→ 降级为纯文本
+        if (isWiki && knownNames && name && !knownNames.has(name)) {
+          const span = document.createElement('span')
+          span.textContent = a.textContent || name
+          a.replaceWith(span)
+          return
+        }
+
+        const type = linkTypeMap?.get(name)
         if (type && LINK_TYPE_COLORS[type]) {
           a.style.color = LINK_TYPE_COLORS[type]
         }
@@ -124,7 +137,7 @@ export default function NoteMarkdown({
         a.removeEventListener('click', onClick)
       })
     }
-  }, [html, onLinkHover, onLinkLeave, onLinkClick, linkTypeMap])
+  }, [html, onLinkHover, onLinkLeave, onLinkClick, linkTypeMap, knownNames])
 
   return (
     <div

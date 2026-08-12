@@ -70,6 +70,7 @@ export default function NotesPanel() {
   const panelRef = useRef<HTMLDivElement>(null)
   const nameMapRef = useRef<Map<string, string>>(new Map())
   const [typeMap, setTypeMap] = useState<Map<string, string>>(new Map())
+  const [knownNames, setKnownNames] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     window.electronAPI
@@ -106,6 +107,7 @@ export default function NotesPanel() {
           }
           nameMapRef.current = map
           setTypeMap(typeMap)
+          setKnownNames(new Set(map.keys()))
         } else {
           setError(res.error || t('加载失败'))
         }
@@ -422,6 +424,7 @@ export default function NotesPanel() {
                   onLinkLeave={handleLinkLeave}
                   onLinkClick={handleLinkClick}
                   linkTypeMap={typeMap}
+                  knownNames={knownNames.size > 0 ? knownNames : undefined}
                 />
               )}
             </div>

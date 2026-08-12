@@ -164,6 +164,14 @@ export function filterNonNotablePeople(entities: EntityResult): EntityResult {
   return { ...entities, people: filtered }
 }
 
+/**
+ * 获取被过滤掉的非知名人物名单（主持人/嘉宾/博主等）
+ * 用于将正文中这些名字的 [[wiki-link]] 转为纯文本，避免悬挂链接
+ */
+export function getNonNotablePeopleNames(entities: EntityResult): string[] {
+  return entities.people.filter(p => !isNotablePerson(p)).map(p => p.name).filter(Boolean)
+}
+
 export function sanitizeName(name: string): string {
   return (
     name
@@ -744,6 +752,7 @@ export function extractBodyWikiLinks(markdown: string): string[] {
 export function fillMissingEntityCards(
   entities: EntityResult,
   bodyLinks: string[],
+  skipNames?: string[],
 ): { entities: EntityResult; filled: number } {
   // 收集所有已有卡片的实体名
   const existingNames = new Set<string>()
@@ -752,7 +761,12 @@ export function fillMissingEntityCards(
   for (const c of entities.concepts) if (c.name) existingNames.add(c.name)
   for (const t of entities.terms) if (t.name) existingNames.add(t.name)
 
-  const missing = bodyLinks.filter(name => name && !existingNames.has(name))
+  // 跳过名单（如被过滤的非知名人物）不补卡片
+  const skipSet = new Set(skipNames || [])
+
+  const missing = bodyLinks.filter(
+    name => name && !existingNames.has(name) && !skipSet.has(name),
+  )
   if (!missing.length) return { entities, filled: 0 }
 
   // 为缺卡片的链接创建概念卡片（最通用的实体类型）

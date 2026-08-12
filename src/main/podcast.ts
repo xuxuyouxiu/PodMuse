@@ -11,6 +11,7 @@ import {
   extractBodyWikiLinks,
   fillMissingEntityCards,
   convertWikiLinks,
+  getNonNotablePeopleNames,
 } from './entity-cards'
 import { isSubPathOf } from './security'
 import {
@@ -813,6 +814,18 @@ export async function processPodcast(
   }
 
   const entities = parseEntityBlocks(notes.content)
+
+  // 被过滤的非知名人物（主持人/嘉宾/博主等）：正文中的 [[链接]] 转为纯文本，不生成卡片
+  const nonNotablePeople = getNonNotablePeopleNames(entities)
+  if (nonNotablePeople.length > 0) {
+    for (const name of nonNotablePeople) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const linkRe = new RegExp(`\\[\\[${escaped}(?:\\|[^\\]]+)?\\]\\]`, 'g')
+      notes.content = notes.content.replace(linkRe, name)
+    }
+    log(`  🚫 非知名人物链接已移除: ${nonNotablePeople.join(', ')}`)
+  }
+
   const { entities: patchedEntities, filled: filledTerms } = fillMissingTermCards(
     notes.content,
     entities,
@@ -826,6 +839,7 @@ export async function processPodcast(
   const { entities: finalEntities, filled: filledLinks } = fillMissingEntityCards(
     patchedEntities,
     bodyLinks,
+    nonNotablePeople,
   )
   if (filledLinks > 0) {
     log(`  📎 为正文中 ${filledLinks} 个链接自动创建了概念卡片`)
