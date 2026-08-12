@@ -2,7 +2,7 @@ import { app, dialog, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
-import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath } from '../security'
+import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath, isPathWithinBase } from '../security'
 import { detectYtDlp } from '../platforms/yt-dlp'
 import { buildBacklinkIndex, buildTagIndex } from '../backlinks'
 import type { PodcastConfig } from '@shared/types'
@@ -168,9 +168,20 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('shell:openPath', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return false
-      // 仅允许打开 Obsidian 目录和应用数据目录内的安全文件类型
       const config = loadConfig()
       const allowedDirs = [config.obsidian_dir, app.getPath('userData')].filter(Boolean)
+
+      // 目录路径：仅检查是否在允许的目录范围内
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+        if (!isPathWithinBase(filePath, allowedDirs)) {
+          console.warn('shell:openPath blocked (dir):', filePath)
+          return false
+        }
+        await shell.openPath(filePath)
+        return true
+      }
+
+      // 文件路径：检查扩展名白名单 + 目录范围
       const allowedExts = ['.md', '.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.svg']
       if (!isSafeFilePath(filePath, allowedDirs, allowedExts)) {
         console.warn('shell:openPath blocked:', filePath)
