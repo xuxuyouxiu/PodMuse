@@ -69,6 +69,7 @@ export default function NotesPanel() {
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const nameMapRef = useRef<Map<string, string>>(new Map())
+  const [typeMap, setTypeMap] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     window.electronAPI
@@ -83,18 +84,28 @@ export default function NotesPanel() {
           // 构建文件名→绝对路径映射（Obsidian wiki-link 全局解析用）
           // 同名冲突时实体目录（概念/术语/人物/项目）优先，其次播客分类
           const map = new Map<string, string>()
-          const entityDirs = new Set(['概念', '术语', '人物', '项目'])
+          const typeMap = new Map<string, string>()
+          const dirType: Record<string, string> = {
+            人物: 'people',
+            项目: 'projects',
+            概念: 'concepts',
+            术语: 'terms',
+          }
+          const entityDirs = new Set(Object.keys(dirType))
           const addFile = (name: string, path: string, dir: string) => {
             const existing = map.get(name)
             if (!existing) map.set(name, path)
             else if (entityDirs.has(dir) && !entityDirs.has(existing.split('/').slice(-2)[0])) {
               map.set(name, path)
             }
+            // 类型映射（实体目录才有类型）
+            if (dirType[dir]) typeMap.set(name, dirType[dir])
           }
           for (const g of list) {
             for (const file of g.files) addFile(file.name, file.path, g.dir)
           }
           nameMapRef.current = map
+          setTypeMap(typeMap)
         } else {
           setError(res.error || t('加载失败'))
         }
@@ -185,10 +196,20 @@ export default function NotesPanel() {
         }
       }
 
-      // 4) 按文件名全局查找（Obsidian wiki-link 语义：[[牛津大学]] → 概念/牛津大学.md）
+      // 4) wiki: 协议 — 全局文件名查找（Obsidian wiki-link 语义：[[牛津大学]] → 概念/牛津大学.md）
+      if (decoded.startsWith('wiki:')) {
+        const wikiName = decoded.slice(5).trim()
+        const byName = nameMapRef.current.get(wikiName)
+        if (byName && !seen.has(byName)) {
+          candidates.push(byName.replace(/\\/g, '/'))
+        }
+        return candidates
+      }
+
+      // 5) 兜底：按文件名全局查找（相对链接指向不存在的路径时）
       const basename = decoded.split('/').pop()?.replace(/\.md$/i, '') || ''
       if (basename) {
-        const byName = nameMapRef.current.get(basename + '.md')
+        const byName = nameMapRef.current.get(basename)
         if (byName && !seen.has(byName)) {
           candidates.push(byName.replace(/\\/g, '/'))
         }
@@ -400,6 +421,7 @@ export default function NotesPanel() {
                   onLinkHover={handleLinkHover}
                   onLinkLeave={handleLinkLeave}
                   onLinkClick={handleLinkClick}
+                  linkTypeMap={typeMap}
                 />
               )}
             </div>

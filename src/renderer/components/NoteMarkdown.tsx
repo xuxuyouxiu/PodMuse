@@ -15,17 +15,25 @@ export function stripFrontmatter(md: string): string {
 
 /**
  * 将 Obsidian wiki-link 转换为标准 Markdown 链接
- * - [[名称]]       → [名称](名称.md)
- * - [[名称|别名]]  → [别名](名称.md)
- * 转换后由 NotesPanel 的全局文件名解析找到实际文件（Obsidian 全局解析语义）
+ * - [[名称]]       → [名称](wiki:名称)
+ * - [[名称|别名]]  → [别名](wiki:名称)
+ * 使用 wiki: 协议前缀，由 NotesPanel 做全局文件名查找（Obsidian 全局解析语义）
  */
 export function convertWikiLinksToMd(md: string): string {
   return md.replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (_m, name: string, alias?: string) => {
     const target = (name || '').trim()
     const label = (alias || name || '').trim()
     if (!target) return _m
-    return `[${label}](${target}.md)`
+    return `[${label}](wiki:${target})`
   })
+}
+
+/** 链接类型颜色（与知识关联面板 TYPE_META 对应） */
+export const LINK_TYPE_COLORS: Record<string, string> = {
+  people: '#a855f7', // 人物-紫
+  projects: '#22c55e', // 项目-绿
+  concepts: '#eab308', // 概念-黄
+  terms: '#9ca3af', // 术语-灰
 }
 
 interface Props {
@@ -35,6 +43,8 @@ interface Props {
   onLinkHover?: (href: string, el: HTMLElement) => void
   onLinkLeave?: () => void
   onLinkClick?: (href: string) => void
+  /** 文件名（不含 .md）→ 实体类型映射，用于链接着色 */
+  linkTypeMap?: Map<string, string>
 }
 
 /**
@@ -47,6 +57,7 @@ export default function NoteMarkdown({
   onLinkHover,
   onLinkLeave,
   onLinkClick,
+  linkTypeMap,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -81,6 +92,23 @@ export default function NoteMarkdown({
       onLinkClick?.(href)
     }
 
+    // 按实体类型着色（人物紫/概念黄/项目绿/术语灰）
+    if (linkTypeMap) {
+      anchors.forEach(a => {
+        let href = a.getAttribute('href') || ''
+        try {
+          href = decodeURIComponent(href)
+        } catch {
+          /* keep raw */
+        }
+        const name = href.split('/').pop()?.replace(/\.md$/i, '') || ''
+        const type = linkTypeMap.get(name)
+        if (type && LINK_TYPE_COLORS[type]) {
+          a.style.color = LINK_TYPE_COLORS[type]
+        }
+      })
+    }
+
     anchors.forEach(a => {
       a.addEventListener('mouseenter', onEnter)
       a.addEventListener('mouseleave', onLeave)
@@ -93,7 +121,7 @@ export default function NoteMarkdown({
         a.removeEventListener('click', onClick)
       })
     }
-  }, [html, onLinkHover, onLinkLeave, onLinkClick])
+  }, [html, onLinkHover, onLinkLeave, onLinkClick, linkTypeMap])
 
   return (
     <div
