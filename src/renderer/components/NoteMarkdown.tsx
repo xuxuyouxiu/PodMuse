@@ -24,7 +24,8 @@ export function convertWikiLinksToMd(md: string): string {
     const target = (name || '').trim()
     const label = (alias || name || '').trim()
     if (!target) return _m
-    return `[${label}](wiki:${target})`
+    // encodeURIComponent 处理带空格的英文名（Michael Woldridge），否则 marked 不渲染为链接
+    return `[${label}](wiki:${encodeURIComponent(target)})`
   })
 }
 

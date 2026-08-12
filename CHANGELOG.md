@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.21.17] - 2026-08-12
+
+### 修复
+- 旧笔记中带空格的英文人名（如 `[[Michael Woldridge]]`）不显示为链接：转换生成的 `wiki:` 协议 URL 含空格，marked 拒绝渲染。现在对链接目标做 encodeURIComponent，空格编码为 %20 后正常渲染
+
 ## [1.21.16] - 2026-08-12
 
 ### 修复
