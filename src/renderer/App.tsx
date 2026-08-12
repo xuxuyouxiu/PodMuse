@@ -600,7 +600,7 @@ export default function App() {
                           <span className="workspace-hero__meta-value">{currentTitle}</span>
                         </div>
                       )}
-                      {!processing && currentTitle && (
+                      {!processing && (
                         <button
                           className="hero-open-btn"
                           onClick={handleResetView}
