@@ -13,6 +13,21 @@ export function stripFrontmatter(md: string): string {
   return fmEnd > 0 ? md.substring(fmEnd + 4) : md
 }
 
+/**
+ * 将 Obsidian wiki-link 转换为标准 Markdown 链接
+ * - [[名称]]       → [名称](名称.md)
+ * - [[名称|别名]]  → [别名](名称.md)
+ * 转换后由 NotesPanel 的全局文件名解析找到实际文件（Obsidian 全局解析语义）
+ */
+export function convertWikiLinksToMd(md: string): string {
+  return md.replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (_m, name: string, alias?: string) => {
+    const target = (name || '').trim()
+    const label = (alias || name || '').trim()
+    if (!target) return _m
+    return `[${label}](${target}.md)`
+  })
+}
+
 interface Props {
   content: string
   className?: string
@@ -37,7 +52,9 @@ export default function NoteMarkdown({
 
   const html = useMemo(() => {
     try {
-      return sanitizeHtml(marked.parse(stripFrontmatter(content), { breaks: true }) as string)
+      return sanitizeHtml(
+        marked.parse(convertWikiLinksToMd(stripFrontmatter(content)), { breaks: true }) as string,
+      )
     } catch {
       return `<pre>${content.replace(/</g, '&lt;')}</pre>`
     }

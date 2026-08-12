@@ -63,9 +63,12 @@ export default function NotesPanel() {
 
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  // 记录当前预览对应的链接，浮层打开期间同一链接不重复触发
+  const [previewHref, setPreviewHref] = useState('')
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const nameMapRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => {
     window.electronAPI
@@ -77,6 +80,21 @@ export default function NotesPanel() {
           // 默认全部折叠，只留分组标题（Obsidian 文件树风格）
           setCollapsed(new Set(list.map(g => g.dir)))
           setRootDir(res.rootDir || null)
+          // 构建文件名→绝对路径映射（Obsidian wiki-link 全局解析用）
+          // 同名冲突时实体目录（概念/术语/人物/项目）优先，其次播客分类
+          const map = new Map<string, string>()
+          const entityDirs = new Set(['概念', '术语', '人物', '项目'])
+          const addFile = (name: string, path: string, dir: string) => {
+            const existing = map.get(name)
+            if (!existing) map.set(name, path)
+            else if (entityDirs.has(dir) && !entityDirs.has(existing.split('/').slice(-2)[0])) {
+              map.set(name, path)
+            }
+          }
+          for (const g of list) {
+            for (const file of g.files) addFile(file.name, file.path, g.dir)
+          }
+          nameMapRef.current = map
         } else {
           setError(res.error || t('加载失败'))
         }
@@ -167,6 +185,15 @@ export default function NotesPanel() {
         }
       }
 
+      // 4) 按文件名全局查找（Obsidian wiki-link 语义：[[牛津大学]] → 概念/牛津大学.md）
+      const basename = decoded.split('/').pop()?.replace(/\.md$/i, '') || ''
+      if (basename) {
+        const byName = nameMapRef.current.get(basename + '.md')
+        if (byName && !seen.has(byName)) {
+          candidates.push(byName.replace(/\\/g, '/'))
+        }
+      }
+
       return candidates
     },
     [rootDir, currentPath],
@@ -196,9 +223,13 @@ export default function NotesPanel() {
 
   const loadPreview = useCallback(
     (href: string, anchor: DOMRect) => {
+      setPreviewHref(href)
       // 用 portal 渲染到 body，位置基于 viewport 坐标
-      const left = Math.min(anchor.left, window.innerWidth - 360)
-      const top = Math.min(anchor.bottom + 8, window.innerHeight - 320)
+      // 优先显示在链接下方；下方空间不足时显示在链接上方（绝不覆盖链接本身，避免闪烁）
+      const POP_H = 300
+      const left = Math.max(8, Math.min(anchor.left, window.innerWidth - 348))
+      const below = anchor.bottom + 8
+      const top = below + POP_H <= window.innerHeight ? below : Math.max(8, anchor.top - POP_H - 8)
       setPreviewLoading(true)
       setPreview({ content: '', name: '', left, top })
       readFirstExisting(resolveHrefs(href))
@@ -228,17 +259,24 @@ export default function NotesPanel() {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
       if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
       if (resolveHrefs(href).length === 0) return
+      // 同一链接的浮层已显示时不再重复加载（防止闪烁循环）
+      if (previewHref === href) return
       hoverTimerRef.current = setTimeout(() => {
         loadPreview(href, el.getBoundingClientRect())
       }, 300)
     },
-    [resolveHrefs, loadPreview],
+    [resolveHrefs, loadPreview, previewHref],
   )
+
+  function clearPreview() {
+    setPreviewHref('')
+    setPreview(null)
+  }
 
   const handleLinkLeave = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
     if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
-    leaveTimerRef.current = setTimeout(() => setPreview(null), 220)
+    leaveTimerRef.current = setTimeout(() => setPreview(null), 300)
   }, [])
 
   const handleLinkClick = useCallback(
@@ -383,11 +421,11 @@ export default function NotesPanel() {
             onMouseEnter={() => {
               if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
             }}
-            onMouseLeave={() => setPreview(null)}
+            onMouseLeave={() => clearPreview()}
           >
             <div className="notes-preview-pop__head">
               <span className="notes-preview-pop__title">{preview.name || t('加载中...')}</span>
-              <button className="notes-preview-pop__close" onClick={() => setPreview(null)}>
+              <button className="notes-preview-pop__close" onClick={() => clearPreview()}>
                 <X size={12} />
               </button>
             </div>
@@ -401,6 +439,7 @@ export default function NotesPanel() {
                 className="notes-preview-pop__body"
                 onLinkClick={href => {
                   handleLinkClick(href)
+                  clearPreview()
                 }}
               />
             ) : (
