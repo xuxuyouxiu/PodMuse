@@ -9,7 +9,7 @@ import {
   BatchCompletionSummary,
   BatchTask,
 } from '@shared/types'
-import { Zap, Clock, FolderOpen } from 'lucide-react'
+import { Zap, Clock, FolderOpen, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useI18n } from './i18n'
 import Header from './components/Header'
@@ -131,6 +131,10 @@ export default function App() {
     step1 && step1.status !== 'pending' && step1.subtitle && !PLACEHOLDER_TITLES.has(step1.subtitle)
       ? step1.subtitle
       : null
+
+  const handleResetView = useCallback(() => {
+    setSteps(buildSteps())
+  }, [buildSteps])
 
   useEffect(() => {
     window.electronAPI
@@ -595,6 +599,17 @@ export default function App() {
                           <span className="workspace-hero__meta-label">{t('当前节目')}</span>
                           <span className="workspace-hero__meta-value">{currentTitle}</span>
                         </div>
+                      )}
+                      {!processing && currentTitle && (
+                        <button
+                          className="hero-open-btn"
+                          onClick={handleResetView}
+                          title={t('重置视图')}
+                          style={{ marginRight: config?.obsidian_dir ? 6 : 0 }}
+                        >
+                          <RotateCcw size={12} />
+                          {t('重置')}
+                        </button>
                       )}
                       {config?.obsidian_dir && (
                         <button

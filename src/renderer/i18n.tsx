@@ -283,6 +283,8 @@ const enDict: Record<string, string> = {
   '粘贴链接，AI 自动转写并生成结构化笔记': 'Paste a link, AI transcribes and generates structured notes automatically',
   '累计处理': 'Total Processed',
   '打开 Obsidian 库': 'Open Obsidian Vault',
+  '重置视图': 'Reset View',
+  '重置': 'Reset',
   '30s 轮询 · Obsidian: 小宇宙播客': '30s polling · Obsidian: Podcasts',
   '5 个步骤': '5 steps',
   'AI 笔记生成：核心观点、关键对话、术语词典、金句摘录': 'AI notes: key points, key quotes, glossary, golden quotes',
