@@ -74,6 +74,23 @@ try {
     openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
     readNote: (filePath: string) => ipcRenderer.invoke('notes:read', filePath),
     listNotes: () => ipcRenderer.invoke('notes:list'),
+    askQuestion: (requestId: string, question: string) => ipcRenderer.invoke('qa:ask', { requestId, question }),
+    cancelQuestion: (requestId: string) => ipcRenderer.invoke('qa:cancel', requestId),
+    onQaChunk: (callback: (data: { requestId: string; text: string }) => void) => {
+      const handler = (_e: unknown, data: { requestId: string; text: string }) => callback(data)
+      ipcRenderer.on('qa:chunk', handler)
+      return () => ipcRenderer.removeListener('qa:chunk', handler)
+    },
+    onQaDone: (callback: (data: { requestId: string; answer: string; sources: unknown[] }) => void) => {
+      const handler = (_e: unknown, data: { requestId: string; answer: string; sources: unknown[] }) => callback(data)
+      ipcRenderer.on('qa:done', handler)
+      return () => ipcRenderer.removeListener('qa:done', handler)
+    },
+    onQaError: (callback: (data: { requestId: string; error: string; aborted?: boolean }) => void) => {
+      const handler = (_e: unknown, data: { requestId: string; error: string; aborted?: boolean }) => callback(data)
+      ipcRenderer.on('qa:error', handler)
+      return () => ipcRenderer.removeListener('qa:error', handler)
+    },
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),

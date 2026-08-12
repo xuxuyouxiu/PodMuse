@@ -26,6 +26,7 @@ import WorkspaceSidebar from './components/WorkspaceSidebar'
 import type { SidebarView } from './components/WorkspaceSidebar'
 import BacklinkPanel from './components/BacklinkPanel'
 import NotesPanel from './components/NotesPanel'
+import QAPanel from './components/QAPanel'
 import SearchPanel from './components/SearchPanel'
 import BatchConfirmPanel from './components/BatchConfirmPanel'
 import BatchQueuePanel from './components/BatchQueuePanel'
@@ -741,6 +742,18 @@ export default function App() {
               transition={{ duration: 0.2 }}
             >
               <NotesPanel />
+            </motion.div>
+          )}
+          {activeView === 'qa' && (
+            <motion.div
+              className="workspace-body"
+              key="qa"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <QAPanel />
             </motion.div>
           )}
           {activeView === 'backlinks' && (

@@ -5,6 +5,7 @@ import { registerSearchIPC } from './search-ipc'
 import { registerWindowIPC } from './window-ipc'
 import { registerExportIPC } from './export-ipc'
 import { registerNoteIpc } from './note-ipc'
+import { registerQaIpc } from './qa-ipc'
 import type { FeishuMonitor } from '../feishu'
 
 /**
@@ -21,4 +22,5 @@ export function registerCoreIPC(
   registerWindowIPC(mainWindow)
   registerExportIPC(mainWindow)
   registerNoteIpc()
+  registerQaIpc()
 }

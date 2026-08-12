@@ -30,6 +30,12 @@ interface NoteDirGroup {
   files: NoteFileEntry[]
 }
 
+interface QASource {
+  title: string
+  path: string
+  entityType?: string
+}
+
 interface WhisperModelInfo {
   id: string
   label: string
@@ -198,6 +204,11 @@ declare global {
       openPath: (filePath: string) => Promise<boolean>
       readNote: (filePath: string) => Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }>
       listNotes: () => Promise<{ success: boolean; groups?: NoteDirGroup[]; rootDir?: string | null; error?: string }>
+      askQuestion: (requestId: string, question: string) => Promise<{ success: boolean; started?: boolean; error?: string }>
+      cancelQuestion: (requestId: string) => Promise<boolean>
+      onQaChunk: (callback: (data: { requestId: string; text: string }) => void) => () => void
+      onQaDone: (callback: (data: { requestId: string; answer: string; sources: QASource[] }) => void) => () => void
+      onQaError: (callback: (data: { requestId: string; error: string; aborted?: boolean }) => void) => () => void
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>

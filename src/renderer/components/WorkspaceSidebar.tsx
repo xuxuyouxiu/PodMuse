@@ -10,11 +10,12 @@ import {
   LayoutDashboard,
   Search,
   BookOpen,
+  MessageSquareText,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
 
-export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search'
+export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa'
 
 interface Props {
   activeView: SidebarView
@@ -102,6 +103,16 @@ export default function WorkspaceSidebar({
         >
           <Search size={16} />
           {t("搜索")}
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'qa' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('qa')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <MessageSquareText size={16} />
+          {t("问答")}
         </motion.button>
       </nav>
 
