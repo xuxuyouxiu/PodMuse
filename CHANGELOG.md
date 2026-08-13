@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.22.1] - 2026-08-13
+
+### 其他
+- docs 产品流程文档整体移出 Git 仓库（本地保留，不上传 GitHub），README 同步移除引用
+
 ## [1.22.0] - 2026-08-13
 
 ### 新增

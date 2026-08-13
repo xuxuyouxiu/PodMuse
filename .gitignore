@@ -55,6 +55,5 @@ C:Usersadmin.qoderworkcnworkspacemq0qsnxnqejzdw09kill-app.ps1
 # 抖音下载器编译产物（从源码构建，不提交二进制）
 resources/douyin/douyin-cli.exe
 
-# PM 工作流文档（本地保留，不提交）
-docs/pm/
-docs/优化待办.md
+# docs 产品流程文档（本地保留，不上传）
+docs/

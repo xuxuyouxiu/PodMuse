@@ -96,7 +96,6 @@ npm start
 
 ## 项目结构
 
-详细目录结构请查看 [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)
 
 ```
 podcast-notes/
@@ -106,7 +105,6 @@ podcast-notes/
 │   └── shared/             # 共享类型定义
 ├── tests/                  # 测试文件
 ├── obsidian_templates/     # Obsidian 笔记模板
-├── docs/                   # 项目文档
 ├── scripts/                # 构建部署脚本
 ├── build/                  # 打包资源
 └── public/                 # 静态资源

@@ -92,7 +92,6 @@ Podcast Link → ① Parse Page → ② Download Audio → ③ Whisper Transcrip
 
 ## Project Structure
 
-For a detailed breakdown, see [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)
 
 ```
 podcast-notes/
@@ -102,7 +101,6 @@ podcast-notes/
 │   └── shared/             # Shared type definitions
 ├── tests/                  # Test files
 ├── obsidian_templates/     # Obsidian note templates
-├── docs/                   # Project documentation
 ├── scripts/                # Build & deploy scripts
 ├── build/                  # Packaging assets
 └── public/                 # Static assets
