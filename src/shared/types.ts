@@ -83,6 +83,9 @@ export interface PodcastConfig {
   // 自动更新
   auto_update_check?: boolean
   auto_update_download?: boolean
+
+  // YouTube 订阅镜像（Invidious 实例，如 https://yewtu.be；空 = 直连）
+  youtube_mirror_base?: string
 }
 
 export interface Subscription {

@@ -110,6 +110,8 @@ const enDict: Record<string, string> = {
   '发现更新后自动下载': 'Auto-download updates when found',
   '有更新时左下角版本号会高亮显示，点击版本号查看': 'When an update is available, the version number in the lower-left corner is highlighted — click it to view.',
   '开启后在后台自动下载，下载完成后提示重启': 'When enabled, updates download in the background and prompt to restart once ready.',
+  'YouTube 镜像实例': 'YouTube mirror instance',
+  '留空为直连 YouTube（需要代理网络）。填入 Invidious 实例地址后，YouTube 频道订阅将自动走镜像。': 'Leave empty to connect to YouTube directly (requires proxy). Fill in an Invidious instance URL to route YouTube channel subscriptions through it.',
   '发送': 'Send',
   '问你的知识库...（Enter 发送，Shift+Enter 换行）': 'Ask your knowledge base... (Enter to send, Shift+Enter for newline)',
   '笔记库': 'Notes Library',

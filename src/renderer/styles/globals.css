@@ -5521,7 +5521,21 @@ a:focus-visible {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  width: fit-content;
 }
+
+.sub-view__rec-group-title:hover { color: var(--accent); }
+
+.sub-view__rec-group-chevron {
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.sub-view__rec-group-chevron--open { transform: rotate(180deg); }
 
 .sub-view__rec-group-count {
   font-size: 10.5px;
@@ -5644,6 +5658,8 @@ a:focus-visible {
 }
 
 .sub-view__input--small { width: 90px; padding: 6px 8px; }
+
+.sub-view__settings-hint { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
 
 .sub-view__opml-mask {
   position: fixed;

@@ -88,6 +88,7 @@ const DEFAULTS: PodcastConfig = {
   rsshub_base_url: 'https://rsshub.app',
   auto_update_check: true,
   auto_update_download: false,
+  youtube_mirror_base: '',
 
   // 导出配置默认值
   export: {

@@ -89,13 +89,17 @@ export class SubscriptionService {
 
   async add(name: string, url: string): Promise<{ success: boolean; error?: string }> {
     const cleanName = name.trim()
-    const cleanUrl = url.trim()
-    if (!cleanName || !cleanUrl) return { success: false, error: '名称和 RSS 地址不能为空' }
-    if (!/^https?:\/\//i.test(cleanUrl)) return { success: false, error: 'RSS 地址需以 http(s):// 开头' }
+    const rawUrl = url.trim()
+    if (!cleanName || !rawUrl) return { success: false, error: '名称和 RSS 地址不能为空' }
+    if (!/^https?:\/\//i.test(rawUrl)) return { success: false, error: 'RSS 地址需以 http(s):// 开头' }
     if (this.subs.length >= 50) return { success: false, error: '订阅数量已达上限（50）' }
-    if (this.subs.some(s => s.url === cleanUrl)) {
+    if (this.subs.some(s => s.url === rawUrl)) {
       return { success: false, error: '该 RSS 地址已订阅' }
     }
+
+    // YouTube feeds 源：配置了 Invidious 镜像时自动转换（国内直连 YouTube 超时）
+    const cleanUrl = this.withYouTubeMirror(rawUrl)
+
     // 校验 RSS 有效性
     try {
       const feed = await this.parser.parseURL(cleanUrl)
@@ -103,7 +107,18 @@ export class SubscriptionService {
         return { success: false, error: 'RSS 解析成功但没有条目，可能不是有效的播客源' }
       }
     } catch (e) {
-      return { success: false, error: `RSS 解析失败：${(e as Error).message.slice(0, 120)}` }
+      const msg = e instanceof Error ? e.message : String(e)
+      if (/timed out|timeout/i.test(msg)) {
+        if (/youtube\.com\/feeds|channel_id=/i.test(cleanUrl)) {
+          return {
+            success: false,
+            error:
+              'YouTube 订阅源连接超时：直连 YouTube 需要代理网络。开启代理后重试，或在订阅设置中配置 Invidious 镜像实例',
+          }
+        }
+        return { success: false, error: '订阅源连接超时，请检查网络后重试' }
+      }
+      return { success: false, error: `RSS 解析失败：${msg.slice(0, 120)}` }
     }
     const sub: Subscription = {
       id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -120,6 +135,16 @@ export class SubscriptionService {
     // 立即检查一次
     this.checkOne(sub).catch(() => {})
     return { success: true }
+  }
+
+  /** YouTube feeds 源按配置转换为 Invidious 镜像 feed（未配置则原样返回） */
+  private withYouTubeMirror(url: string): string {
+    const m = url.match(/youtube\.com\/feeds\/videos\.xml\?channel_id=(UC[\w-]+)/i)
+    if (!m) return url
+    const config = loadConfig()
+    const mirror = (config.youtube_mirror_base || '').trim().replace(/\/+$/, '')
+    if (!mirror) return url
+    return `${mirror}/feed/channel/${m[1]}`
   }
 
   remove(id: string): void {

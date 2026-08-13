@@ -58,6 +58,7 @@ export default function SubscriptionView() {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [recommended, setRecommended] = useState<RecommendedPodcast[]>([])
   const [recommendedLoaded, setRecommendedLoaded] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [opmlPreview, setOpmlPreview] = useState<OpmlEntry[] | null>(null)
   const [opmlSelected, setOpmlSelected] = useState<Record<string, boolean>>({})
   const [importing, setImporting] = useState(false)
@@ -68,6 +69,7 @@ export default function SubscriptionView() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [checkInterval, setCheckInterval] = useState(6)
   const [rsshubBase, setRsshubBase] = useState('')
+  const [youtubeMirror, setYoutubeMirror] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
 
   const load = useCallback(() => {
@@ -93,6 +95,7 @@ export default function SubscriptionView() {
         if (cfg) {
           setCheckInterval(cfg.subscription_check_interval_hours || 6)
           setRsshubBase(cfg.rsshub_base_url || 'https://rsshub.app')
+          setYoutubeMirror(cfg.youtube_mirror_base || '')
         }
       })
       .catch(() => {})
@@ -213,6 +216,7 @@ export default function SubscriptionView() {
           ...cfg,
           subscription_check_interval_hours: hours,
           rsshub_base_url: rsshubBase.trim() || 'https://rsshub.app',
+          youtube_mirror_base: youtubeMirror.trim(),
         })
         setCheckInterval(hours)
         flashNotice(t('保存成功'))
@@ -401,41 +405,52 @@ export default function SubscriptionView() {
           {REC_GROUPS.map(g => {
             const items = recommended.filter(r => r.platform === g.key)
             if (items.length === 0) return null
+            const expanded = !!expandedGroups[g.key]
             return (
               <div key={g.key} className="sub-view__rec-group">
-                <div className="sub-view__rec-group-title">
+                <button
+                  type="button"
+                  className="sub-view__rec-group-title"
+                  onClick={() => setExpandedGroups(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
+                >
+                  <ChevronDown
+                    size={14}
+                    className={`sub-view__rec-group-chevron ${expanded ? 'sub-view__rec-group-chevron--open' : ''}`}
+                  />
                   <g.icon size={14} />
                   {t(g.label)}
                   <span className="sub-view__rec-group-count">{items.length}</span>
-                </div>
-                <div className="sub-view__recommended-grid">
-                  {items.map(r => {
-                    const subscribed = subscribedFeeds.has(r.feedUrl)
-                    return (
-                      <div key={r.feedUrl} className="sub-view__rec-card">
-                        {r.artwork ? (
-                          <img className="sub-view__rec-artwork" src={r.artwork} alt="" />
-                        ) : (
-                          <div className="sub-view__rec-artwork sub-view__artwork--placeholder">
-                            <Rss size={20} />
+                </button>
+                {expanded && (
+                  <div className="sub-view__recommended-grid">
+                    {items.map(r => {
+                      const subscribed = subscribedFeeds.has(r.feedUrl)
+                      return (
+                        <div key={r.feedUrl} className="sub-view__rec-card">
+                          {r.artwork ? (
+                            <img className="sub-view__rec-artwork" src={r.artwork} alt="" />
+                          ) : (
+                            <div className="sub-view__rec-artwork sub-view__artwork--placeholder">
+                              <Rss size={20} />
+                            </div>
+                          )}
+                          <div className="sub-view__rec-info">
+                            <div className="sub-view__rec-title" title={r.name}>{r.name}</div>
+                            <div className="sub-view__rec-desc">{r.description}</div>
                           </div>
-                        )}
-                        <div className="sub-view__rec-info">
-                          <div className="sub-view__rec-title" title={r.name}>{r.name}</div>
-                          <div className="sub-view__rec-desc">{r.description}</div>
+                          <button
+                            className="sub-view__confirm-btn"
+                            disabled={busy || subscribed}
+                            onClick={() => handleSubscribe(r.name, r.feedUrl)}
+                          >
+                            {subscribed ? <Check size={13} /> : <Plus size={13} />}
+                            {subscribed ? t('已订阅') : t('订阅')}
+                          </button>
                         </div>
-                        <button
-                          className="sub-view__confirm-btn"
-                          disabled={busy || subscribed}
-                          onClick={() => handleSubscribe(r.name, r.feedUrl)}
-                        >
-                          {subscribed ? <Check size={13} /> : <Plus size={13} />}
-                          {subscribed ? t('已订阅') : t('订阅')}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -615,6 +630,18 @@ export default function SubscriptionView() {
                 onChange={e => setRsshubBase(e.target.value)}
               />
             </label>
+            <label className="sub-view__settings-row">
+              <span>{t('YouTube 镜像实例')}</span>
+              <input
+                className="sub-view__field"
+                placeholder="https://yewtu.be"
+                value={youtubeMirror}
+                onChange={e => setYoutubeMirror(e.target.value)}
+              />
+            </label>
+            <div className="sub-view__settings-hint">
+              {t('留空为直连 YouTube（需要代理网络）。填入 Invidious 实例地址后，YouTube 频道订阅将自动走镜像。')}
+            </div>
             <button className="sub-view__confirm-btn" onClick={handleSaveSettings} disabled={savingSettings}>
               {savingSettings ? <Loader2 size={13} className="note-preview__spin" /> : null}
               {t('保存')}
