@@ -4,6 +4,12 @@
 
 import { ipcMain } from 'electron'
 import type { SubscriptionService } from '../subscription-service'
+import {
+  searchPodcasts,
+  resolveFeed,
+  parseOpmlFile,
+  getRecommended,
+} from '../subscription-source'
 
 export function registerSubscriptionIPC(service: SubscriptionService): void {
   ipcMain.handle('subscription:list', () => service.info())
@@ -34,4 +40,16 @@ export function registerSubscriptionIPC(service: SubscriptionService): void {
     service.markSeen(params?.subId || '', params?.keys || [])
     return true
   })
+
+  // ---- 订阅源发现 ----
+
+  ipcMain.handle('subscription:search', (_e, term: string) => searchPodcasts(term || ''))
+
+  ipcMain.handle('subscription:resolve', (_e, input: string) => resolveFeed(input || ''))
+
+  ipcMain.handle('subscription:parseOpml', async (_e, filePath: string) => {
+    return parseOpmlFile(filePath || '')
+  })
+
+  ipcMain.handle('subscription:recommended', () => getRecommended())
 }

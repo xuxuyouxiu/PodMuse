@@ -97,6 +97,10 @@ try {
     updateSubscription: (id: string, patch: Record<string, unknown>) => ipcRenderer.invoke('subscription:update', { id, patch }),
     checkSubscriptions: (id?: string) => ipcRenderer.invoke('subscription:checkNow', id),
     markSubscriptionSeen: (subId: string, keys: string[]) => ipcRenderer.invoke('subscription:markSeen', { subId, keys }),
+    searchPodcasts: (term: string) => ipcRenderer.invoke('subscription:search', term),
+    resolveFeed: (input: string) => ipcRenderer.invoke('subscription:resolve', input),
+    parseOpmlFile: (filePath: string) => ipcRenderer.invoke('subscription:parseOpml', filePath),
+    getRecommendedPodcasts: () => ipcRenderer.invoke('subscription:recommended'),
     onSubscriptionUpdate: (callback: (data: unknown[]) => void) => {
       const handler = (_e: unknown, data: unknown[]) => callback(data)
       ipcRenderer.on('subscription:update', handler)

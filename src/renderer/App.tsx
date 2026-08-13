@@ -28,6 +28,7 @@ import BacklinkPanel from './components/BacklinkPanel'
 import NotesPanel from './components/NotesPanel'
 import QAPanel from './components/QAPanel'
 import SearchPanel from './components/SearchPanel'
+import SubscriptionView from './components/SubscriptionView'
 import BatchConfirmPanel from './components/BatchConfirmPanel'
 import BatchQueuePanel from './components/BatchQueuePanel'
 import CommandPalette, { useAppCommands } from './components/CommandPalette'
@@ -754,6 +755,22 @@ export default function App() {
               transition={{ duration: 0.2 }}
             >
               <QAPanel />
+            </motion.div>
+          )}
+          {activeView === 'subscription' && (
+            <motion.div
+              className="workspace-body"
+              key="subscription"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <div className="workspace-main-column">
+                <div className="workspace-content">
+                  <SubscriptionView />
+                </div>
+              </div>
             </motion.div>
           )}
           {activeView === 'backlinks' && (

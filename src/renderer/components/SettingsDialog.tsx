@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
 import {
   Link,
-  Rss,
   FileText,
   Mic,
   Wrench,
@@ -12,14 +11,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
-import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport, TabSubscription } from './settings'
+import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport } from './settings'
 import { useI18n, type TranslationKey } from '../i18n'
 
-type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export' | 'subscription'
+type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
 
 const TABS: { key: TabKey; icon: LucideIcon; label: TranslationKey }[] = [
   { key: 'api', icon: Link, label: '接口与通知' },
-  { key: 'subscription', icon: Rss, label: '订阅' },
   { key: 'transcribe', icon: FileText, label: '转写偏好' },
   { key: 'whisper', icon: Mic, label: '语音模型' },
   { key: 'platforms', icon: Layers, label: '支持平台' },
@@ -355,7 +353,6 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
             )}
             {activeTab === 'platforms' && <TabPlatforms />}
             {activeTab === 'export' && <TabExport form={form} update={update} />}
-            {activeTab === 'subscription' && <TabSubscription />}
             {activeTab === 'tools' && (
               <TabTools
                 cleaningTemp={cleaningTemp}

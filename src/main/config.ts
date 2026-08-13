@@ -85,6 +85,7 @@ const DEFAULTS: PodcastConfig = {
   douyin_cookie: '',
   subscriptions: [],
   subscription_check_interval_hours: 6,
+  rsshub_base_url: 'https://rsshub.app',
 
   // 导出配置默认值
   export: {

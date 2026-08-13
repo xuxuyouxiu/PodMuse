@@ -78,6 +78,7 @@ export interface PodcastConfig {
   // RSS 订阅
   subscriptions?: Subscription[]
   subscription_check_interval_hours?: number
+  rsshub_base_url?: string
 }
 
 export interface Subscription {

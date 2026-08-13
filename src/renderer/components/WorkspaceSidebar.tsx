@@ -13,11 +13,12 @@ import {
   MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
+  Rss,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
 
-export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa'
+export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa' | 'subscription'
 
 interface Props {
   activeView: SidebarView
@@ -105,6 +106,17 @@ export default function WorkspaceSidebar({
         >
           <LayoutDashboard size={16} />
           <span className="ws-label">{t("工作台")}</span>
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'subscription' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('subscription')}
+          title={t("订阅")}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Rss size={16} />
+          <span className="ws-label">{t("订阅")}</span>
         </motion.button>
         <motion.button
           type="button"

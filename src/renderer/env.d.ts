@@ -167,6 +167,35 @@ declare global {
     stripObsidianSyntax?: boolean
   }
 
+  interface PodcastSearchResult {
+    feedUrl: string
+    title: string
+    author: string
+    artwork: string
+    description?: string
+  }
+
+  interface ResolvedFeed {
+    feedUrl: string
+    title?: string
+    author?: string
+    artwork?: string
+    candidates?: { title: string; url: string }[]
+  }
+
+  interface OpmlEntry {
+    name: string
+    url: string
+  }
+
+  interface RecommendedPodcast {
+    name: string
+    author: string
+    feedUrl: string
+    artwork: string
+    description: string
+  }
+
   interface ExportResult {
     success: boolean
     outputPath?: string
@@ -238,6 +267,10 @@ declare global {
       updateSubscription: (id: string, patch: Record<string, unknown>) => Promise<boolean>
       checkSubscriptions: (id?: string) => Promise<SubscriptionInfo[]>
       markSubscriptionSeen: (subId: string, keys: string[]) => Promise<boolean>
+      searchPodcasts: (term: string) => Promise<PodcastSearchResult[]>
+      resolveFeed: (input: string) => Promise<ResolvedFeed | null>
+      parseOpmlFile: (filePath: string) => Promise<OpmlEntry[]>
+      getRecommendedPodcasts: () => Promise<RecommendedPodcast[]>
       onSubscriptionUpdate: (callback: (data: SubscriptionInfo[]) => void) => () => void
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
