@@ -11,6 +11,7 @@ import {
   Search,
   BookOpen,
   MessageSquareText,
+  PanelLeftClose,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
@@ -36,6 +37,8 @@ export default function WorkspaceSidebar({
 }: Props) {
   const { t } = useI18n()
   const [version, setVersion] = useState<string>('')
+  // ChatGPT 式侧栏：默认收缩为图标窄栏，点击展开完整侧栏
+  const [expanded, setExpanded] = useState(false)
 
   // 获取应用版本号
   useEffect(() => {
@@ -54,72 +57,100 @@ export default function WorkspaceSidebar({
   }).length
 
   return (
-    <aside className="workspace-sidebar">
+    <aside className={`workspace-sidebar ${expanded ? "is-expanded" : ""}`}>
       <div className="workspace-sidebar__brand">
         <img className="workspace-sidebar__logo" src="./icon.png" alt="PodMuse" />
-        <div>
+        <div className="ws-label">
           <div className="workspace-sidebar__title">PodMuse</div>
           <div className="workspace-sidebar__subtitle">Workspace</div>
         </div>
+        <button
+          type="button"
+          className="workspace-sidebar__collapse-btn"
+          onClick={() => setExpanded(false)}
+          title={t('收起侧边栏')}
+        >
+          <PanelLeftClose size={14} />
+        </button>
       </div>
 
       <nav className="workspace-sidebar__nav" aria-label="main-navigation">
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'notes' ? 'is-active' : ''}`}
-          onClick={() => onViewChange('notes')}
+          onClick={() => {
+            onViewChange('notes')
+            setExpanded(true)
+          }}
+          title={t("笔记库")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <BookOpen size={16} />
-          {t("笔记库")}
+          <span className="ws-label">{t("笔记库")}</span>
         </motion.button>
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'workspace' ? 'is-active' : ''}`}
-          onClick={() => onViewChange('workspace')}
+          onClick={() => {
+            onViewChange('workspace')
+            setExpanded(true)
+          }}
+          title={t("工作台")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <LayoutDashboard size={16} />
-          {t("工作台")}
+          <span className="ws-label">{t("工作台")}</span>
         </motion.button>
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'backlinks' ? 'is-active' : ''}`}
-          onClick={() => onViewChange('backlinks')}
+          onClick={() => {
+            onViewChange('backlinks')
+            setExpanded(true)
+          }}
+          title={t("知识关联")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <Link2 size={16} />
-          {t("知识关联")}
+          <span className="ws-label">{t("知识关联")}</span>
         </motion.button>
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'search' ? 'is-active' : ''}`}
-          onClick={() => onViewChange('search')}
+          onClick={() => {
+            onViewChange('search')
+            setExpanded(true)
+          }}
+          title={t("搜索")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <Search size={16} />
-          {t("搜索")}
+          <span className="ws-label">{t("搜索")}</span>
         </motion.button>
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'qa' ? 'is-active' : ''}`}
-          onClick={() => onViewChange('qa')}
+          onClick={() => {
+            onViewChange('qa')
+            setExpanded(true)
+          }}
+          title={t("问答")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <MessageSquareText size={16} />
-          {t("问答")}
+          <span className="ws-label">{t("问答")}</span>
         </motion.button>
       </nav>
 
       <div style={{ flex: 1 }} />
 
       {/* 快速统计 - 放在底部操作区上方 */}
-      <div className="sidebar-stats">
+      <div className="sidebar-stats ws-label">
         <div className="sidebar-stats__title">{t("任务概览")}</div>
         <div className="sidebar-stat">
           <Zap size={13} className="sidebar-stat__icon sidebar-stat__icon--active" />
@@ -145,29 +176,37 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"
-          onClick={onSettings}
+          onClick={() => {
+            onSettings()
+            setExpanded(true)
+          }}
+          title={t('设置')}
           style={{ gap: '10px' }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <Settings size={16} />
-          {t("设置")}
+          <span className="ws-label">{t("设置")}</span>
         </motion.button>
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"
-          onClick={onAbout}
+          onClick={() => {
+            onAbout()
+            setExpanded(true)
+          }}
+          title={t('关于')}
           style={{ gap: '10px' }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <Info size={16} />
-          {t("关于")}
+          <span className="ws-label">{t("关于")}</span>
         </motion.button>
       </div>
 
       {version && (
-        <div className="workspace-sidebar__version">v{version}</div>
+        <div className="workspace-sidebar__version ws-label">v{version}</div>
       )}
     </aside>
   )

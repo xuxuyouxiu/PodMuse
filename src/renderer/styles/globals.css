@@ -143,17 +143,77 @@ body {
 }
 
 .workspace-sidebar {
-  width: 200px;
-  min-width: 200px;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px 14px;
+  padding: 20px 10px;
   background: var(--sidebar-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border);
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+  overflow-y: auto;
 }
+
+.workspace-sidebar.is-expanded {
+  width: 208px;
+  min-width: 208px;
+  max-width: 208px;
+  padding: 20px 14px;
+}
+
+/* 文字标签：窄态隐藏 */
+.ws-label {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.workspace-sidebar.is-expanded .ws-label {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 窄态：品牌区/导航项/操作项居中图标 */
+.workspace-sidebar:not(.is-expanded) .workspace-sidebar__brand {
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.workspace-sidebar:not(.is-expanded) .workspace-sidebar__nav-item,
+.workspace-sidebar:not(.is-expanded) .workspace-sidebar__system-ops .workspace-sidebar__nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.workspace-sidebar__collapse-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.workspace-sidebar.is-expanded .workspace-sidebar__collapse-btn { display: flex; }
+
+.workspace-sidebar__collapse-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
 
 .workspace-sidebar__brand {
   display: flex;
@@ -2075,8 +2135,16 @@ input {
   }
 
   .workspace-sidebar {
-    width: 180px;
-    min-width: 180px;
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+    padding: 18px 10px;
+  }
+
+  .workspace-sidebar.is-expanded {
+    width: 188px;
+    min-width: 188px;
+    max-width: 188px;
     padding: 18px 12px;
   }
 
