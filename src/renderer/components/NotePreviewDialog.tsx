@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, ExternalLink, Loader2 } from 'lucide-react'
+import { X, ExternalLink, Loader2, Share2 } from 'lucide-react'
 import NoteMarkdown from './NoteMarkdown'
 import { useI18n } from '../i18n'
 
@@ -18,6 +18,7 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [sharing, setSharing] = useState(false)
 
   // 阻止滚轮穿透：弹窗内滚动到边界（或非滚动区域）时拦截 wheel，下层不再跟着滚
   useEffect(() => {
@@ -81,6 +82,28 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
             >
               <ExternalLink size={13} />
               {t('打开')}
+            </button>
+            <button
+              className="note-preview__btn"
+              onClick={async () => {
+                if (sharing) return
+                setSharing(true)
+                try {
+                  await window.electronAPI.shareGenerate({
+                    notePath: filePath,
+                    title: filename || '',
+                  })
+                } catch {
+                  /* 主进程返回错误详情，静默 */
+                } finally {
+                  setSharing(false)
+                }
+              }}
+              disabled={sharing}
+              title={t('分享')}
+            >
+              {sharing ? <Loader2 size={13} className="note-preview__spin" /> : <Share2 size={13} />}
+              {t('分享')}
             </button>
             <button className="note-preview__btn" onClick={onClose} title={t('关闭')}>
               <X size={14} />

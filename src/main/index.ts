@@ -28,6 +28,7 @@ import { BatchQueueService } from './batch-queue'
 import { registerBatchIPC } from './ipc/batch-ipc'
 import { registerSubscriptionIPC } from './ipc/subscription-ipc'
 import { registerHistoryIPC } from './ipc/history-ipc'
+import { registerShareIpc } from './ipc/share-ipc'
 import { createSubscriptionService, SubscriptionService } from './subscription-service'
 import { setupUpdater, type UpdaterHandle } from './updater'
 import {
@@ -211,6 +212,7 @@ function setupIPC() {
   })
   registerBatchIPC(mainWindow, batchQueueService)
   registerHistoryIPC(batchQueueService)
+  registerShareIpc()
 
   // 订阅服务（RSS 定时检查 + 自动入队）
   subscriptionService = createSubscriptionService(

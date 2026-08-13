@@ -343,6 +343,13 @@ declare global {
         url: string,
         opts?: { providerId?: string; model?: string },
       ) => Promise<{ success: boolean; error?: string }>
+      // 分享卡片
+      shareGenerate: (params: {
+        notePath: string
+        title: string
+        podcastName?: string
+        platform?: string
+      }) => Promise<{ success: boolean; path?: string; cancelled?: boolean; error?: string }>
       batchSkip: (index: number) => Promise<BatchQueueSnapshot>
       batchClear: () => Promise<BatchQueueSnapshot>
       batchRetry: (index: number) => Promise<BatchQueueSnapshot>

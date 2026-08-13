@@ -158,6 +158,13 @@ try {
     historyListModels: () => ipcRenderer.invoke('history:models'),
     historyReprocess: (url: string, opts?: { providerId?: string; model?: string }) =>
       ipcRenderer.invoke('history:reprocess', { url, ...(opts || {}) }),
+    // 分享卡片
+    shareGenerate: (params: {
+      notePath: string
+      title: string
+      podcastName?: string
+      platform?: string
+    }) => ipcRenderer.invoke('share:generate', params),
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)

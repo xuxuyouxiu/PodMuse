@@ -6025,6 +6025,15 @@ a:focus-visible {
   border-color: var(--error);
 }
 
+.history-view__btn--share {
+  color: var(--accent);
+}
+
+.history-view__btn--share:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
 .history-view__btn:disabled {
   opacity: 0.5;
   cursor: default;

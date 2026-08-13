@@ -14,6 +14,7 @@ import {
   FolderOpen,
   Brain,
   X,
+  Share2,
 } from 'lucide-react'
 import NotePreviewDialog from './NotePreviewDialog'
 import { useI18n } from '../i18n'
@@ -134,6 +135,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [busyId, setBusyId] = useState('')
   const [modelPicker, setModelPicker] = useState<{ entry: HistoryEntry; models: ModelOption[] } | null>(null)
   const [notesThisWeek, setNotesThisWeek] = useState(0)
+  const [sharingId, setSharingId] = useState('')
 
   const load = useCallback(() => {
     window.electronAPI
@@ -243,6 +245,30 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     if (!e.filename || !obsidianDir) return
     const p = obsidianDir.replace(/[/\\]$/, '') + '/' + e.filename
     window.electronAPI.showInFolder(p)
+  }
+
+  const handleShare = async (e: HistoryEntry) => {
+    if (!e.filename || !obsidianDir) return
+    const p = obsidianDir.replace(/[/\\]$/, '') + '/' + e.filename
+    setSharingId(e.id)
+    try {
+      const res = await window.electronAPI.shareGenerate({
+        notePath: p,
+        title: e.title || e.filename || '',
+        platform: e.platformName,
+      })
+      if (res.success && !res.cancelled) {
+        flash(t('分享图已保存'))
+      } else if (res.success && res.cancelled) {
+        /* 用户取消保存，静默 */
+      } else {
+        flash(t('分享图生成失败') + ': ' + (res.error || ''))
+      }
+    } catch (err) {
+      flash(t('分享图生成失败') + ': ' + String(err))
+    } finally {
+      setSharingId('')
+    }
   }
 
   return (
@@ -398,6 +424,18 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                 <div className="history-view__ops">
                   {e.filename && obsidianDir && (
                     <>
+                      <button
+                        className="history-view__btn history-view__btn--share"
+                        onClick={() => handleShare(e)}
+                        disabled={sharingId === e.id}
+                        title={t('分享')}
+                      >
+                        {sharingId === e.id ? (
+                          <Loader2 size={12} className="note-preview__spin" />
+                        ) : (
+                          <Share2 size={12} />
+                        )}
+                      </button>
                       <button
                         className="history-view__btn"
                         onClick={() => openPreview(e)}
