@@ -295,6 +295,29 @@ export function relativePath(fromDir: string, toFile: string): string {
  * @param noteDir 笔记所在目录（用于计算相对路径）
  * @param entityMap 实体名 → 实体文件绝对路径的映射
  */
+/**
+ * 清洗 AI 直接输出的 markdown 实体链接：
+ * 1. 链接文本带目录前缀（[概念/化学性改变](...)）→ 去掉前缀，只留实体名
+ * 2. 链接路径格式随意（概念/名称.md 或 ../概念/名称.md）→ 按笔记实际目录重算相对路径
+ * 只处理 概念/术语/人物/项目 四类实体链接，http 等其他链接不动
+ */
+export function normalizeEntityLinks(md: string, noteDir: string, obsDir: string): string {
+  const entityDirs = ['概念', '术语', '人物', '项目']
+  return md.replace(/\[([^\]]+)\]\(((?:\.\.\/)*)(概念|术语|人物|项目)\/([^/)]+\.md)\)/g, (whole, text: string, _dots: string, dir: string, file: string) => {
+    // 文本去目录前缀（可能带别名分隔 |）
+    const cleanText = text.replace(/^(概念|术语|人物|项目)\//, '').split('|').pop() || text
+    // 重算相对路径（obsDir 下 目录/文件名）
+    try {
+      const abs = path.join(obsDir, dir, file)
+      const rel = relativePath(noteDir, abs)
+      return `[${cleanText}](${rel})`
+    } catch {
+      return whole
+    }
+    void entityDirs
+  })
+}
+
 export function convertWikiLinks(
   content: string,
   noteDir: string,

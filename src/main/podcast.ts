@@ -12,6 +12,7 @@ import {
   fillMissingEntityCards,
   linkifyBody,
   convertWikiLinks,
+  normalizeEntityLinks,
   getNonNotablePeopleNames,
 } from './entity-cards'
 import { isSubPathOf } from './security'
@@ -993,6 +994,8 @@ export async function processPodcast(
   }
   const noteDir = path.dirname(filepath)
   notes.content = convertWikiLinks(notes.content, noteDir, entityMap)
+  // 清洗 AI 直接输出的 markdown 链接：文本去「概念/」前缀 + 路径按笔记目录重算
+  notes.content = normalizeEntityLinks(notes.content, noteDir, obsDir)
 
   fs.writeFileSync(filepath, notes.content, 'utf-8')
 
