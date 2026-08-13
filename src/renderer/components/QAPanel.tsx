@@ -29,23 +29,31 @@ const ENTITY_TYPE_META: Record<string, { label: string; color: string }> = {
 interface QAPanelProps {
   /** 来源点击回调（嵌入笔记库时用于在阅读器打开）；缺省用系统默认应用打开 */
   onOpenSource?: (source: QASource) => void
+  /** 无笔记时「去处理播客」按钮回调（切换回工作台） */
+  onGoProcess?: () => void
 }
 
 /**
  * 问答面板 — 与知识库对话（检索 + AI 总结 + 引用来源）
  */
-export default function QAPanel({ onOpenSource }: QAPanelProps) {
+export default function QAPanel({ onOpenSource, onGoProcess }: QAPanelProps) {
   const { t } = useI18n()
   const [items, setItems] = useState<QAItem[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [examples, setExamples] = useState<string[]>([])
+  const [hasNotes, setHasNotes] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const requestIdRef = useRef(0)
 
   // 动态示例问题：基于笔记库高频实体（人物/概念/项目/术语），无笔记时用默认示例
   useEffect(() => {
+    // 判断是否有笔记（决定空态展示引导还是示例）
+    window.electronAPI
+      .listNotes()
+      .then(res => setHasNotes(!!res?.groups?.length))
+      .catch(() => setHasNotes(true))
     window.electronAPI
       .getBacklinkIndex()
       .then(entries => {
@@ -173,13 +181,28 @@ export default function QAPanel({ onOpenSource }: QAPanelProps) {
             <MessageSquareText size={26} />
             <div className="qa-panel__empty-title">{t('与你的知识库对话')}</div>
             <div className="qa-panel__empty-hint">{t('基于你生成的播客笔记回答，答案带引用来源')}</div>
-            <div className="qa-panel__examples">
-              {examples.map(ex => (
-                <button key={ex} className="qa-panel__example" onClick={() => setInput(ex)}>
-                  {ex}
-                </button>
-              ))}
-            </div>
+            {hasNotes === false ? (
+              <div className="qa-panel__empty-guide">
+                <div className="qa-panel__empty-guide-text">
+                  {t('你还没有任何笔记')}
+                  <br />
+                  {t('先处理一个播客，AI 转写并生成结构化笔记后，就可以向知识库提问了')}
+                </div>
+                {onGoProcess && (
+                  <button className="qa-panel__empty-guide-btn" onClick={onGoProcess}>
+                    {t('去处理播客')}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="qa-panel__examples">
+                {examples.map(ex => (
+                  <button key={ex} className="qa-panel__example" onClick={() => setInput(ex)}>
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           items.map(item => (

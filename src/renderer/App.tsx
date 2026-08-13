@@ -754,7 +754,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <QAPanel />
+              <QAPanel onGoProcess={() => setActiveView('workspace')} />
             </motion.div>
           )}
           {activeView === 'subscription' && (
