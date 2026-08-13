@@ -5,6 +5,8 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Loader2,
   AlertCircle,
   User,
@@ -55,6 +57,11 @@ export default function NotesPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // 三栏布局：文件树 / 聊天栏宽度 + 折叠状态
+  const [filesWidth, setFilesWidth] = useState(210)
+  const [chatWidth, setChatWidth] = useState(300)
+  const [filesCollapsed, setFilesCollapsed] = useState(false)
+  const [chatCollapsed, setChatCollapsed] = useState(false)
 
   const [currentPath, setCurrentPath] = useState<string | null>(null)
   const [currentName, setCurrentName] = useState('')
@@ -64,6 +71,32 @@ export default function NotesPanel() {
 
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  // 拖动分隔条调整栏宽
+  const startDrag = useCallback((e: React.MouseEvent, side: 'files' | 'chat') => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = side === 'files' ? filesWidth : chatWidth
+    const onMove = (ev: MouseEvent) => {
+      const delta = side === 'files' ? ev.clientX - startX : startX - ev.clientX
+      const next = Math.round(startWidth + delta)
+      if (side === 'files') {
+        setFilesWidth(Math.max(150, Math.min(420, next)))
+      } else {
+        setChatWidth(Math.max(220, Math.min(520, next)))
+      }
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [filesWidth, chatWidth])
+
   // 记录当前预览对应的链接，浮层打开期间同一链接不重复触发
   const [previewHref, setPreviewHref] = useState('')
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -358,11 +391,27 @@ export default function NotesPanel() {
 
   return (
     <div className="notes-panel" ref={panelRef}>
-      {/* 左侧文件树 */}
-      <div className="notes-panel__files">
+      {/* 左侧文件树（可折叠 + 可拖宽） */}
+      {filesCollapsed ? (
+        <button
+          className="notes-panel__files-collapsed"
+          onClick={() => setFilesCollapsed(false)}
+          title={t('展开文件树')}
+        >
+          <ChevronsRight size={13} />
+        </button>
+      ) : (
+      <div className="notes-panel__files" style={{ width: filesWidth }}>
         <div className="notes-panel__files-title">
           <FolderOpen size={13} />
-          {t('笔记库')}
+          <span className="notes-panel__files-title-text">{t('笔记库')}</span>
+          <button
+            className="notes-panel__collapse-btn"
+            onClick={() => setFilesCollapsed(true)}
+            title={t('收起文件树')}
+          >
+            <ChevronsLeft size={12} />
+          </button>
         </div>
         <div className="notes-panel__files-scroll">
           {groups.map(group => {
@@ -399,8 +448,16 @@ export default function NotesPanel() {
           })}
         </div>
       </div>
+      )}
 
-      {/* 右侧阅读器 */}
+      {/* 文件树分隔条（拖动调宽） */}
+      <div
+        className="notes-panel__resizer"
+        onMouseDown={e => startDrag(e, 'files')}
+        title={t('拖动调整宽度')}
+      />
+
+      {/* 中间阅读器 */}
       <div className="notes-panel__reader">
         {currentPath ? (
           <>
@@ -438,14 +495,41 @@ export default function NotesPanel() {
         )}
       </div>
 
-      {/* 右侧聊天侧边栏 */}
-      <div className="notes-panel__chat">
+      {/* 聊天栏分隔条（拖动调宽） */}
+      <div
+        className="notes-panel__resizer"
+        onMouseDown={e => startDrag(e, 'chat')}
+        title={t('拖动调整宽度')}
+      />
+
+      {/* 右侧聊天侧边栏（可折叠 + 可拖宽） */}
+      {chatCollapsed ? (
+        <button
+          className="notes-panel__chat-collapsed"
+          onClick={() => setChatCollapsed(false)}
+          title={t('展开聊天')}
+        >
+          <ChevronsLeft size={13} />
+        </button>
+      ) : (
+      <div className="notes-panel__chat" style={{ width: chatWidth }}>
+        <div className="notes-panel__chat-header">
+          <span>{t('问答')}</span>
+          <button
+            className="notes-panel__collapse-btn"
+            onClick={() => setChatCollapsed(true)}
+            title={t('收起聊天')}
+          >
+            <ChevronsRight size={12} />
+          </button>
+        </div>
         <QAPanel
           onOpenSource={source => {
             openNote(source.path, source.title)
           }}
         />
       </div>
+      )}
 
       {/* 悬停预览 — portal 到 body，避免被 transform/motion 容器影响定位 */}
       {preview &&

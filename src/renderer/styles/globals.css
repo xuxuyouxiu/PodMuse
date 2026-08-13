@@ -4608,3 +4608,96 @@ a:focus-visible {
 .notes-panel__chat .qa-item__answer { font-size: 13.5px; }
 
 .notes-panel__chat .qa-panel__empty-title { font-size: 14px; }
+
+/* 分隔条（拖动调宽） */
+.notes-panel__resizer {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  position: relative;
+  z-index: 5;
+}
+
+.notes-panel__resizer:hover,
+.notes-panel__resizer:active {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+/* 文件树折叠条 */
+.notes-panel__files-collapsed {
+  width: 34px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  cursor: pointer;
+  border: none;
+  color: var(--text-muted);
+  transition: color 0.12s, background 0.12s;
+}
+
+.notes-panel__files-collapsed:hover { color: var(--accent); background: var(--bg-elevated); }
+
+.notes-panel__chat-collapsed {
+  width: 34px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  cursor: pointer;
+  border: none;
+  color: var(--text-muted);
+  transition: color 0.12s, background 0.12s;
+}
+
+.notes-panel__chat-collapsed:hover { color: var(--accent); background: var(--bg-elevated); }
+
+/* 标题栏折叠按钮 */
+.notes-panel__collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.notes-panel__collapse-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.notes-panel__files-title-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 聊天栏标题 */
+.notes-panel__chat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px 8px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.notes-panel__chat-header .notes-panel__collapse-btn { margin-left: auto; }
+
+/* 聊天栏内 QAPanel 占满剩余空间 */
+.notes-panel__chat .qa-panel { flex: 1; min-height: 0; }
