@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.41.6] - 2026-08-13
+
+### 修复
+- 批量处理报告里的笔记预览弹窗被卡片挡住、滚轮只能滚底层：根因是批量面板根元素是 motion.div（带 transform），导致弹窗的 position: fixed 失效被限制在面板内——改为 createPortal 挂到 body（与更新弹窗同款方案），弹窗现在全局置顶、滚动只在弹窗内生效
+
 ## [1.41.5] - 2026-08-13
 
 ### 修复

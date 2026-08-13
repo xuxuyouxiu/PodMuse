@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, ExternalLink, Loader2, Share2 } from 'lucide-react'
 import NoteMarkdown from './NoteMarkdown'
 import { useI18n } from '../i18n'
@@ -62,7 +63,9 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
     }
   }, [filePath, t])
 
-  return (
+  // createPortal 挂到 body：绕开 motion.div transform 祖先导致 fixed 失效
+  // （弹窗被限制在面板内、被卡片挡住、滚动失灵）
+  return createPortal(
     <div
       className="note-preview-overlay"
       onClick={e => {
@@ -123,6 +126,7 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
