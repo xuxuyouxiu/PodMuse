@@ -141,6 +141,7 @@ try {
     // 批量处理
     batchAdd: (items: unknown[]) => ipcRenderer.invoke('batch:add', items),
     batchStart: () => ipcRenderer.invoke('batch:start'),
+    closeToastWindow: () => ipcRenderer.send('toast:close'),
     batchPause: () => ipcRenderer.invoke('batch:pause'),
     batchResume: () => ipcRenderer.invoke('batch:resume'),
     batchSkip: (index: number) => ipcRenderer.invoke('batch:skip', index),

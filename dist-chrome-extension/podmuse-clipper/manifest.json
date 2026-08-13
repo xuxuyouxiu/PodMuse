@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "PodMuse 剪藏",
+  "version": "1.0.0",
+  "description": "一键把当前网页链接发送到 PodMuse（本地播客笔记助手）处理。仅读取当前页面 URL，发送到本机 127.0.0.1，不上传任何数据。",
+  "permissions": ["activeTab", "contextMenus", "tabs"],
+  "host_permissions": ["http://127.0.0.1:41987/*"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "发送到 PodMuse",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

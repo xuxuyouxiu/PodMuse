@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.36.0] - 2026-08-13
+
+### 修复
+- 剪藏浮窗「忽略」按钮失效：transparent 窗口内 window.close() 不可靠，改为 IPC 让主进程关闭
+- 剪藏浮窗阴影异常：去掉 box-shadow（transparent 窗口无法正确渲染阴影）
+
+### 改进
+- 浏览器扩展图标换为 PodMuse 应用图标（`build/icon.png` 缩放的 16/32/48/128 全套）
+
 ## [1.35.0] - 2026-08-13
 
 ### 新增

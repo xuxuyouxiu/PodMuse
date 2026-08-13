@@ -117,6 +117,13 @@ function showToast(item: ClipItem): void {
   })
 }
 
+/** 浮窗页面请求关闭（忽略/知道了按钮；transparent 窗口 window.close() 不可靠） */
+export function closeToastWindow(): void {
+  try {
+    if (toastWindow && !toastWindow.isDestroyed()) toastWindow.close()
+  } catch {}
+}
+
 let timer: ReturnType<typeof setInterval> | null = null
 let lastClip = ''
 

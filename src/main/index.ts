@@ -37,6 +37,7 @@ import {
   processUrl,
 } from './clipboard-watcher'
 import { startClipServer, stopClipServer } from './clip-server'
+import { closeToastWindow } from './clipboard-watcher'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
@@ -778,6 +779,7 @@ app.whenReady().then(() => {
   registerProtocol()
   startClipboardWatcher()
   startClipServer(url => processUrl(url))
+  ipcMain.on('toast:close', () => closeToastWindow())
   const protoArgv = process.argv.find(a => a.startsWith('podmuse://'))
   if (protoArgv) handleProtocolUrl(protoArgv)
 

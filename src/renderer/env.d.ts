@@ -311,6 +311,8 @@ declare global {
       // 批量处理
       batchAdd: (items: BatchInput[]) => Promise<BatchQueueSnapshot>
       batchStart: () => Promise<BatchQueueSnapshot>
+      /** 关闭剪贴板检测浮窗（transparent 窗口内 window.close 不可靠） */
+      closeToastWindow: () => void
       batchPause: () => Promise<BatchQueueSnapshot>
       batchResume: () => Promise<BatchQueueSnapshot>
       batchSkip: (index: number) => Promise<BatchQueueSnapshot>
