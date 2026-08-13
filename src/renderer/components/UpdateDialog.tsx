@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Download, RefreshCw, RotateCw, ExternalLink, Loader2, Check, X } from 'lucide-react'
 import { useI18n } from '../i18n'
 
@@ -131,7 +132,7 @@ export default function UpdateDialog({
     }
   }
 
-  return (
+  return createPortal(
     <div className="update-dialog-mask" onClick={onClose}>
       <div className="update-dialog" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="update-dialog__head">
@@ -142,6 +143,7 @@ export default function UpdateDialog({
         </div>
         <div className="update-dialog__body">{renderBody()}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

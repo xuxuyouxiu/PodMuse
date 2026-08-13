@@ -94,6 +94,7 @@ const enDict: Record<string, string> = {
   'RSSHub 服务地址': 'RSSHub base URL',
   '选择要导入的订阅': 'Select subscriptions to import',
   '确认导入': 'Import',
+  '查看全部': 'View all',
   '有新版本可用': 'New version available',
   '软件更新': 'Software Update',
   '当前已是最新版本': 'You are on the latest version',

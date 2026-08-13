@@ -395,8 +395,8 @@ export default function SubscriptionView() {
         </div>
       )}
 
-      {/* 推荐订阅（空状态冷启动，按平台模块化） */}
-      {!loading && infos.length === 0 && !searchResults && !resolved && recommendedLoaded && recommended.length > 0 && (
+      {/* 推荐订阅（按平台模块化：折叠时横向卡片行预览，点击展开全部） */}
+      {!loading && !searchResults && !resolved && recommendedLoaded && recommended.length > 0 && (
         <div className="sub-view__recommended">
           <div className="sub-view__section-title">{t('推荐订阅')}</div>
           {REC_GROUPS.map(g => {
@@ -418,7 +418,7 @@ export default function SubscriptionView() {
                   {t(g.label)}
                   <span className="sub-view__rec-group-count">{items.length}</span>
                 </button>
-                {expanded && (
+                {expanded ? (
                   <div className="sub-view__recommended-grid">
                     {items.map(r => {
                       const subscribed = subscribedFeeds.has(r.feedUrl)
@@ -446,6 +446,39 @@ export default function SubscriptionView() {
                         </div>
                       )
                     })}
+                  </div>
+                ) : (
+                  <div className="sub-view__rec-row">
+                    {items.slice(0, 6).map(r => {
+                      const subscribed = subscribedFeeds.has(r.feedUrl)
+                      return (
+                        <div key={r.feedUrl} className="sub-view__rec-mini">
+                          {r.artwork ? (
+                            <img className="sub-view__rec-mini-artwork" src={r.artwork} alt="" />
+                          ) : (
+                            <div className="sub-view__rec-mini-artwork sub-view__artwork--placeholder">
+                              <Rss size={16} />
+                            </div>
+                          )}
+                          <div className="sub-view__rec-mini-name" title={r.name}>{r.name}</div>
+                          <button
+                            className="sub-view__confirm-btn sub-view__rec-mini-btn"
+                            disabled={busy || subscribed}
+                            onClick={() => handleSubscribe(r.name, r.feedUrl)}
+                          >
+                            {subscribed ? <Check size={12} /> : <Plus size={12} />}
+                            {subscribed ? t('已订阅') : t('订阅')}
+                          </button>
+                        </div>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      className="sub-view__rec-more"
+                      onClick={() => setExpandedGroups(prev => ({ ...prev, [g.key]: true }))}
+                    >
+                      {t('查看全部')} ({items.length})
+                    </button>
                   </div>
                 )}
               </div>
