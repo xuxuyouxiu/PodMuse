@@ -5292,7 +5292,7 @@ a:focus-visible {
 .sub-card__episode-link:hover { color: var(--accent); }
 
 /* ── 订阅视图（侧边栏一级入口） ── */
-.sub-view { display: flex; flex-direction: column; gap: 14px; max-width: 860px; width: 100%; }
+.sub-view { display: flex; flex-direction: column; gap: 14px; width: 100%; }
 
 .sub-view__head { display: flex; align-items: center; justify-content: space-between; }
 

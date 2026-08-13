@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.41.2] - 2026-08-13
+
+### 修复
+- 订阅页只占窗口一半：去掉 .sub-view 的 max-width: 860px 限制，订阅视图随窗口全宽自适应
+
 ## [1.41.1] - 2026-08-13
 
 ### 改进
