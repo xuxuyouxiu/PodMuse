@@ -160,6 +160,9 @@ export type BatchQueueStatus = 'idle' | 'running' | 'paused' | 'completed'
 export interface BatchInput {
   source: string
   type: 'file' | 'url'
+  /** 模型覆盖（历史页重新生成选模型）：指定 providerId + model 时该任务不用全局配置 */
+  providerId?: string
+  model?: string
 }
 
 export interface BatchTask {
@@ -174,6 +177,8 @@ export interface BatchTask {
   completedAt?: number
   filename?: string | null
   steps?: StepInfo[]
+  providerId?: string
+  model?: string
 }
 
 export interface BatchQueueSnapshot {

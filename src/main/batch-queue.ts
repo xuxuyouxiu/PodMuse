@@ -4,6 +4,7 @@ import { basename, extname } from 'path'
 import { processPodcast, fetchPodcastTitle } from './podcast'
 import { loadConfig, getUserDataDir } from './config'
 import { getActiveProviderConfig } from './ai-providers'
+import type { AIProviderConfig } from '../shared/types'
 import { platformRegistry } from './platforms'
 import { sendNotification } from './notify'
 import {
@@ -103,6 +104,8 @@ export class BatchQueueService {
       title: item.type === 'file' ? basename(item.source, extname(item.source)) : null,
       platform: item.type === 'url' ? detectPlatformId(item.source) : null,
       addedAt: Date.now(),
+      providerId: item.providerId,
+      model: item.model,
     }))
 
     this.tasks.push(...newTasks)
@@ -352,6 +355,20 @@ export class BatchQueueService {
 
       const config = loadConfig()
       let activeProvider = getActiveProviderConfig(config.ai_provider, config.ai_providers)
+      // 任务级模型覆盖（历史页重新生成选模型）
+      if (task.providerId && task.model) {
+        const p = (config.ai_providers as Record<string, AIProviderConfig | undefined> | undefined)?.[
+          task.providerId
+        ]
+        if (p?.apiKey) {
+          let baseUrl = p.baseUrl
+          if (baseUrl && !baseUrl.includes('/v1')) {
+            baseUrl = baseUrl.replace(/\/+$/, '') + '/v1'
+          }
+          activeProvider = { baseUrl, apiKey: p.apiKey, model: task.model }
+          console.log(`[batch] 任务使用指定模型: ${task.providerId}/${task.model}`)
+        }
+      }
       if (!activeProvider && config.api_key) {
         activeProvider = {
           baseUrl: 'https://api.deepseek.com',

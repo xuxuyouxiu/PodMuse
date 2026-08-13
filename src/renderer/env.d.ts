@@ -216,6 +216,13 @@ declare global {
     error?: string
   }
 
+  interface ModelOption {
+    providerId: string
+    providerName: string
+    model: string
+    isCurrent: boolean
+  }
+
   interface ExportResult {
     success: boolean
     outputPath?: string
@@ -331,7 +338,11 @@ declare global {
       historyList: () => Promise<HistoryEntry[]>
       historyRemove: (taskId: string) => Promise<boolean>
       historyClear: () => Promise<boolean>
-      historyReprocess: (url: string) => Promise<{ success: boolean; error?: string }>
+      historyListModels: () => Promise<ModelOption[]>
+      historyReprocess: (
+        url: string,
+        opts?: { providerId?: string; model?: string },
+      ) => Promise<{ success: boolean; error?: string }>
       batchSkip: (index: number) => Promise<BatchQueueSnapshot>
       batchClear: () => Promise<BatchQueueSnapshot>
       batchRetry: (index: number) => Promise<BatchQueueSnapshot>

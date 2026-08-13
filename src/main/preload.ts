@@ -155,7 +155,9 @@ try {
     historyList: () => ipcRenderer.invoke('history:list'),
     historyRemove: (taskId: string) => ipcRenderer.invoke('history:remove', taskId),
     historyClear: () => ipcRenderer.invoke('history:clear'),
-    historyReprocess: (url: string) => ipcRenderer.invoke('history:reprocess', { url }),
+    historyListModels: () => ipcRenderer.invoke('history:models'),
+    historyReprocess: (url: string, opts?: { providerId?: string; model?: string }) =>
+      ipcRenderer.invoke('history:reprocess', { url, ...(opts || {}) }),
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)

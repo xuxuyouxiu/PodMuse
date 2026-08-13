@@ -11,6 +11,9 @@ import {
   Check,
   AlertCircle,
   History,
+  FolderOpen,
+  Brain,
+  X,
 } from 'lucide-react'
 import NotePreviewDialog from './NotePreviewDialog'
 import { useI18n } from '../i18n'
@@ -50,8 +53,73 @@ function inRange(ts: number, range: string): boolean {
   return ts >= now - days * 86400000
 }
 
+/** 模型选择弹窗（重新生成时选模型） */
+function ModelPicker({
+  models,
+  onPick,
+  onCancel,
+}: {
+  models: ModelOption[]
+  onPick: (m: ModelOption) => void
+  onCancel: () => void
+}) {
+  const { t } = useI18n()
+  const [selected, setSelected] = useState<string>(
+    models.find(m => m.isCurrent)?.providerId + '::' + models.find(m => m.isCurrent)?.model || models[0]?.providerId + '::' + models[0]?.model,
+  )
+  return (
+    <div className="history-model-mask" onClick={onCancel}>
+      <div className="history-model" onClick={e => e.stopPropagation()}>
+        <div className="history-model__head">
+          <span className="history-model__title">
+            <Brain size={14} />
+            {t('选择生成模型')}
+          </span>
+          <button className="history-model__close" onClick={onCancel} title={t('关闭')}>
+            <X size={13} />
+          </button>
+        </div>
+        <div className="history-model__list">
+          {models.map(m => {
+            const key = `${m.providerId}::${m.model}`
+            return (
+              <label key={key} className="history-model__item">
+                <input
+                  type="radio"
+                  name="regen-model"
+                  checked={selected === key}
+                  onChange={() => setSelected(key)}
+                />
+                <span className="history-model__name">
+                  {m.providerName} · {m.model}
+                  {m.isCurrent && <em className="history-model__current">{t('当前')}</em>}
+                </span>
+              </label>
+            )
+          })}
+        </div>
+        <div className="history-model__foot">
+          <button className="history-model__btn history-model__btn--ghost" onClick={onCancel}>
+            {t('取消')}
+          </button>
+          <button
+            className="history-model__btn history-model__btn--primary"
+            onClick={() => {
+              const [providerId, model] = selected.split('::')
+              const m = models.find(x => x.providerId === providerId && x.model === model)
+              if (m) onPick(m)
+            }}
+          >
+            {t('开始生成')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /**
- * 处理历史 — 所有处理过的任务：筛选、预览、重新生成、删除
+ * 处理历史（资产视图）— 成功笔记统计 + 筛选 + 重新生成（可选模型）
  */
 export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const { t } = useI18n()
@@ -59,15 +127,26 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<'success' | 'all'>('success')
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [previewName, setPreviewName] = useState('')
   const [notice, setNotice] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [modelPicker, setModelPicker] = useState<{ entry: HistoryEntry; models: ModelOption[] } | null>(null)
+  const [notesThisWeek, setNotesThisWeek] = useState(0)
 
   const load = useCallback(() => {
     window.electronAPI
       .historyList()
-      .then(list => setEntries(list))
+      .then(list => {
+        setEntries(list)
+        const weekMs = 7 * 86400000
+        setNotesThisWeek(
+          list.filter(
+            e => e.status === 'completed' && e.filename && e.updatedAt >= Date.now() - weekMs,
+          ).length,
+        )
+      })
       .catch(() => setEntries([]))
       .finally(() => setLoading(false))
   }, [])
@@ -83,18 +162,36 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
 
   const platforms = Array.from(new Set(entries.map(e => e.platformName)))
 
+  // 统计卡（资产视角：只统计成功产出笔记）
+  const notes = entries.filter(e => e.status === 'completed' && e.filename)
+  const successRate =
+    entries.length > 0 ? Math.round((notes.length / entries.length) * 100) : 0
+  const platformDist = new Map<string, number>()
+  for (const e of notes) {
+    platformDist.set(e.platformName, (platformDist.get(e.platformName) || 0) + 1)
+  }
+  const topPlatforms = Array.from(platformDist.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+  const maxPlatform = topPlatforms[0]?.[1] || 1
+
   const filtered = entries.filter(
     e =>
       (platformFilter === 'all' || e.platformName === platformFilter) &&
-      inRange(e.updatedAt, timeFilter),
+      inRange(e.updatedAt, timeFilter) &&
+      (statusFilter === 'all' ||
+        (statusFilter === 'success' && e.status === 'completed' && e.filename)),
   )
 
-  const handleReprocess = async (e: HistoryEntry) => {
-    setBusyId(e.id)
+  const doReprocess = async (entry: HistoryEntry, model?: ModelOption) => {
+    setBusyId(entry.id)
     try {
-      const res = await window.electronAPI.historyReprocess(e.url)
+      const res = await window.electronAPI.historyReprocess(
+        entry.url,
+        model ? { providerId: model.providerId, model: model.model } : undefined,
+      )
       if (res.success) {
-        flash(t('已加入处理队列'))
+        flash(model ? `${t('已加入处理队列')}（${model.providerName} · ${model.model}）` : t('已加入处理队列'))
       } else {
         flash(t('操作失败') + ': ' + (res.error || ''))
       }
@@ -102,6 +199,19 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
       flash(t('操作失败') + ': ' + String(err))
     } finally {
       setBusyId('')
+    }
+  }
+
+  const handleReprocessClick = async (entry: HistoryEntry) => {
+    try {
+      const models = await window.electronAPI.historyListModels()
+      if (models.length > 1) {
+        setModelPicker({ entry, models })
+      } else {
+        await doReprocess(entry)
+      }
+    } catch {
+      await doReprocess(entry)
     }
   }
 
@@ -129,6 +239,12 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     window.electronAPI.openPath(p)
   }
 
+  const showInFolder = (e: HistoryEntry) => {
+    if (!e.filename || !obsidianDir) return
+    const p = obsidianDir.replace(/[/\\]$/, '') + '/' + e.filename
+    window.electronAPI.showInFolder(p)
+  }
+
   return (
     <div className="history-view">
       <div className="history-view__head">
@@ -148,9 +264,52 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         </div>
       </div>
 
+      {/* 资产统计卡 */}
+      {notes.length > 0 && (
+        <div className="history-view__stats">
+          <div className="history-view__stat">
+            <div className="history-view__stat-value">{notes.length}</div>
+            <div className="history-view__stat-label">{t('累计笔记')}</div>
+          </div>
+          <div className="history-view__stat">
+            <div className="history-view__stat-value">{notesThisWeek}</div>
+            <div className="history-view__stat-label">{t('本周新增')}</div>
+          </div>
+          <div className="history-view__stat">
+            <div className="history-view__stat-value">{successRate}%</div>
+            <div className="history-view__stat-label">{t('成功率')}</div>
+          </div>
+          <div className="history-view__stat history-view__stat--dist">
+            <div className="history-view__stat-label">{t('平台分布')}</div>
+            <div className="history-view__dist-bars">
+              {topPlatforms.map(([name, count]) => (
+                <div key={name} className="history-view__dist-row">
+                  <span className="history-view__dist-name">{name}</span>
+                  <div className="history-view__dist-track">
+                    <div
+                      className="history-view__dist-fill"
+                      style={{ width: `${Math.round((count / maxPlatform) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="history-view__dist-count">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 筛选栏 */}
       {entries.length > 0 && (
         <div className="history-view__filters">
+          <select
+            className="history-view__select"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as 'success' | 'all')}
+          >
+            <option value="success">{t('仅成功笔记')}</option>
+            <option value="all">{t('全部任务')}</option>
+          </select>
           <select
             className="history-view__select"
             value={platformFilter}
@@ -173,12 +332,13 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
             <option value="7d">{t('近 7 天')}</option>
             <option value="30d">{t('近 30 天')}</option>
           </select>
-          {(platformFilter !== 'all' || timeFilter !== 'all') && (
+          {(platformFilter !== 'all' || timeFilter !== 'all' || statusFilter !== 'success') && (
             <button
               className="history-view__toolbar-btn"
               onClick={() => {
                 setPlatformFilter('all')
                 setTimeFilter('all')
+                setStatusFilter('success')
               }}
               title={t('重置')}
             >
@@ -252,12 +412,19 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                       >
                         <ExternalLink size={12} />
                       </button>
+                      <button
+                        className="history-view__btn"
+                        onClick={() => showInFolder(e)}
+                        title={t('打开所在文件夹')}
+                      >
+                        <FolderOpen size={12} />
+                      </button>
                     </>
                   )}
                   {(e.status === 'completed' || e.status === 'failed' || e.status === 'error') && (
                     <button
                       className="history-view__btn"
-                      onClick={() => handleReprocess(e)}
+                      onClick={() => handleReprocessClick(e)}
                       disabled={busyId === e.id}
                       title={t('重新生成')}
                     >
@@ -287,6 +454,18 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
           filePath={previewPath}
           filename={previewName}
           onClose={() => setPreviewPath(null)}
+        />
+      )}
+
+      {modelPicker && (
+        <ModelPicker
+          models={modelPicker.models}
+          onPick={m => {
+            const entry = modelPicker.entry
+            setModelPicker(null)
+            void doReprocess(entry, m)
+          }}
+          onCancel={() => setModelPicker(null)}
         />
       )}
     </div>

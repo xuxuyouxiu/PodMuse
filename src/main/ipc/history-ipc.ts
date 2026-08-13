@@ -3,12 +3,19 @@
  */
 
 import { ipcMain } from 'electron'
-import { loadState, saveState } from '../config'
+import { loadConfig, loadState, saveState } from '../config'
 import { getRecentTasks, removeRecentTask } from '../recent-task-state'
 import { platformRegistry } from '../platforms'
 import { processedEpisodeIds } from '../dedup-store'
 import type { BatchQueueService } from '../batch-queue'
-import type { FeishuState, RecentTaskState } from '../../shared/types'
+import type { FeishuState, RecentTaskState, AIProviderConfig } from '../../shared/types'
+
+export interface ModelOption {
+  providerId: string
+  providerName: string
+  model: string
+  isCurrent: boolean
+}
 
 export interface HistoryEntry {
   id: string
@@ -63,14 +70,44 @@ export function registerHistoryIPC(batchQueue: BatchQueueService | null): void {
     return true
   })
 
+  ipcMain.handle('history:models', () => {
+    const config = loadConfig()
+    const activeId = config.ai_provider
+    const out: ModelOption[] = []
+    for (const [providerId, raw] of Object.entries(config.ai_providers || {})) {
+      const p = raw as AIProviderConfig | undefined
+      if (!p?.apiKey) continue
+      const models =
+        p.availableModels && p.availableModels.length > 0
+          ? p.availableModels.map(m => m.id)
+          : [p.model].filter(Boolean)
+      for (const model of models) {
+        out.push({
+          providerId,
+          providerName: p.name || providerId,
+          model,
+          isCurrent: providerId === activeId && model === p.model,
+        })
+      }
+    }
+    return out
+  })
+
   ipcMain.handle(
     'history:reprocess',
-    async (_e, params: { url: string }) => {
+    async (_e, params: { url: string; providerId?: string; model?: string }) => {
       const url = params?.url?.trim() || ''
       if (!url) return { success: false, error: '缺少链接' }
       if (!batchQueue) return { success: false, error: '处理队列未就绪' }
       try {
-        batchQueue.addTasks([{ source: url, type: 'url' }])
+        batchQueue.addTasks([
+          {
+            source: url,
+            type: 'url',
+            ...(params?.providerId ? { providerId: params.providerId } : {}),
+            ...(params?.model ? { model: params.model } : {}),
+          },
+        ])
         await batchQueue.start()
         return { success: true }
       } catch (e) {
