@@ -354,7 +354,8 @@ async function callAI(
     }
 
     try {
-      const timeoutSignal = AbortSignal.timeout(120_000)
+      // 单次请求超时 5 分钟：长视频/长文本提炼耗时可达数分钟，120s 会频繁误杀
+      const timeoutSignal = AbortSignal.timeout(300_000)
       const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
       const resp = await fetch(apiUrl, {
         method: 'POST',
@@ -422,6 +423,10 @@ async function callAI(
 
       // 如果是最后一次尝试或错误不可重试，抛出错误
       if (attempt >= MAX_RETRIES || !isRetryableError(error)) {
+        // 超时错误转为可读中文提示
+        if (error instanceof Error && /timeout|aborted/i.test(error.message) && !signal?.aborted) {
+          throw new Error(`AI 请求超时（已自动重试 ${MAX_RETRIES} 次），请稍后重试；若持续超时可换用更快的模型`)
+        }
         throw error
       }
 

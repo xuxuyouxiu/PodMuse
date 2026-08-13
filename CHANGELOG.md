@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.41.4] - 2026-08-13
+
+### 修复
+- B 站等长视频「提炼笔记」超时（The operation was aborted due to timeout）：AI 单次请求超时从 120 秒加长到 300 秒（长文本提炼可达数分钟，120s 频繁误杀）
+- 超时重试耗尽后的错误改为可读中文提示（原为英文 undici 错误）
+
 ## [1.41.3] - 2026-08-13
 
 ### 修复
