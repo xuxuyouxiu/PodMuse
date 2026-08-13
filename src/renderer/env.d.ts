@@ -196,6 +196,13 @@ declare global {
     description: string
   }
 
+  interface UpdaterState {
+    phase: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error'
+    version?: string
+    percent?: number
+    error?: string
+  }
+
   interface ExportResult {
     success: boolean
     outputPath?: string
@@ -272,6 +279,10 @@ declare global {
       parseOpmlFile: (filePath: string) => Promise<OpmlEntry[]>
       getRecommendedPodcasts: () => Promise<RecommendedPodcast[]>
       onSubscriptionUpdate: (callback: (data: SubscriptionInfo[]) => void) => () => void
+      onUpdaterState: (callback: (state: UpdaterState) => void) => () => void
+      updaterManualCheck: () => Promise<boolean>
+      updaterDownload: () => Promise<boolean>
+      updaterInstall: () => Promise<boolean>
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>

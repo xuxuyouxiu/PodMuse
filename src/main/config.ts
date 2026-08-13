@@ -86,6 +86,8 @@ const DEFAULTS: PodcastConfig = {
   subscriptions: [],
   subscription_check_interval_hours: 6,
   rsshub_base_url: 'https://rsshub.app',
+  auto_update_check: true,
+  auto_update_download: false,
 
   // 导出配置默认值
   export: {

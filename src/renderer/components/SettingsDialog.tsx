@@ -355,6 +355,8 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
             {activeTab === 'export' && <TabExport form={form} update={update} />}
             {activeTab === 'tools' && (
               <TabTools
+                form={form}
+                update={update}
                 cleaningTemp={cleaningTemp}
                 tempCleanResult={tempCleanResult}
                 onCleanTemp={handleCleanTemp}

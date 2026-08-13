@@ -1,6 +1,6 @@
 {
   "name": "podmuse",
-  "version": "1.24.0",
+  "version": "1.25.0",
   "description": "PodMuse - 把播客变成知识库。粘贴任意播客/视频链接，AI自动转写、提炼、生成结构化笔记并写入Obsidian",
   "main": "dist-electron/main/index.js",
   "author": "PodMuse contributors",
@@ -46,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^1.17.0",
     "marked": "^18.0.9",
     "motion": "^12.40.0",

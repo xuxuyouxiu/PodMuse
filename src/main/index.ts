@@ -28,6 +28,7 @@ import { BatchQueueService } from './batch-queue'
 import { registerBatchIPC } from './ipc/batch-ipc'
 import { registerSubscriptionIPC } from './ipc/subscription-ipc'
 import { createSubscriptionService, SubscriptionService } from './subscription-service'
+import { setupUpdater, type UpdaterHandle } from './updater'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
@@ -39,6 +40,7 @@ let tray: Tray | null = null
 let isQuitting = false
 let batchQueueService: BatchQueueService | null = null
 let subscriptionService: SubscriptionService | null = null
+let updaterHandle: UpdaterHandle | null = null
 
 // 单实例锁：防止重复打开，第二次启动时聚焦已有窗口
 const gotTheLock = app.requestSingleInstanceLock()
@@ -202,6 +204,20 @@ function setupIPC() {
     () => batchQueueService,
   )
   registerSubscriptionIPC(subscriptionService)
+
+  // ---- 自动更新 IPC（开发/便携模式下 updaterHandle 为 null，调用即空转） ----
+  ipcMain.handle('updater:manual-check', () => {
+    updaterHandle?.manualCheck()
+    return true
+  })
+  ipcMain.handle('updater:download', () => {
+    updaterHandle?.download()
+    return true
+  })
+  ipcMain.handle('updater:install', () => {
+    updaterHandle?.install()
+    return true
+  })
 
   // ---- 抖音下载器安装检查 ----
   ipcMain.handle('douyin:setup', async () => {
@@ -734,6 +750,18 @@ app.whenReady().then(() => {
   createWindow()
   setupIPC()
   createTray()
+
+  // 自动更新（增量）：开发/便携模式自动跳过
+  updaterHandle = setupUpdater({
+    send: state => {
+      try {
+        mainWindow?.webContents.send('updater:state', state)
+      } catch {}
+    },
+    beforeQuitAndInstall: () => {
+      isQuitting = true
+    },
+  })
 
   startConsistencyChecker(
     hasActiveProcess,

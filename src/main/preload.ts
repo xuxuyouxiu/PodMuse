@@ -106,6 +106,14 @@ try {
       ipcRenderer.on('subscription:update', handler)
       return () => ipcRenderer.removeListener('subscription:update', handler)
     },
+    onUpdaterState: (callback: (state: unknown) => void) => {
+      const handler = (_e: unknown, state: unknown) => callback(state)
+      ipcRenderer.on('updater:state', handler)
+      return () => ipcRenderer.removeListener('updater:state', handler)
+    },
+    updaterManualCheck: () => ipcRenderer.invoke('updater:manual-check'),
+    updaterDownload: () => ipcRenderer.invoke('updater:download'),
+    updaterInstall: () => ipcRenderer.invoke('updater:install'),
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),

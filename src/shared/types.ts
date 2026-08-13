@@ -79,6 +79,10 @@ export interface PodcastConfig {
   subscriptions?: Subscription[]
   subscription_check_interval_hours?: number
   rsshub_base_url?: string
+
+  // 自动更新
+  auto_update_check?: boolean
+  auto_update_download?: boolean
 }
 
 export interface Subscription {

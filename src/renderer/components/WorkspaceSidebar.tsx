@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
+import UpdateDialog from './UpdateDialog'
 
 export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa' | 'subscription'
 
@@ -39,6 +40,8 @@ export default function WorkspaceSidebar({
 }: Props) {
   const { t } = useI18n()
   const [version, setVersion] = useState<string>('')
+  const [updaterState, setUpdaterState] = useState<UpdaterState>({ phase: 'idle' })
+  const [updateOpen, setUpdateOpen] = useState(false)
   // ChatGPT 式侧栏：默认收缩为图标窄栏，点击展开完整侧栏
   const [expanded, setExpanded] = useState(false)
 
@@ -49,6 +52,17 @@ export default function WorkspaceSidebar({
       .then(v => setVersion(v))
       .catch(() => {})
   }, [])
+
+  // 订阅自动更新状态
+  useEffect(() => {
+    const off = window.electronAPI.onUpdaterState(state => setUpdaterState(state))
+    return () => off()
+  }, [])
+
+  const hasUpdate =
+    updaterState.phase === 'available' ||
+    updaterState.phase === 'downloading' ||
+    updaterState.phase === 'downloaded'
 
   const runningCount = activeTasks.filter(t => t.status === 'running').length
   const completedToday = recentTasks.filter(t => {
@@ -206,7 +220,25 @@ export default function WorkspaceSidebar({
       </div>
 
       {version && (
-        <div className="workspace-sidebar__version ws-label">v{version}</div>
+        <button
+          type="button"
+          className={`workspace-sidebar__version ws-label ${hasUpdate ? 'is-update' : ''}`}
+          onClick={() => setUpdateOpen(true)}
+          title={hasUpdate ? t('有新版本可用') : t('检查更新')}
+        >
+          v{version}
+          {hasUpdate && <span className="workspace-sidebar__version-badge">(1)</span>}
+        </button>
+      )}
+      {updateOpen && (
+        <UpdateDialog
+          state={updaterState}
+          currentVersion={version}
+          onClose={() => setUpdateOpen(false)}
+          onDownload={() => window.electronAPI.updaterDownload()}
+          onInstall={() => window.electronAPI.updaterInstall()}
+          onManualCheck={() => window.electronAPI.updaterManualCheck()}
+        />
       )}
     </aside>
   )
