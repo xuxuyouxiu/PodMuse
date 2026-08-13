@@ -18,7 +18,9 @@ interface Episode {
 }
 
 interface SubscriptionState {
-  seen: string[]
+  /** 每源已见集合（旧版为全局 seen: string[]，迁移后不再写入） */
+  seen?: string[]
+  seenBySub?: Record<string, string[]>
   lastCheckAt: Record<string, number>
 }
 
@@ -30,14 +32,28 @@ export interface SubscriptionInfo {
 }
 
 const MAX_SEEN = 500
+/** 每个源最多跟踪的条目数：只取 feed 最近 N 条（RSS 最新在前），
+ *  保证 seen 集合（500）永不裁剪 —— 否则超限的老条目被裁掉后会重新变"新节目"反复入队 */
+const MAX_FEED_ITEMS = 200
+
+/** 浏览器 UA：喜马拉雅等平台反爬会拒绝 rss-parser 默认 UA（返回 406） */
+const RSS_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
 export class SubscriptionService {
   private subs: Subscription[] = []
-  private seen: Set<string> = new Set()
+  /** 每源独立已见集合（key 为节目 guid/link），避免多源互相挤兑导致历史节目重新入队 */
+  private seenBySub: Record<string, Set<string>> = {}
   private lastCheckAt: Record<string, number> = {}
   private timer: ReturnType<typeof setInterval> | null = null
   private checking = false
-  private parser = new Parser({ timeout: 15000 })
+  private parser = new Parser({
+    timeout: 15000,
+    headers: {
+      'User-Agent': RSS_UA,
+      Accept: 'application/rss+xml, text/xml, application/xml;q=0.9, */*;q=0.8',
+    },
+  })
 
   constructor(
     private getWindow: () => BrowserWindow | null | undefined,
@@ -56,7 +72,11 @@ export class SubscriptionService {
     try {
       const raw = fs.readFileSync(this.statePath(), 'utf-8')
       const state = JSON.parse(raw) as SubscriptionState
-      this.seen = new Set(state.seen || [])
+      // seenBySub：每源独立集合；旧版全局 seen（state.seen）不再使用——
+      // 旧订阅无 seenBySub 条目，下次检查自动按"首次检查"处理（只取最新 1 期并重新标记），不会爆队列
+      for (const [subId, keys] of Object.entries(state.seenBySub || {})) {
+        this.seenBySub[subId] = new Set(keys || [])
+      }
       this.lastCheckAt = state.lastCheckAt || {}
     } catch {
       /* 首次运行 */
@@ -65,8 +85,12 @@ export class SubscriptionService {
 
   private persistState(): void {
     try {
+      const seenBySub: Record<string, string[]> = {}
+      for (const [subId, set] of Object.entries(this.seenBySub)) {
+        seenBySub[subId] = Array.from(set).slice(-MAX_SEEN)
+      }
       const state: SubscriptionState = {
-        seen: [...this.seen].slice(-MAX_SEEN),
+        seenBySub,
         lastCheckAt: this.lastCheckAt,
       }
       fs.writeFileSync(this.statePath(), JSON.stringify(state, null, 2), 'utf-8')
@@ -211,6 +235,7 @@ export class SubscriptionService {
   private async fetchEpisodes(sub: Subscription): Promise<Episode[]> {
     const feed = await this.parser.parseURL(sub.url)
     return (feed.items || [])
+      .slice(0, MAX_FEED_ITEMS)
       .map(item => ({
         key: item.guid || item.link || '',
         title: item.title || '未命名节目',
@@ -222,21 +247,24 @@ export class SubscriptionService {
 
   private async checkOne(sub: Subscription): Promise<Episode[]> {
     const episodes = await this.fetchEpisodes(sub)
-    const isFirstCheck = !this.lastCheckAt[sub.id]
-    const fresh = episodes.filter(ep => !this.seen.has(ep.key))
+    const subSeen = this.seenBySub[sub.id] || new Set<string>()
+    // 首次检查判定：无检查记录，或该源还没有已见集合（含旧版数据迁移）
+    const isFirstCheck = !this.lastCheckAt[sub.id] || subSeen.size === 0
+    const fresh = episodes.filter(ep => !subSeen.has(ep.key))
     let toProcess: Episode[]
     if (isFirstCheck && fresh.length > 1) {
       // 首次检查：只把最新 1 期当新节目，其余历史条目标记已见，
       // 避免订阅时把全部历史节目（可能上百期）塞进处理队列
       const [latest, ...history] = fresh
       toProcess = [latest]
-      for (const ep of history) this.seen.add(ep.key)
+      for (const ep of history) subSeen.add(ep.key)
       console.log(
         `[subscription] 《${sub.name}》首次检查：标记 ${history.length} 期历史节目已见，仅处理最新一期`,
       )
     } else {
       toProcess = fresh
     }
+    this.seenBySub[sub.id] = subSeen
     this.lastCheckAt[sub.id] = Date.now()
     // 手动源的新节目缓存在待处理列表（自动源直接入队并标记）
     if (!sub.autoProcess && toProcess.length > 0) {
@@ -265,7 +293,11 @@ export class SubscriptionService {
                   fresh.map(ep => ({ source: ep.link, type: 'url' as const })),
                 )
               }
-              for (const ep of fresh) this.seen.add(ep.key)
+              for (const ep of fresh) {
+                const subSeen = this.seenBySub[sub.id] || new Set<string>()
+                subSeen.add(ep.key)
+                this.seenBySub[sub.id] = subSeen
+              }
               this.subs = this.subs.map(s =>
                 s.id === sub.id ? { ...s, processedCount: s.processedCount + fresh.length } : s,
               )
@@ -288,7 +320,9 @@ export class SubscriptionService {
 
   /** 手动源的新节目加入队列后标记已见 */
   markSeen(subId: string, episodeKeys: string[]): void {
-    for (const k of episodeKeys) this.seen.add(k)
+    const subSeen = this.seenBySub[subId] || new Set<string>()
+    for (const k of episodeKeys) subSeen.add(k)
+    this.seenBySub[subId] = subSeen
     this.pendingCache.set(subId, [])
     const sub = this.subs.find(s => s.id === subId)
     if (sub) {
