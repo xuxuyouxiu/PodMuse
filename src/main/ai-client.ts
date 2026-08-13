@@ -489,9 +489,13 @@ export async function generateNotes(
   signal?: AbortSignal,
   metadata?: Record<string, string>,
   onSegmentProgress?: (current: number, total: number) => void,
+  extraPrompt?: string,
 ) {
   const date = new Date().toISOString().split('T')[0]
-  const prompt = getAIPrompt()
+  let prompt = getAIPrompt()
+  if (extraPrompt) {
+    prompt = `${prompt}\n\n[补充要求]\n${extraPrompt}`
+  }
 
   // 构建平台元数据上下文，注入到 transcript 之前
   let transcriptWithContext = transcript

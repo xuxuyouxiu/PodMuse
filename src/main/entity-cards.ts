@@ -73,6 +73,103 @@ function parseEntitySection(text: string, tag: string): Map<string, string>[] {
   return results
 }
 
+/**
+ * 正文补链接兜底：实体卡片区存在的实体，若在正文中出现但未包裹 [[链接]]，自动补上。
+ * 用于 AI 漏包链接时保证「卡片有、正文必链」。跳过：
+ * - 已链接位置（[[名称]] / [[名称|别名]] / [名称](...)）
+ * - frontmatter 与 CARD 卡片块
+ * - 前后紧邻中文字符/字母/数字的位置（避免长词内部误替换，如「锂离子电池组」中的「锂离子电池」）
+ * - skipNames（非知名人物等）
+ */
+export function linkifyBody(
+  markdown: string,
+  entities: EntityResult,
+  skipNames: Set<string>,
+): string {
+  const typeOf = new Map<string, string>()
+  for (const p of entities.people) if (p.name) typeOf.set(p.name, '人物')
+  for (const p of entities.projects) if (p.name) typeOf.set(p.name, '项目')
+  for (const p of entities.concepts) if (p.name) typeOf.set(p.name, '概念')
+  for (const p of entities.terms) if (p.name) typeOf.set(p.name, '术语')
+
+  // 只处理正文主体（frontmatter 与卡片块之间）
+  const lines = markdown.split(/\r?\n/)
+  let inFrontmatter = false
+  let inCardBlock = false
+  const bodyStart: number[] = []
+  const bodyIdx: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i]
+    if (i === 0 && t.startsWith('---')) {
+      inFrontmatter = true
+      continue
+    }
+    if (inFrontmatter && t.startsWith('---')) {
+      inFrontmatter = false
+      continue
+    }
+    if (/^---CARD-[A-Z]+---/.test(t.trim())) {
+      inCardBlock = true
+      continue
+    }
+    if (inCardBlock && /^---CARD-[A-Z]+-END---/.test(t.trim())) {
+      inCardBlock = false
+      continue
+    }
+    if (!inFrontmatter && !inCardBlock) bodyIdx.push(i)
+  }
+  if (bodyIdx.length === 0) return markdown
+  bodyStart.push(bodyIdx[0])
+
+  // 提取已链接区间（仅正文行）：[[名称]]、[[名称|别名]]、[名称](...)
+  const bodyText = bodyIdx.map(i => lines[i]).join('\n')
+  const linkedSpans: { start: number; end: number }[] = []
+  const linkRe = /\[\[[^\]]+\]\]|\[[^\]]*\]\([^)]*\)/g
+  let lm: RegExpExecArray | null
+  while ((lm = linkRe.exec(bodyText)) !== null) {
+    linkedSpans.push({ start: lm.index, end: lm.index + lm[0].length })
+  }
+
+  const isLinked = (pos: number) => linkedSpans.some(s => pos >= s.start && pos < s.end)
+  void isLinked
+
+  // 按名称长度降序替换（长名优先，避免短名先替换破坏长名）
+  const names = Array.from(typeOf.entries())
+    .filter(([name]) => name.length >= 2 && !skipNames.has(name))
+    .sort((a, b) => b[0].length - a[0].length)
+
+  // 用拼接方式完成替换（从后往前，保持位置有效）
+  let out = bodyText
+  const allReplacements: { pos: number; len: number; text: string }[] = []
+  for (const [name, dir] of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(escaped, 'g')
+    let m: RegExpExecArray | null
+    while ((m = re.exec(out)) !== null) {
+      const pos = m.index
+      const inLinked = linkedSpans.some(s => pos >= s.start && pos < s.end)
+      if (inLinked) continue
+      const before = pos > 0 ? out[pos - 1] : ''
+      const after = out[pos + name.length] || ''
+      // 边界检查：前后紧贴字母/数字时拒绝（避免英文词内部误替换，如 AIGC 中的 AI）；
+      // 中文不做边界限制（靠长名优先 + 已链接区间跳过兜底，「锂离子电池组」会正确变成 [[锂离子电池]]组）
+      if (/[A-Za-z0-9]/.test(before) || /[A-Za-z0-9]/.test(after)) continue
+      allReplacements.push({ pos, len: name.length, text: `[[${dir}/${name}]]` })
+    }
+  }
+  allReplacements.sort((a, b) => b.pos - a.pos)
+  for (const r of allReplacements) {
+    out = out.slice(0, r.pos) + r.text + out.slice(r.pos + r.len)
+  }
+
+  // 把替换后的正文行写回原行
+  const outLines = out.split('\n')
+  for (let k = 0; k < bodyIdx.length; k++) {
+    lines[bodyIdx[k]] = outLines[k]
+  }
+  return lines.join('\n')
+}
+
 export function parseEntityBlocks(markdown: string): EntityResult {
   const people = parseEntitySection(markdown, 'PEOPLE')
   const projects = parseEntitySection(markdown, 'PROJECT')

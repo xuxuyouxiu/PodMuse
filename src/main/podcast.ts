@@ -10,6 +10,7 @@ import {
   fillMissingTermCards,
   extractBodyWikiLinks,
   fillMissingEntityCards,
+  linkifyBody,
   convertWikiLinks,
   getNonNotablePeopleNames,
 } from './entity-cards'
@@ -39,6 +40,14 @@ function getTempDir(audioDir: string) {
   const d = audioDir || path.join(app.getPath('userData'), '_podcast_temp')
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true })
   return d
+}
+
+/**
+ * frontmatter 兜底用的默认分类：按平台推断（B站/YouTube 以科技类内容为主）
+ */
+function defaultCategoryFor(providerId: string): string {
+  if (providerId === 'bilibili' || providerId === 'youtube') return '科技商业'
+  return ''
 }
 
 /**
@@ -793,11 +802,34 @@ export async function processPodcast(
     log(`  ❌ AI 提炼失败（${detail}）`)
     return null
   }
-  step({ step: 5, title: 'AI 提炼笔记', subtitle: `≈¥${notes.cost.toFixed(4)}`, status: 'done' })
-  log(`  ✓ 提炼完成 (≈¥${notes.cost.toFixed(4)})`)
 
-  // 质量评估
-  const qScore = evaluateQuality(finalTranscript, notes.content)
+  // 质量评估 + 低分重试一次（AI 漏 frontmatter/链接时自动补救）
+  let qScore = evaluateQuality(finalTranscript, notes.content)
+  if (
+    !signal?.aborted &&
+    (qScore.formatCompliance < 70 || qScore.wikiLinkCoverage < 60) &&
+    notes.content
+  ) {
+    log(
+      `  🔁 质量未达标（格式 ${qScore.formatCompliance}% | 链接 ${qScore.wikiLinkCoverage}%），重新生成一次...`,
+    )
+    const retry = await generateNotes(
+      providerConfig,
+      providerId as AIProviderId,
+      finalTranscript,
+      signal,
+      platformMetadata,
+      undefined,
+      '上次输出格式不合规：必须严格以 YAML frontmatter 开头（含 type/show/date/tags/category 五个字段并正确闭合），且正文中出现的所有实体（人物/项目/概念/术语）必须用 [[名称]] 包裹成链接。',
+    ).catch(() => null)
+    if (retry?.content) {
+      notes = retry
+      if (notes.content) {
+        qScore = evaluateQuality(finalTranscript, notes.content)
+      }
+    }
+  }
+  if (!notes.content) return null
   const scoreLabel =
     qScore.overall >= 60 ? `质量 ${qScore.overall}/100` : `⚠ 质量 ${qScore.overall}/100（建议复核）`
   step({
@@ -811,6 +843,14 @@ export async function processPodcast(
   )
   if (qScore.details.length > 0) {
     for (const d of qScore.details) log(`     ${d}`)
+  }
+
+  // frontmatter 兜底：AI 仍未输出 frontmatter 时自动补一个（保证分类与规范）
+  if (!notes.content.trim().startsWith('---')) {
+    const fmDate = new Date().toISOString().split('T')[0]
+    const fmShow = (platformMetadata && platformMetadata.channel) || providerId
+    notes.content = `---\ntype: podcast\nshow: ${fmShow}\nepisode: 单集\ndate: ${fmDate}\ntags: []\ncategory: ${defaultCategoryFor(providerId)}\n---\n\n${notes.content.trim()}`
+    log('  📝 已自动补全缺失的 frontmatter')
   }
 
   const entities = parseEntityBlocks(notes.content)
@@ -843,6 +883,16 @@ export async function processPodcast(
   )
   if (filledLinks > 0) {
     log(`  📎 为正文中 ${filledLinks} 个链接自动创建了概念卡片`)
+  }
+
+  // 正文补链接兜底：卡片区有的实体，正文出现但漏链的自动补 [[链接]]
+  if (finalEntities.people.length + finalEntities.projects.length + finalEntities.concepts.length + finalEntities.terms.length > 0) {
+    const linked = linkifyBody(notes.content, finalEntities, new Set(nonNotablePeople))
+    if (linked !== notes.content) {
+      const added = (linked.match(/\[\[/g) || []).length - (notes.content.match(/\[\[/g) || []).length
+      notes.content = linked
+      log(`  🔗 正文补链接：自动补齐 ${added} 个实体链接`)
+    }
   }
 
   // 确保 Obsidian 笔记目录存在（在写入任何文件之前）
