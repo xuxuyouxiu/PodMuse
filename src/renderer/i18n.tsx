@@ -49,6 +49,7 @@ const enDict: Record<string, string> = {
   '展开聊天': 'Expand chat',
   '收起聊天': 'Collapse chat',
   '拖动调整宽度': 'Drag to resize',
+  '关闭标签': 'Close tab',
   '发送': 'Send',
   '问你的知识库...（Enter 发送，Shift+Enter 换行）': 'Ask your knowledge base... (Enter to send, Shift+Enter for newline)',
   '笔记库': 'Notes Library',

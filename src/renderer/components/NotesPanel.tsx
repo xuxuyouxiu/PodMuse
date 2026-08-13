@@ -26,6 +26,15 @@ interface NoteFileEntry {
   mtime: number
 }
 
+interface TabState {
+  id: string
+  path: string
+  name: string
+  content: string
+  loading: boolean
+  error: string
+}
+
 interface NoteDirGroup {
   dir: string
   files: NoteFileEntry[]
@@ -63,11 +72,13 @@ export default function NotesPanel() {
   const [filesCollapsed, setFilesCollapsed] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
 
-  const [currentPath, setCurrentPath] = useState<string | null>(null)
-  const [currentName, setCurrentName] = useState('')
-  const [currentContent, setCurrentContent] = useState('')
-  const [readerLoading, setReaderLoading] = useState(false)
-  const [readerError, setReaderError] = useState('')
+  // 标签页模型（Obsidian 式多标签）
+  const [tabs, setTabs] = useState<TabState[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const [activeTabPath, setActiveTabPath] = useState<string | null>(null)
+  const tabIdRef = useRef(0)
+
+  const activeTab = tabs.find(t => t.id === activeTabId) ?? null
 
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -150,28 +161,50 @@ export default function NotesPanel() {
       .finally(() => setLoading(false))
   }, [t])
 
-  // 打开笔记
+  // 打开笔记：已存在标签则激活，否则新开标签
   const openNote = useCallback(
     (path: string, name: string) => {
-      setCurrentPath(path)
-      setCurrentName(name)
-      setReaderLoading(true)
-      setReaderError('')
       setPreview(null)
+      const existing = tabs.find(t => t.path === path)
+      if (existing) {
+        setActiveTabId(existing.id)
+        setActiveTabPath(existing.path)
+        return
+      }
+      const id = `tab-${++tabIdRef.current}`
+      const tab: TabState = { id, path, name, content: '', loading: true, error: '' }
+      setTabs(prev => [...prev, tab])
+      setActiveTabId(id)
+      setActiveTabPath(path)
       window.electronAPI
         .readNote(path)
         .then(res => {
           if (res.success && res.content) {
-            setCurrentContent(res.content)
+            setTabs(prev => prev.map(t => (t.id === id ? { ...t, content: res.content!, loading: false } : t)))
           } else {
-            setReaderError(res.error || t('读取失败'))
+            setTabs(prev => prev.map(t => (t.id === id ? { ...t, error: res.error || t.name, loading: false } : t)))
           }
         })
-        .catch(e => setReaderError((e as Error).message || t('读取失败')))
-        .finally(() => setReaderLoading(false))
+        .catch(e => {
+          setTabs(prev =>
+            prev.map(t => (t.id === id ? { ...t, error: (e as Error).message, loading: false } : t)),
+          )
+        })
     },
-    [t],
+    [tabs],
   )
+
+  // 关闭标签（普通函数，避免 memoization 规则冲突）
+  function closeTab(id: string) {
+    const idx = tabs.findIndex(t => t.id === id)
+    const next = tabs.filter(t => t.id !== id)
+    setTabs(next)
+    if (activeTabId === id) {
+      const newActive = next[Math.min(idx, next.length - 1)] ?? null
+      setActiveTabId(newActive?.id ?? null)
+      setPreview(null)
+    }
+  }
 
   // 解析链接 href → 候选绝对路径列表（相对当前笔记 + 库根全局，Obsidian 语义）
   const resolveHrefs = useCallback(
@@ -205,8 +238,8 @@ export default function NotesPanel() {
       }
 
       // 1) 相对当前笔记目录
-      if (currentPath) {
-        const normPath = currentPath.replace(/\\/g, '/')
+      if (activeTabPath) {
+        const normPath = activeTabPath.replace(/\\/g, '/')
         const base = normPath.substring(0, normPath.lastIndexOf('/') + 1)
         const abs = normalize(base + decoded)
         if (abs.startsWith(root) && abs.length > root.length && !seen.has(abs)) {
@@ -253,7 +286,7 @@ export default function NotesPanel() {
 
       return candidates
     },
-    [rootDir, currentPath],
+    [rootDir, activeTabPath],
   )
 
   // 从候选列表中读取第一个存在的笔记
@@ -341,16 +374,18 @@ export default function NotesPanel() {
       readFirstExisting(resolveHrefs(href)).then(res => {
         if (res.success && res.content && res.path) {
           const name = res.filename?.replace(/\.md$/i, '') || ''
-          setCurrentPath(res.path)
-          setCurrentName(name)
-          setCurrentContent(res.content)
-          setReaderLoading(false)
-          setReaderError('')
+          // 当前标签内跳转（Obsidian 普通点击行为）
+          setTabs(prev =>
+            prev.map(t =>
+              t.id === activeTabId ? { ...t, path: res.path!, name, content: res.content!, loading: false, error: '' } : t,
+            ),
+          )
+          setActiveTabPath(res.path!)
           setPreview(null)
         }
       })
     },
-    [readFirstExisting, resolveHrefs],
+    [readFirstExisting, resolveHrefs, activeTabId],
   )
 
   const toggleGroup = (dir: string) => {
@@ -432,7 +467,7 @@ export default function NotesPanel() {
                     {group.files.map(file => (
                       <button
                         key={file.path}
-                        className={`notes-panel__file ${currentPath === file.path ? 'is-active' : ''}`}
+                        className={`notes-panel__file ${activeTab?.path === file.path ? 'is-active' : ''}`}
                         onClick={() => openNote(file.path, file.name)}
                         title={file.relPath}
                       >
@@ -457,34 +492,55 @@ export default function NotesPanel() {
         title={t('拖动调整宽度')}
       />
 
-      {/* 中间阅读器 */}
+      {/* 中间阅读器（标签页） */}
       <div className="notes-panel__reader">
-        {currentPath ? (
+        {tabs.length > 0 ? (
           <>
-            <div className="notes-panel__reader-header">
-              <span className="notes-panel__reader-title">{currentName}</span>
-              <span className="notes-panel__reader-path">
-                {currentPath.replace(rootDir || '', '').replace(/^[\\/]+/, '')}
-              </span>
+            <div className="notes-panel__tabbar">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`notes-panel__tab ${tab.id === activeTabId ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveTabId(tab.id)
+                    setActiveTabPath(tab.path)
+                  }}
+                  title={tab.name}
+                >
+                  <span className="notes-panel__tab-name">{tab.name}</span>
+                  <span
+                    className="notes-panel__tab-close"
+                    onClick={e => {
+                      e.stopPropagation()
+                      closeTab(tab.id)
+                    }}
+                    title={t('关闭标签')}
+                  >
+                    <X size={11} />
+                  </span>
+                </button>
+              ))}
             </div>
             <div className="notes-panel__reader-body">
-              {readerLoading ? (
-                <div className="notes-panel--status">
-                  <Loader2 size={18} className="note-preview__spin" />
-                  {t('加载中...')}
-                </div>
-              ) : readerError ? (
-                <div className="notes-panel--status notes-panel--error">{readerError}</div>
-              ) : (
-                <NoteMarkdown
-                  content={currentContent}
-                  onLinkHover={handleLinkHover}
-                  onLinkLeave={handleLinkLeave}
-                  onLinkClick={handleLinkClick}
-                  linkTypeMap={typeMap}
-                  knownNames={knownNames.size > 0 ? knownNames : undefined}
-                />
-              )}
+              {activeTab ? (
+                activeTab.loading ? (
+                  <div className="notes-panel--status">
+                    <Loader2 size={18} className="note-preview__spin" />
+                    {t('加载中...')}
+                  </div>
+                ) : activeTab.error ? (
+                  <div className="notes-panel--status notes-panel--error">{activeTab.error}</div>
+                ) : (
+                  <NoteMarkdown
+                    content={activeTab.content}
+                    onLinkHover={handleLinkHover}
+                    onLinkLeave={handleLinkLeave}
+                    onLinkClick={handleLinkClick}
+                    linkTypeMap={typeMap}
+                    knownNames={knownNames.size > 0 ? knownNames : undefined}
+                  />
+                )
+              ) : null}
             </div>
           </>
         ) : (

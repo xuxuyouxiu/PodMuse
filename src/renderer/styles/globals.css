@@ -4701,3 +4701,83 @@ a:focus-visible {
 
 /* 聊天栏内 QAPanel 占满剩余空间 */
 .notes-panel__chat .qa-panel { flex: 1; min-height: 0; }
+
+/* 标签栏（Obsidian 式） */
+.notes-panel__tabbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 6px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  min-height: 36px;
+  scrollbar-width: thin;
+}
+
+.notes-panel__tabbar::-webkit-scrollbar { height: 4px; }
+
+.notes-panel__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  max-width: 200px;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.notes-panel__tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.notes-panel__tab.is-active {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-color: var(--border);
+  position: relative;
+}
+
+.notes-panel__tab.is-active::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.notes-panel__tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes-panel__tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.notes-panel__tab:hover .notes-panel__tab-close,
+.notes-panel__tab.is-active .notes-panel__tab-close { opacity: 0.75; }
+
+.notes-panel__tab-close:hover { background: var(--bg-elevated); color: var(--error); opacity: 1; }
