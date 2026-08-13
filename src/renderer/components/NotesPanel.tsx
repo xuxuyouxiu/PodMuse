@@ -35,6 +35,16 @@ interface TabState {
   error: string
 }
 
+/** 按名称生成稳定色相（每个笔记颜色不同，且同名恒同色） */
+function tabHue(name: string): number {
+  let h = 0
+  for (let i = 0; i < name.length; i++) {
+    h = (h * 31 + name.charCodeAt(i)) % 360
+  }
+  // 避免过暗/过亮区段，映射到 0-360 视觉舒适区间
+  return (h % 360 + 360) % 360
+}
+
 interface NoteDirGroup {
   dir: string
   files: NoteFileEntry[]
@@ -501,12 +511,14 @@ export default function NotesPanel() {
                 <button
                   key={tab.id}
                   className={`notes-panel__tab ${tab.id === activeTabId ? 'is-active' : ''}`}
+                  style={{ ['--tab-hue' as string]: String(tabHue(tab.name)) }}
                   onClick={() => {
                     setActiveTabId(tab.id)
                     setActiveTabPath(tab.path)
                   }}
                   title={tab.name}
                 >
+                  <span className="notes-panel__tab-dot" />
                   <span className="notes-panel__tab-name">{tab.name}</span>
                   <span
                     className="notes-panel__tab-close"
