@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: rgba(20, 20, 28, 0.94);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: #e6e6ef;
+        --muted: #9a9aad;
+        --accent: #8b5cf6;
+        --success: #22c55e;
+        --danger: #ef4444;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          color-scheme: light;
+          --bg: rgba(255, 255, 255, 0.96);
+          --border: rgba(0, 0, 0, 0.12);
+          --text: #1a1a24;
+          --muted: #6b6b7d;
+          --accent: #7c3aed;
+          --success: #16a34a;
+          --danger: #dc2626;
+        }
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+        -webkit-app-region: no-drag;
+      }
+      .toast {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        animation: slideIn 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(14px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-all;
+      }
+      .domain {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.12s;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn--primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn--ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .btn--success {
+        background: var(--success);
+        color: #fff;
+      }
+      .state {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--success);
+      }
+      .state--error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toast">
+      <div id="state" class="state" style="display: none"></div>
+      <div>
+        <div id="title" class="title"></div>
+        <div id="domain" class="domain"></div>
+      </div>
+      <div id="actions" class="actions">
+        <button id="btn-ignore" class="btn btn--ghost"></button>
+        <button id="btn-subscribe" class="btn btn--success" style="display: none"></button>
+        <button id="btn-ok" class="btn btn--primary"></button>
+      </div>
+    </div>
+    <script>
+      const I18N = {
+        zh: {
+          enqueue: '加入队列',
+          subscribe: '加入订阅',
+          ignore: '忽略',
+          ok: '知道了',
+          processed: '已处理过',
+          enqueued: '已加入队列',
+          subscribed: '已订阅',
+          added: '已添加',
+          failed: '操作失败',
+          rssSource: 'RSS 订阅源',
+          podcastSource: '播客/视频链接',
+        },
+        en: {
+          enqueue: 'Enqueue',
+          subscribe: 'Subscribe',
+          ignore: 'Ignore',
+          ok: 'Got it',
+          processed: 'Already processed',
+          enqueued: 'Added to queue',
+          subscribed: 'Subscribed',
+          added: 'Added',
+          failed: 'Failed',
+          rssSource: 'RSS feed',
+          podcastSource: 'Podcast / video link',
+        },
+      }
+
+      const params = new URLSearchParams(location.search)
+      const url = params.get('url') || ''
+      const kind = params.get('kind') || 'episode'
+      const title = params.get('title') || ''
+      const lang = params.get('lang') === 'en' ? 'en' : 'zh'
+      const T = I18N[lang]
+      document.documentElement.lang = lang
+
+      const stateEl = document.getElementById('state')
+      const titleEl = document.getElementById('title')
+      const domainEl = document.getElementById('domain')
+      const actionsEl = document.getElementById('actions')
+      const btnIgnore = document.getElementById('btn-ignore')
+      const btnSubscribe = document.getElementById('btn-subscribe')
+      const btnOk = document.getElementById('btn-ok')
+
+      function domainOf(u) {
+        try {
+          return new URL(u).hostname
+        } catch {
+          return u
+        }
+      }
+
+      function showState(text, error) {
+        stateEl.style.display = 'flex'
+        stateEl.textContent = text
+        stateEl.className = 'state' + (error ? ' state--error' : '')
+      }
+
+      function close() {
+        window.close()
+      }
+
+      function setBusy(busy) {
+        btnOk.disabled = busy
+        btnIgnore.disabled = busy
+        btnSubscribe.disabled = busy
+      }
+
+      function init() {
+        titleEl.textContent = title || domainOf(url)
+        domainEl.textContent =
+          kind === 'rss' ? T.rssSource + ' · ' + domainOf(url) : T.podcastSource + ' · ' + domainOf(url)
+
+        if (kind === 'processed') {
+          // 已处理过：只展示状态
+          btnIgnore.style.display = 'none'
+          btnSubscribe.style.display = 'none'
+          btnOk.textContent = T.ok
+          showState(T.processed)
+          btnOk.onclick = close
+          return
+        }
+
+        btnIgnore.textContent = T.ignore
+        btnOk.textContent = T.enqueue
+        if (kind === 'rss') {
+          btnSubscribe.style.display = ''
+          btnSubscribe.textContent = T.subscribe
+        }
+
+        btnIgnore.onclick = close
+        btnOk.onclick = async () => {
+          setBusy(true)
+          try {
+            await window.electronAPI.batchAdd([{ source: url, type: 'url' }])
+            await window.electronAPI.batchStart()
+            showState(T.enqueued)
+            setTimeout(close, 1200)
+          } catch (e) {
+            showState(T.failed + ': ' + (e && e.message ? e.message : ''), true)
+            setBusy(false)
+          }
+        }
+        btnSubscribe.onclick = async () => {
+          setBusy(true)
+          try {
+            const res = await window.electronAPI.addSubscription(title || domainOf(url), url)
+            if (!res.success) {
+              showState(T.failed + ': ' + (res.error || ''), true)
+              setBusy(false)
+              return
+            }
+            showState(T.subscribed)
+            setTimeout(close, 1200)
+          } catch (e) {
+            showState(T.failed + ': ' + (e && e.message ? e.message : ''), true)
+            setBusy(false)
+          }
+        }
+      }
+
+      init()
+    </script>
+  </body>
+</html>

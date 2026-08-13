@@ -72,6 +72,37 @@ export default function TabTools({
             {t('开启后在后台自动下载，下载完成后提示重启')}
           </div>
         </div>
+
+        <div className="settings-field">
+          <div className="settings-field-label">{t('浏览器剪藏')}</div>
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={form.clipboard_watch_enabled !== false}
+              onChange={e => update('clipboard_watch_enabled', e.target.checked)}
+            />
+            {t('剪贴板链接检测')}
+          </label>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px 24px' }}>
+            {t('复制播客/视频/RSS 链接时自动弹出快捷入队浮窗，内容仅在本机判断')}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              className="settings-browse-button"
+              onClick={() => {
+                const code =
+                  "javascript:(()=>{location.href='podmuse://add?url='+encodeURIComponent(location.href)})()"
+                navigator.clipboard.writeText(code)
+                alert(t('书签代码已复制：在浏览器书签栏新建书签并粘贴即可'))
+              }}
+            >
+              {t('复制书签小工具')}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 24px' }}>
+            {t('在浏览器收藏夹新建书签，地址栏粘贴复制的内容，浏览网页时点击即可发送当前页面到 PodMuse')}
+          </div>
+        </div>
       </div>
     </div>
   )

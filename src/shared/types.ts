@@ -86,6 +86,9 @@ export interface PodcastConfig {
 
   // YouTube 订阅镜像（Invidious 实例，如 https://yewtu.be；空 = 直连）
   youtube_mirror_base?: string
+
+  // 剪贴板链接检测（浏览器剪藏）
+  clipboard_watch_enabled?: boolean
 }
 
 export interface Subscription {

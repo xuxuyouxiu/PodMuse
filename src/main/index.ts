@@ -29,6 +29,12 @@ import { registerBatchIPC } from './ipc/batch-ipc'
 import { registerSubscriptionIPC } from './ipc/subscription-ipc'
 import { createSubscriptionService, SubscriptionService } from './subscription-service'
 import { setupUpdater, type UpdaterHandle } from './updater'
+import {
+  startClipboardWatcher,
+  stopClipboardWatcher,
+  registerProtocol,
+  handleProtocolUrl,
+} from './clipboard-watcher'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
@@ -47,12 +53,15 @@ const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_e, argv) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.show()
       mainWindow.focus()
     }
+    // podmuse:// 协议唤起（书签小工具）
+    const proto = argv.find(a => typeof a === 'string' && a.startsWith('podmuse://'))
+    if (proto) handleProtocolUrl(proto)
   })
 }
 
@@ -763,6 +772,12 @@ app.whenReady().then(() => {
     },
   })
 
+  // 剪贴板链接检测 + podmuse:// 协议（浏览器剪藏）
+  registerProtocol()
+  startClipboardWatcher()
+  const protoArgv = process.argv.find(a => a.startsWith('podmuse://'))
+  if (protoArgv) handleProtocolUrl(protoArgv)
+
   startConsistencyChecker(
     hasActiveProcess,
     (msg: string) => {
@@ -786,6 +801,7 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   isQuitting = true
   stopConsistencyChecker()
+  stopClipboardWatcher()
   if (pendingAbort && !pendingAbort.signal.aborted) {
     pendingAbort.abort()
   }

@@ -89,6 +89,7 @@ const DEFAULTS: PodcastConfig = {
   auto_update_check: true,
   auto_update_download: false,
   youtube_mirror_base: '',
+  clipboard_watch_enabled: true,
 
   // 导出配置默认值
   export: {
