@@ -3,7 +3,7 @@
  * 隐藏 BrowserWindow 渲染 HTML 模板 → capturePage 截图 → 保存对话框 → 写文件
  */
 
-import { BrowserWindow, dialog, shell, app } from 'electron'
+import { BrowserWindow, dialog, app } from 'electron'
 import { join } from 'node:path'
 import * as fs from 'fs'
 import { loadConfig } from './config'
@@ -23,73 +23,151 @@ export interface ShareResult {
   error?: string
 }
 
-/** 从 markdown 提取要点（- 列表项 / 加粗行 / 段落），剥除符号，最多 3 条 */
+/** 从 markdown 提取要点（按信息密度排序：关键数据 → 金句 → 动态列表兜底），最多 3 条 */
 function extractPoints(md: string): string[] {
   const lines = md.split(/\r?\n/)
   const out: string[] = []
   const seen = new Set<string>()
-  const push = (text: string) => {
-    const clean = text
-      .replace(/^[-*]\s+/, '')
+  const clean = (text: string) =>
+    text
+      .replace(/^\*\*|^\s*[-*]\s+|\*\*$/g, '')
       .replace(/\*\*/g, '')
       .replace(/^#+\s*/, '')
+      .replace(/^(关键数据|事件概要|影响分析|核心观点)[:：]\s*/, '')
       .replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^>+\s*/, '')
+      .replace(/\s*——\s*.+$/, '')
       .trim()
-    if (!clean || clean.length < 4 || seen.has(clean)) return
-    if (clean.length > 60) return
-    seen.add(clean)
-    out.push(clean)
+  const push = (text: string) => {
+    const c = clean(text)
+    // 关键数据允许更长（模板 2 行截断），普通要点 90 字
+    const isData = /^(关键数据)[:：]/.test(text)
+    if (!c || c.length < 8 || (isData ? c.length > 120 : c.length > 90) || seen.has(c)) return
+    seen.add(c)
+    out.push(c)
   }
+
+  // ① 关键数据（信息密度最高）：优先「深度解读」章节内（主题相关），再全文
+  const sectionOf = (line: string): string => {
+    for (let i = lines.indexOf(line); i >= 0; i--) {
+      const t = lines[i].trim()
+      if (t.startsWith('## ')) return t
+    }
+    return ''
+  }
+  const dataLines = lines.filter(l => /^\*\*关键数据\*\*|^关键数据[:：]/.test(l.trim()))
+  const themed = dataLines.filter(l => /深度解读|押注|机会/.test(sectionOf(l)))
+  const orderedData = [...themed, ...dataLines.filter(l => !themed.includes(l))]
+  for (const line of orderedData) {
+    if (out.length >= 3) break
+    push(line)
+  }
+  // ② 金句摘录（传播力最强）
   for (const line of lines) {
     if (out.length >= 3) break
-    const t = line.trim()
-    if (!t) continue
-    if (/^[-*]\s+/.test(t)) push(t)
+    if (/^>\s*["“]/.test(line.trim())) push(line)
   }
-  // 列表项不足时用正文段落补
+  // ③ 深度解读/事件概要 的第一句
   if (out.length < 3) {
     for (const line of lines) {
       if (out.length >= 3) break
       const t = line.trim()
+      if (/^##\s*深度解读/.test(t)) {
+        const next = lines[lines.indexOf(line) + 1]
+        if (next) push(next)
+        break
+      }
+    }
+  }
+  // ④ 动态列表兜底（- 项，优先含「深度解读」主题的最长项）
+  if (out.length < 3) {
+    const items = lines
+      .map(l => l.trim())
+      .filter(l => /^-\s+/.test(l))
+      .sort((a, b) => b.length - a.length)
+    for (const item of items) {
+      if (out.length >= 3) break
+      push(item)
+    }
+  }
+  // ⑤ 正文段落兜底
+  if (out.length === 0) {
+    for (const line of lines) {
+      if (out.length >= 3) break
+      const t = line.trim()
       if (!t || t.startsWith('#') || t.startsWith('>') || t.startsWith('|') || t.startsWith('```')) continue
-      if (/^[-*]\s+/.test(t)) continue
       push(t)
     }
   }
   return out
 }
 
-/** 从 markdown 提取实体 chips（[[人物]] 等，最多 4 个，按出现顺序） */
+/** 从 markdown 提取实体 chips（[名称](../目录/名称.md) 链接，按出现频次排序，最多 4 个） */
 function extractChips(md: string): { name: string; type: string }[] {
-  const typePatterns: { type: string; re: RegExp }[] = [
-    { type: 'person', re: /\[\[(人物[\\/][^\]|]+)\]\]/g },
-    { type: 'concept', re: /\[\[(概念[\\/][^\]|]+)\]\]/g },
-    { type: 'project', re: /\[\[(项目[\\/][^\]|]+)\]\]/g },
-    { type: 'term', re: /\[\[(术语[\\/][^\]|]+)\]\]/g },
-  ]
-  const out: { name: string; type: string }[] = []
-  const seen = new Set<string>()
-  for (const { type, re } of typePatterns) {
-    let m: RegExpExecArray | null
-    while ((m = re.exec(md)) !== null && out.length < 4) {
-      const name = m[1].split(/[\\/]/).pop() || m[1]
-      if (seen.has(name)) continue
-      seen.add(name)
-      out.push({ name, type })
+  const typeOf = (dir: string): string => {
+    if (dir.includes('人物')) return 'person'
+    if (dir.includes('项目')) return 'project'
+    if (dir.includes('概念')) return 'concept'
+    return 'term'
+  }
+  const counts = new Map<string, { name: string; type: string; count: number }>()
+  // 标准 markdown 链接：[名称](../目录/名称.md)
+  const re = /\[([^\]]+)\]\(\.?\.?[\\/]([^)]*[\\/])?([^)]+\.md)\)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(md)) !== null) {
+    const name = m[1].trim()
+    const dir = (m[2] || '').replace(/[\\/]/g, '')
+    if (!name || name.length > 20) continue
+    const cur = counts.get(name)
+    if (cur) {
+      cur.count += 1
+    } else {
+      counts.set(name, { name, type: typeOf(dir), count: 1 })
     }
   }
-  // 兜底：无类型前缀的 wiki 链接
-  if (out.length === 0) {
+  // 兜底：wiki 链接 [[名称]]
+  if (counts.size === 0) {
     const re2 = /\[\[([^\]|]+)\]\]/g
-    let m: RegExpExecArray | null
-    while ((m = re2.exec(md)) !== null && out.length < 4) {
+    while ((m = re2.exec(md)) !== null) {
       const raw = m[1].split(/[\\/]/).pop() || m[1]
-      if (seen.has(raw)) continue
-      seen.add(raw)
-      out.push({ name: raw, type: 'term' })
+      if (raw.length > 20) continue
+      const cur = counts.get(raw)
+      if (cur) cur.count += 1
+      else counts.set(raw, { name: raw, type: 'term', count: 1 })
     }
   }
-  return out
+  return Array.from(counts.values())
+    .sort((a, b) => {
+      // 类型加权：项目/人物（公司、品牌、人）优先于概念/术语，同类型按频次
+      const w = (t: string) => (t === 'project' ? 0 : t === 'person' ? 1 : t === 'concept' ? 2 : 3)
+      return w(a.type) - w(b.type) || b.count - a.count
+    })
+    .slice(0, 4)
+    .map(({ name, type }) => ({ name, type }))
+}
+
+/** 从 frontmatter 提取日期（优先），无则当天 */
+function extractDate(md: string): string {
+  const fm = md.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (fm) {
+    const dateLine = fm[1].split(/\r?\n/).find(l => /^date[:：]/.test(l.trim()))
+    if (dateLine) {
+      const d = dateLine.replace(/^date[:：]\s*/, '').trim()
+      if (d) {
+        try {
+          const [y, mo, day] = d.split('-').map(Number)
+          if (y && mo && day) {
+            return `${y} 年 ${mo} 月 ${day} 日`
+          }
+          return d
+        } catch {
+          return d
+        }
+      }
+    }
+  }
+  return new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 function sanitizeFilename(name: string): string {
@@ -157,7 +235,7 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
       platform: encodeURIComponent(params.platform || ''),
       points: encodeURIComponent(JSON.stringify(points)),
       chips: encodeURIComponent(JSON.stringify(chips)),
-      date: encodeURIComponent(new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })),
+      date: encodeURIComponent(extractDate(md)),
     })
 
     const defaultName = `PodMuse-分享-${sanitizeFilename(title)}-${todayStr()}.png`
@@ -172,7 +250,6 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
     }
 
     fs.writeFileSync(filePath, png)
-    shell.showItemInFolder(filePath)
     return { success: true, path: filePath }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : String(e) }
