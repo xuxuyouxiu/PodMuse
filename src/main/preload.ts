@@ -151,6 +151,11 @@ try {
     batchReorder: (from: number, to: number) => ipcRenderer.invoke('batch:reorder', from, to),
     batchGetState: () => ipcRenderer.invoke('batch:getState'),
     batchCheckRecovery: () => ipcRenderer.invoke('batch:checkRecovery'),
+    // 处理历史
+    historyList: () => ipcRenderer.invoke('history:list'),
+    historyRemove: (taskId: string) => ipcRenderer.invoke('history:remove', taskId),
+    historyClear: () => ipcRenderer.invoke('history:clear'),
+    historyReprocess: (url: string) => ipcRenderer.invoke('history:reprocess', { url }),
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)

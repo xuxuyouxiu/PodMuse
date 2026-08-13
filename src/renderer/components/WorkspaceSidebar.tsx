@@ -14,12 +14,13 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rss,
+  History,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
 import UpdateDialog from './UpdateDialog'
 
-export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa' | 'subscription'
+export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa' | 'subscription' | 'history'
 
 interface Props {
   activeView: SidebarView
@@ -131,6 +132,17 @@ export default function WorkspaceSidebar({
         >
           <Rss size={16} />
           <span className="ws-label">{t("订阅")}</span>
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`workspace-sidebar__nav-item ${activeView === 'history' ? 'is-active' : ''}`}
+          onClick={() => onViewChange('history')}
+          title={t("历史")}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <History size={16} />
+          <span className="ws-label">{t("历史")}</span>
         </motion.button>
         <motion.button
           type="button"

@@ -23,6 +23,7 @@ import SettingsDialog from './components/SettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
+import HistoryView from './components/HistoryView'
 import type { SidebarView } from './components/WorkspaceSidebar'
 import BacklinkPanel from './components/BacklinkPanel'
 import NotesPanel from './components/NotesPanel'
@@ -769,6 +770,22 @@ export default function App() {
               <div className="workspace-main-column">
                 <div className="workspace-content">
                   <SubscriptionView />
+                </div>
+              </div>
+            </motion.div>
+          )}
+          {activeView === 'history' && (
+            <motion.div
+              className="workspace-body"
+              key="history"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <div className="workspace-main-column">
+                <div className="workspace-content">
+                  <HistoryView obsidianDir={config?.obsidian_dir} onGoWorkspace={() => setActiveView('workspace')} />
                 </div>
               </div>
             </motion.div>

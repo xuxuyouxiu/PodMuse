@@ -1,6 +1,6 @@
 import type { FeishuState, RecentTaskState } from '../shared/types.ts'
 
-const MAX_RECENT_TASKS = 5
+const MAX_RECENT_TASKS = 500
 
 export function startRecentTask(
   state: FeishuState,

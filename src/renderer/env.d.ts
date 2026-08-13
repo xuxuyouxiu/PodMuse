@@ -204,6 +204,18 @@ declare global {
     error?: string
   }
 
+  interface HistoryEntry {
+    id: string
+    url: string
+    title: string | null
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'stopped' | 'error'
+    filename: string | null
+    platform: string
+    platformName: string
+    updatedAt: number
+    error?: string
+  }
+
   interface ExportResult {
     success: boolean
     outputPath?: string
@@ -315,6 +327,11 @@ declare global {
       closeToastWindow: () => void
       batchPause: () => Promise<BatchQueueSnapshot>
       batchResume: () => Promise<BatchQueueSnapshot>
+      // 处理历史
+      historyList: () => Promise<HistoryEntry[]>
+      historyRemove: (taskId: string) => Promise<boolean>
+      historyClear: () => Promise<boolean>
+      historyReprocess: (url: string) => Promise<{ success: boolean; error?: string }>
       batchSkip: (index: number) => Promise<BatchQueueSnapshot>
       batchClear: () => Promise<BatchQueueSnapshot>
       batchRetry: (index: number) => Promise<BatchQueueSnapshot>

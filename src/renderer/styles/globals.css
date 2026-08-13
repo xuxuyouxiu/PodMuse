@@ -5808,3 +5808,224 @@ a:focus-visible {
 .sub-view__opml-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .sub-view__opml-actions { display: flex; justify-content: flex-end; gap: 8px; }
+/* ===== 处理历史视图 ===== */
+.history-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.history-view__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-view__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.history-view__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.history-view__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.history-view__toolbar-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.history-view__filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-view__select {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.history-view__notice {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.history-view__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.history-view__status--empty {
+  gap: 8px;
+}
+
+.history-view__go-btn {
+  margin-top: 4px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.history-view__go-btn:hover {
+  opacity: 0.9;
+}
+
+.history-view__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-view__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  transition: border-color 0.12s;
+}
+
+.history-view__row:hover {
+  border-color: var(--accent);
+}
+
+.history-view__platform {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 2px 8px;
+  border-radius: 6px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-view__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.history-view__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-view__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-view__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.history-view__time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-view__error {
+  font-size: 10.5px;
+  color: var(--error);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.history-view__ops {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.history-view__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.history-view__btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.history-view__btn--danger:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.history-view__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
