@@ -87,10 +87,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'notes' ? 'is-active' : ''}`}
-          onClick={() => {
-            onViewChange('notes')
-            setExpanded(true)
-          }}
+          onClick={() => onViewChange('notes')}
           title={t("笔记库")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -101,10 +98,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'workspace' ? 'is-active' : ''}`}
-          onClick={() => {
-            onViewChange('workspace')
-            setExpanded(true)
-          }}
+          onClick={() => onViewChange('workspace')}
           title={t("工作台")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -115,10 +109,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'backlinks' ? 'is-active' : ''}`}
-          onClick={() => {
-            onViewChange('backlinks')
-            setExpanded(true)
-          }}
+          onClick={() => onViewChange('backlinks')}
           title={t("知识关联")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -129,10 +120,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'search' ? 'is-active' : ''}`}
-          onClick={() => {
-            onViewChange('search')
-            setExpanded(true)
-          }}
+          onClick={() => onViewChange('search')}
           title={t("搜索")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -143,10 +131,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className={`workspace-sidebar__nav-item ${activeView === 'qa' ? 'is-active' : ''}`}
-          onClick={() => {
-            onViewChange('qa')
-            setExpanded(true)
-          }}
+          onClick={() => onViewChange('qa')}
           title={t("问答")}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -185,10 +170,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"
-          onClick={() => {
-            onSettings()
-            setExpanded(true)
-          }}
+          onClick={onSettings}
           title={t('设置')}
           style={{ gap: '10px' }}
           whileHover={{ scale: 1.02 }}
@@ -200,10 +182,7 @@ export default function WorkspaceSidebar({
         <motion.button
           type="button"
           className="workspace-sidebar__nav-item"
-          onClick={() => {
-            onAbout()
-            setExpanded(true)
-          }}
+          onClick={onAbout}
           title={t('关于')}
           style={{ gap: '10px' }}
           whileHover={{ scale: 1.02 }}

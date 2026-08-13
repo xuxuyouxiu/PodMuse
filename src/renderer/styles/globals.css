@@ -187,33 +187,37 @@ body {
   position: relative;
 }
 
-/* 展开按钮：窄态悬停品牌区时浮现 */
+/* 展开按钮：窄态悬停 logo 时，logo 图标切换为展开图标 */
 .workspace-sidebar__expand-btn {
   display: none;
-  position: absolute;
-  right: -2px;
-  top: -8px;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--accent-glow);
+  border-radius: 10px;
   cursor: pointer;
-  color: var(--text-secondary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  z-index: 10;
+  color: var(--accent);
+  flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
+}
+
+.workspace-sidebar__expand-btn:hover { background: var(--accent); color: #fff; }
+
+.workspace-sidebar.is-expanded .workspace-sidebar__expand-btn { display: none !important; }
+
+/* 窄态：hover 品牌区时 logo 隐藏、展开按钮显示（图标切换） */
+.workspace-sidebar:not(.is-expanded) .workspace-sidebar__brand:hover .workspace-sidebar__logo {
+  display: none;
 }
 
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__brand:hover .workspace-sidebar__expand-btn {
   display: flex;
 }
 
-.workspace-sidebar__expand-btn:hover { background: var(--accent); color: #fff; }
-
-.workspace-sidebar.is-expanded .workspace-sidebar__expand-btn { display: none !important; }
+/* 2. 任务概览：仅展开态显示 */
+.workspace-sidebar:not(.is-expanded) .sidebar-stats { display: none; }
 
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__nav-item,
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__system-ops .workspace-sidebar__nav-item {
