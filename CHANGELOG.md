@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.34.0] - 2026-08-13
+
+### 改进
+- 书签小工具安装指引改为 Chrome/Edge 兼容步骤：Ctrl+D 收藏任意网页 → 编辑书签网址替换为代码（Chrome 不允许新建 javascript: 书签，但允许编辑已有书签网址）
+
 ## [1.33.0] - 2026-08-13
 
 ### 新增

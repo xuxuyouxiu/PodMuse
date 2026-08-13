@@ -93,14 +93,14 @@ export default function TabTools({
                 const code =
                   "javascript:(()=>{location.href='podmuse://add?url='+encodeURIComponent(location.href)})()"
                 navigator.clipboard.writeText(code)
-                alert(t('书签代码已复制：在浏览器书签栏新建书签并粘贴即可'))
+                alert(t('书签代码已复制：按 Ctrl+D 收藏任意网页，再把网址替换为这段代码即可'))
               }}
             >
               {t('复制书签小工具')}
             </button>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 24px' }}>
-            {t('在浏览器收藏夹新建书签，地址栏粘贴复制的内容，浏览网页时点击即可发送当前页面到 PodMuse')}
+            {t('Chrome/Edge 安装：先按 Ctrl+D 收藏任意网页，在弹出的书签编辑框里把「网址」整段替换为复制的代码，保存后点击书签即可发送当前页面')}
           </div>
         </div>
       </div>
