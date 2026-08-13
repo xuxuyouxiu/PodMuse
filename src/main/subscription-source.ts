@@ -39,13 +39,13 @@ export interface RecommendedPodcast {
   feedUrl: string
   artwork: string
   description: string
-  platform: 'xiaoyuzhou' | 'apple' | 'youtube'
+  platform: 'xiaoyuzhou' | 'ximalaya' | 'apple'
 }
 
 const searchCache = new Map<string, { at: number; results: PodcastSearchResult[] }>()
 
 function getRsshubBase(): string {
-  const base = loadConfig().rsshub_base_url || 'https://rsshub.app'
+  const base = loadConfig().rsshub_base_url || 'https://rsshub.rssforever.com'
   return base.replace(/\/+$/, '')
 }
 

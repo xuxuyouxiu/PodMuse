@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.28.0] - 2026-08-13
+
+### 修复
+- 小宇宙订阅 406/403：官方 rsshub.app 实例拒绝小宇宙路由，默认实例切换为国内镜像 rsshub.rssforever.com，并支持多实例自动故障转移（配置实例 → rssforever → rsshub.app）
+
+### 移除
+- YouTube 推荐模块与镜像实例配置（国内直连不可用，按用户要求移除）
+
+### 新增
+- 推荐内容扩充至 63 源并重组：小宇宙（38 个中文播客）/ 喜马拉雅（13 个，album XML 公开可访问）/ Apple Podcasts（12 个英文播客），全部实测有效
+
 ## [1.27.0] - 2026-08-13
 
 ### 修复

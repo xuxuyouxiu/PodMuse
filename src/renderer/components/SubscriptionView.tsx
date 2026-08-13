@@ -13,8 +13,8 @@ import {
   Settings,
   ChevronDown,
   Radio,
+  Headphones,
   Podcast,
-  PlayCircle,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 
@@ -37,8 +37,8 @@ const isUrl = (s: string) => /^https?:\/\//i.test(s.trim())
 /** 推荐订阅平台分组 */
 const REC_GROUPS = [
   { key: 'xiaoyuzhou', label: '小宇宙', icon: Radio },
+  { key: 'ximalaya', label: '喜马拉雅', icon: Headphones },
   { key: 'apple', label: 'Apple Podcasts', icon: Podcast },
-  { key: 'youtube', label: 'YouTube', icon: PlayCircle },
 ] as const
 
 /**
@@ -69,7 +69,6 @@ export default function SubscriptionView() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [checkInterval, setCheckInterval] = useState(6)
   const [rsshubBase, setRsshubBase] = useState('')
-  const [youtubeMirror, setYoutubeMirror] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
 
   const load = useCallback(() => {
@@ -94,8 +93,7 @@ export default function SubscriptionView() {
       .then(cfg => {
         if (cfg) {
           setCheckInterval(cfg.subscription_check_interval_hours || 6)
-          setRsshubBase(cfg.rsshub_base_url || 'https://rsshub.app')
-          setYoutubeMirror(cfg.youtube_mirror_base || '')
+          setRsshubBase(cfg.rsshub_base_url || 'https://rsshub.rssforever.com')
         }
       })
       .catch(() => {})
@@ -215,8 +213,7 @@ export default function SubscriptionView() {
         await window.electronAPI.saveConfig({
           ...cfg,
           subscription_check_interval_hours: hours,
-          rsshub_base_url: rsshubBase.trim() || 'https://rsshub.app',
-          youtube_mirror_base: youtubeMirror.trim(),
+          rsshub_base_url: rsshubBase.trim() || 'https://rsshub.rssforever.com',
         })
         setCheckInterval(hours)
         flashNotice(t('保存成功'))
@@ -630,18 +627,6 @@ export default function SubscriptionView() {
                 onChange={e => setRsshubBase(e.target.value)}
               />
             </label>
-            <label className="sub-view__settings-row">
-              <span>{t('YouTube 镜像实例')}</span>
-              <input
-                className="sub-view__field"
-                placeholder="https://yewtu.be"
-                value={youtubeMirror}
-                onChange={e => setYoutubeMirror(e.target.value)}
-              />
-            </label>
-            <div className="sub-view__settings-hint">
-              {t('留空为直连 YouTube（需要代理网络）。填入 Invidious 实例地址后，YouTube 频道订阅将自动走镜像。')}
-            </div>
             <button className="sub-view__confirm-btn" onClick={handleSaveSettings} disabled={savingSettings}>
               {savingSettings ? <Loader2 size={13} className="note-preview__spin" /> : null}
               {t('保存')}

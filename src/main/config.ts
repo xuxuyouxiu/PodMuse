@@ -85,7 +85,7 @@ const DEFAULTS: PodcastConfig = {
   douyin_cookie: '',
   subscriptions: [],
   subscription_check_interval_hours: 6,
-  rsshub_base_url: 'https://rsshub.app',
+  rsshub_base_url: 'https://rsshub.rssforever.com',
   auto_update_check: true,
   auto_update_download: false,
   youtube_mirror_base: '',

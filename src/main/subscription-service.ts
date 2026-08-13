@@ -100,16 +100,29 @@ export class SubscriptionService {
     // YouTube feeds 源：配置了 Invidious 镜像时自动转换（国内直连 YouTube 超时）
     const cleanUrl = this.withYouTubeMirror(rawUrl)
 
-    // 校验 RSS 有效性
-    try {
-      const feed = await this.parser.parseURL(cleanUrl)
-      if (!feed.items || feed.items.length === 0) {
-        return { success: false, error: 'RSS 解析成功但没有条目，可能不是有效的播客源' }
+    // 校验 RSS 有效性（小宇宙 RSSHub 源支持多实例故障转移）
+    const candidates = this.buildFallbackUrls(cleanUrl)
+    let finalUrl = candidates[0]
+    let lastError = ''
+    let usedFallback = false
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        const feed = await this.parser.parseURL(candidates[i])
+        if (!feed.items || feed.items.length === 0) {
+          lastError = 'RSS 解析成功但没有条目，可能不是有效的播客源'
+          continue
+        }
+        finalUrl = candidates[i]
+        usedFallback = i > 0
+        lastError = ''
+        break
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e)
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      if (/timed out|timeout/i.test(msg)) {
-        if (/youtube\.com\/feeds|channel_id=/i.test(cleanUrl)) {
+    }
+    if (lastError) {
+      if (/timed out|timeout/i.test(lastError)) {
+        if (/youtube\.com\/feeds|channel_id=/i.test(finalUrl)) {
           return {
             success: false,
             error:
@@ -118,12 +131,18 @@ export class SubscriptionService {
         }
         return { success: false, error: '订阅源连接超时，请检查网络后重试' }
       }
-      return { success: false, error: `RSS 解析失败：${msg.slice(0, 120)}` }
+      if (/403|406/i.test(lastError) && /xiaoyuzhou/i.test(finalUrl)) {
+        return { success: false, error: '小宇宙订阅源暂不可用（RSSHub 实例拒绝访问），请稍后重试或更换服务地址' }
+      }
+      return { success: false, error: `RSS 解析失败：${lastError.slice(0, 120)}` }
+    }
+    if (usedFallback) {
+      console.log(`[subscription] 源已切换备用实例: ${finalUrl}`)
     }
     const sub: Subscription = {
       id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: cleanName,
-      url: cleanUrl,
+      url: finalUrl,
       autoProcess: true,
       enabled: true,
       createdAt: Date.now(),
@@ -135,6 +154,32 @@ export class SubscriptionService {
     // 立即检查一次
     this.checkOne(sub).catch(() => {})
     return { success: true }
+  }
+
+  /**
+   * 小宇宙 RSSHub 源生成多实例候选（官方 rsshub.app 对小宇宙路由常返回 403/406，
+   * 需自动降级到国内镜像实例）
+   */
+  private buildFallbackUrls(url: string): string[] {
+    const m = url.match(/^https?:\/\/([\w.-]+)\/xiaoyuzhou\/podcast\/([\w-]+)/i)
+    if (!m) return [url]
+    const pid = m[2]
+    const config = loadConfig()
+    const bases = [
+      config.rsshub_base_url || 'https://rsshub.rssforever.com',
+      'https://rsshub.rssforever.com',
+      'https://rsshub.app',
+    ]
+    const out: string[] = []
+    const seen = new Set<string>()
+    for (const b of bases) {
+      const u = `${b.replace(/\/+$/, '')}/xiaoyuzhou/podcast/${pid}`
+      if (!seen.has(u)) {
+        seen.add(u)
+        out.push(u)
+      }
+    }
+    return out
   }
 
   /** YouTube feeds 源按配置转换为 Invidious 镜像 feed（未配置则原样返回） */
