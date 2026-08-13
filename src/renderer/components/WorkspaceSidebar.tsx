@@ -43,7 +43,7 @@ export default function WorkspaceSidebar({
   const [updaterState, setUpdaterState] = useState<UpdaterState>({ phase: 'idle' })
   const [updateOpen, setUpdateOpen] = useState(false)
   // ChatGPT 式侧栏：默认收缩为图标窄栏，点击展开完整侧栏
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
 
   // 获取应用版本号
   useEffect(() => {

@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.38.0] - 2026-08-13
+
+### 改进
+- 侧边栏默认展开：启动 PodMuse 时左侧侧边栏默认打开（完整宽度），不再默认收缩成图标窄栏
+
 ## [1.37.0] - 2026-08-13
 
 ### 修复
