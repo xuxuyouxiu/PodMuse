@@ -425,7 +425,7 @@ export default function BatchQueuePanel({
             z-index: 1;
           }
           .bq-report__th--status { width: 64px; }
-          .bq-report__th--action { width: 80px; text-align: center; }
+          .bq-report__th--action { width: 150px; text-align: center; }
 
           .bq-report__row { transition: background .12s ease; }
           .bq-report__row:hover { background: var(--bg-elevated); }
@@ -448,7 +448,14 @@ export default function BatchQueuePanel({
             color: var(--text-primary);
             line-height: 1.4;
           }
-          .bq-report__td--action { text-align: center; white-space: nowrap; }
+          .bq-report__td--action {
+            text-align: center;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+          }
 
           .bq-report__dot {
             display: inline-block;
@@ -1015,7 +1022,7 @@ export default function BatchQueuePanel({
           z-index: 1;
         }
         .bq-report__th--status { width: 64px; }
-        .bq-report__th--action { width: 80px; text-align: center; }
+        .bq-report__th--action { width: 150px; text-align: center; }
 
         .bq-report__row { transition: background .12s ease; }
         .bq-report__row:hover { background: var(--bg-elevated); }

@@ -19,6 +19,25 @@ export default function NotePreviewDialog({ filePath, filename, onClose }: Props
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // 阻止滚轮穿透：弹窗内滚动到边界（或非滚动区域）时拦截 wheel，下层不再跟着滚
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      const target = e.target as Element | null
+      if (!target || !target.closest('.note-preview')) return
+      const scroller = target.closest('.note-preview__body') as HTMLElement | null
+      if (scroller) {
+        const atTop = scroller.scrollTop <= 0
+        const atBottom =
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1
+        if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) e.preventDefault()
+        return
+      }
+      e.preventDefault()
+    }
+    document.addEventListener('wheel', onWheel, { passive: false })
+    return () => document.removeEventListener('wheel', onWheel)
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     window.electronAPI
