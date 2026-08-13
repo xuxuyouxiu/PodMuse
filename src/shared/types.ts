@@ -74,6 +74,20 @@ export interface PodcastConfig {
 
   // 导出配置（可选，向后兼容）
   export?: ExportConfig
+
+  // RSS 订阅
+  subscriptions?: Subscription[]
+  subscription_check_interval_hours?: number
+}
+
+export interface Subscription {
+  id: string
+  name: string
+  url: string
+  autoProcess: boolean
+  enabled: boolean
+  createdAt: number
+  processedCount: number
 }
 
 export interface FeishuState {

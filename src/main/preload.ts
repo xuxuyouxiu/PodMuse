@@ -91,6 +91,17 @@ try {
       ipcRenderer.on('qa:error', handler)
       return () => ipcRenderer.removeListener('qa:error', handler)
     },
+    listSubscriptions: () => ipcRenderer.invoke('subscription:list'),
+    addSubscription: (name: string, url: string) => ipcRenderer.invoke('subscription:add', { name, url }),
+    removeSubscription: (id: string) => ipcRenderer.invoke('subscription:remove', id),
+    updateSubscription: (id: string, patch: Record<string, unknown>) => ipcRenderer.invoke('subscription:update', { id, patch }),
+    checkSubscriptions: (id?: string) => ipcRenderer.invoke('subscription:checkNow', id),
+    markSubscriptionSeen: (subId: string, keys: string[]) => ipcRenderer.invoke('subscription:markSeen', { subId, keys }),
+    onSubscriptionUpdate: (callback: (data: unknown[]) => void) => {
+      const handler = (_e: unknown, data: unknown[]) => callback(data)
+      ipcRenderer.on('subscription:update', handler)
+      return () => ipcRenderer.removeListener('subscription:update', handler)
+    },
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),

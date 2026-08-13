@@ -26,6 +26,8 @@ import {
 import { sendNotification, setupNotificationAppId } from './notify'
 import { BatchQueueService } from './batch-queue'
 import { registerBatchIPC } from './ipc/batch-ipc'
+import { registerSubscriptionIPC } from './ipc/subscription-ipc'
+import { createSubscriptionService, SubscriptionService } from './subscription-service'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
@@ -36,6 +38,7 @@ let pendingProcessDone: (() => void) | null = null
 let tray: Tray | null = null
 let isQuitting = false
 let batchQueueService: BatchQueueService | null = null
+let subscriptionService: SubscriptionService | null = null
 
 // 单实例锁：防止重复打开，第二次启动时聚焦已有窗口
 const gotTheLock = app.requestSingleInstanceLock()
@@ -192,6 +195,13 @@ function setupIPC() {
     },
   })
   registerBatchIPC(mainWindow, batchQueueService)
+
+  // 订阅服务（RSS 定时检查 + 自动入队）
+  subscriptionService = createSubscriptionService(
+    () => mainWindow,
+    () => batchQueueService,
+  )
+  registerSubscriptionIPC(subscriptionService)
 
   // ---- 抖音下载器安装检查 ----
   ipcMain.handle('douyin:setup', async () => {
@@ -751,6 +761,7 @@ app.on('before-quit', () => {
   if (pendingAbort && !pendingAbort.signal.aborted) {
     pendingAbort.abort()
   }
+  subscriptionService?.stopScheduler()
   if (batchQueueService?.isRunning) {
     batchQueueService.pause()
   }

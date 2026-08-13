@@ -36,6 +36,29 @@ interface QASource {
   entityType?: string
 }
 
+interface Subscription {
+  id: string
+  name: string
+  url: string
+  autoProcess: boolean
+  enabled: boolean
+  createdAt: number
+  processedCount: number
+}
+
+interface SubscriptionEpisode {
+  key: string
+  title: string
+  link: string
+  pubDate?: string
+}
+
+interface SubscriptionInfo {
+  sub: Subscription
+  lastCheckAt: number | null
+  newEpisodes: SubscriptionEpisode[]
+}
+
 interface WhisperModelInfo {
   id: string
   label: string
@@ -209,6 +232,13 @@ declare global {
       onQaChunk: (callback: (data: { requestId: string; text: string }) => void) => () => void
       onQaDone: (callback: (data: { requestId: string; answer: string; sources: QASource[] }) => void) => () => void
       onQaError: (callback: (data: { requestId: string; error: string; aborted?: boolean }) => void) => () => void
+      listSubscriptions: () => Promise<SubscriptionInfo[]>
+      addSubscription: (name: string, url: string) => Promise<{ success: boolean; error?: string }>
+      removeSubscription: (id: string) => Promise<boolean>
+      updateSubscription: (id: string, patch: Record<string, unknown>) => Promise<boolean>
+      checkSubscriptions: (id?: string) => Promise<SubscriptionInfo[]>
+      markSubscriptionSeen: (subId: string, keys: string[]) => Promise<boolean>
+      onSubscriptionUpdate: (callback: (data: SubscriptionInfo[]) => void) => () => void
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>

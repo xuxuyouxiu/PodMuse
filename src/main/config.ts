@@ -83,6 +83,8 @@ const DEFAULTS: PodcastConfig = {
   whisper_model: 'large-v3-turbo',
   notification_enabled: true,
   douyin_cookie: '',
+  subscriptions: [],
+  subscription_check_interval_hours: 6,
 
   // 导出配置默认值
   export: {
