@@ -39,9 +39,48 @@ export default function QAPanel({ onOpenSource }: QAPanelProps) {
   const [items, setItems] = useState<QAItem[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [examples, setExamples] = useState<string[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const requestIdRef = useRef(0)
+
+  // 动态示例问题：基于笔记库高频实体（人物/概念/项目/术语），无笔记时用默认示例
+  useEffect(() => {
+    window.electronAPI
+      .getBacklinkIndex()
+      .then(entries => {
+        const top = (type: string) =>
+          entries
+            .filter(e => e.entityType === type)
+            .sort((a, b) => b.podcastRefs.length - a.podcastRefs.length)[0]
+        const person = top('people')
+        const concept = top('concepts')
+        const projOrTerm = top('projects') || top('terms')
+        const list: string[] = []
+        if (person) list.push(t('哪几期播客提到过{0}').replace('{0}', person.entityName))
+        if (concept) list.push(t('我笔记里关于{0}的内容有哪些').replace('{0}', concept.entityName))
+        if (projOrTerm) list.push(t('聊聊笔记里的{0}').replace('{0}', projOrTerm.entityName))
+        const defaults = [
+          t('我笔记里关于 AI 的内容有哪些'),
+          t('哪几期播客提到过张一鸣'),
+          t('总结一下我最近记录的科技趋势'),
+        ]
+        while (list.length < 3) {
+          const next = defaults[list.length]
+          if (!next || list.includes(next)) break
+          list.push(next)
+        }
+        setExamples(list)
+      })
+      .catch(() => {
+        setExamples([
+          t('我笔记里关于 AI 的内容有哪些'),
+          t('哪几期播客提到过张一鸣'),
+          t('总结一下我最近记录的科技趋势'),
+        ])
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 订阅流式事件
   useEffect(() => {
@@ -135,11 +174,7 @@ export default function QAPanel({ onOpenSource }: QAPanelProps) {
             <div className="qa-panel__empty-title">{t('与你的知识库对话')}</div>
             <div className="qa-panel__empty-hint">{t('基于你生成的播客笔记回答，答案带引用来源')}</div>
             <div className="qa-panel__examples">
-              {[
-                t('我笔记里关于 AI 的内容有哪些'),
-                t('哪几期播客提到过张一鸣'),
-                t('总结一下我最近记录的科技趋势'),
-              ].map(ex => (
+              {examples.map(ex => (
                 <button key={ex} className="qa-panel__example" onClick={() => setInput(ex)}>
                   {ex}
                 </button>
