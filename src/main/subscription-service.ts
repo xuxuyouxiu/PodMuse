@@ -222,16 +222,30 @@ export class SubscriptionService {
 
   private async checkOne(sub: Subscription): Promise<Episode[]> {
     const episodes = await this.fetchEpisodes(sub)
+    const isFirstCheck = !this.lastCheckAt[sub.id]
     const fresh = episodes.filter(ep => !this.seen.has(ep.key))
+    let toProcess: Episode[]
+    if (isFirstCheck && fresh.length > 1) {
+      // 首次检查：只把最新 1 期当新节目，其余历史条目标记已见，
+      // 避免订阅时把全部历史节目（可能上百期）塞进处理队列
+      const [latest, ...history] = fresh
+      toProcess = [latest]
+      for (const ep of history) this.seen.add(ep.key)
+      console.log(
+        `[subscription] 《${sub.name}》首次检查：标记 ${history.length} 期历史节目已见，仅处理最新一期`,
+      )
+    } else {
+      toProcess = fresh
+    }
     this.lastCheckAt[sub.id] = Date.now()
     // 手动源的新节目缓存在待处理列表（自动源直接入队并标记）
-    if (!sub.autoProcess && fresh.length > 0) {
-      this.pendingCache.set(sub.id, fresh)
+    if (!sub.autoProcess && toProcess.length > 0) {
+      this.pendingCache.set(sub.id, toProcess)
     } else {
       this.pendingCache.set(sub.id, [])
     }
     this.persistState()
-    return fresh
+    return toProcess
   }
 
   async checkNow(id?: string): Promise<SubscriptionInfo[]> {

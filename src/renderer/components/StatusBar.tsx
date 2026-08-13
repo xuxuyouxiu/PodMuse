@@ -22,7 +22,6 @@ export default function StatusBar({ status }: Props) {
         {status.monitoring ? <Radio size={12} /> : <RadioOff size={12} />}
         {status.monitoring ? t('监听运行中') : t('监听未启动')}
       </div>
-      <span className="status-bar__meta statusbar-meta">{t('30s 轮询 · Obsidian: 小宇宙播客')}</span>
     </div>
   )
 }
