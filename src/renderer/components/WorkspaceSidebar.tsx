@@ -12,6 +12,7 @@ import {
   BookOpen,
   MessageSquareText,
   PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
@@ -71,6 +72,14 @@ export default function WorkspaceSidebar({
           title={t('收起侧边栏')}
         >
           <PanelLeftClose size={14} />
+        </button>
+        <button
+          type="button"
+          className="workspace-sidebar__expand-btn"
+          onClick={() => setExpanded(true)}
+          title={t('展开侧边栏')}
+        >
+          <PanelLeftOpen size={14} />
         </button>
       </div>
 

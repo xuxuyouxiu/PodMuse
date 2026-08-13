@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.22.7] - 2026-08-13
+
+### 修复
+- 收缩态图标位置错误：文字标签 opacity 隐藏仍占布局宽度导致图标偏移，改为 display:none 彻底不占位，图标正确居中
+- 收缩态悬停 App logo 浮现圆形展开按钮，点击展开侧边栏（ChatGPT 同款交互）
+
 ## [1.22.6] - 2026-08-13
 
 ### 改进

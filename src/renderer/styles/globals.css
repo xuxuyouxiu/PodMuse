@@ -169,25 +169,51 @@ body {
   padding: 20px 14px;
 }
 
-/* 文字标签：窄态隐藏 */
+/* 文字标签：窄态彻底隐藏（不占位，保证图标居中） */
 .ws-label {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
+  display: none;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .workspace-sidebar.is-expanded .ws-label {
-  opacity: 1;
-  pointer-events: auto;
+  display: block;
 }
 
 /* 窄态：品牌区/导航项/操作项居中图标 */
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__brand {
   justify-content: center;
   padding: 4px 0;
+  position: relative;
 }
+
+/* 展开按钮：窄态悬停品牌区时浮现 */
+.workspace-sidebar__expand-btn {
+  display: none;
+  position: absolute;
+  right: -2px;
+  top: -8px;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+  transition: background 0.12s, color 0.12s;
+}
+
+.workspace-sidebar:not(.is-expanded) .workspace-sidebar__brand:hover .workspace-sidebar__expand-btn {
+  display: flex;
+}
+
+.workspace-sidebar__expand-btn:hover { background: var(--accent); color: #fff; }
+
+.workspace-sidebar.is-expanded .workspace-sidebar__expand-btn { display: none !important; }
 
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__nav-item,
 .workspace-sidebar:not(.is-expanded) .workspace-sidebar__system-ops .workspace-sidebar__nav-item {
