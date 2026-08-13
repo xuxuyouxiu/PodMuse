@@ -534,7 +534,7 @@ export async function generateNotes(
     providerId,
     '知识管理助手',
     prompt.replace('{date}', date).replace('{transcript}', transcriptWithContext),
-    16384,
+    24576,
     signal,
     0.3,
   )
@@ -542,7 +542,7 @@ export async function generateNotes(
 
 // ── 分段处理 ──
 
-const SEGMENT_THRESHOLD = 30000
+const SEGMENT_THRESHOLD = 16000
 const SEGMENT_SIZE = 22000
 const SEGMENT_OVERLAP = 500
 const MAX_SEGMENTS = 3
@@ -745,7 +745,7 @@ async function generateNotesSegmented(
     providerId,
     '知识管理助手',
     prompt.replace('{date}', date).replace('{transcript}', segments[0]),
-    16384,
+    24576,
     signal,
     0.3,
   )

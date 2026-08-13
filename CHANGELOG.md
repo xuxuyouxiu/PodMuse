@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.41.7] - 2026-08-13
+
+### 修复
+- B 站视频「提炼笔记」报 finish_reason=length（AI 输出被 max_tokens 截断，甚至 content 为空）：
+  - 分段处理阈值 30000 → 16000 字符（更长内容自动分段生成，每段输出量小不易截断）
+  - 单次生成 max_tokens 16384 → 24576（推理模型 reasoning 吃掉预算后仍有足够空间输出笔记）
+  - 输出被截断时自动重试一次，并提示 AI 精简输出（要点 ≤8 条、事件详情 ≤3 个、卡片每类 ≤4 个）；content 为空 + length 截断同样自动重试
+
 ## [1.41.6] - 2026-08-13
 
 ### 修复

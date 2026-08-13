@@ -798,21 +798,46 @@ export async function processPodcast(
   }
   if (!notes.content) {
     const fr = (notes as { finishReason?: string }).finishReason
-    const detail = fr ? `finish_reason=${fr}` : 'AI 返回空内容'
-    step({ step: 5, title: 'AI 提炼笔记', subtitle: '提炼失败', status: 'error', detail })
-    log(`  ❌ AI 提炼失败（${detail}）`)
-    return null
+    // 输出被 max_tokens 截断导致 content 为空：重试一次（提示精简输出）
+    if (fr === 'length' && !signal?.aborted) {
+      log('  🔁 输出被截断（finish_reason=length，content 为空），重试一次并要求精简...')
+      const retry = await generateNotes(
+        providerConfig,
+        providerId as AIProviderId,
+        finalTranscript,
+        signal,
+        platformMetadata,
+        undefined,
+        '上次输出因长度限制被截断且内容为空。请大幅精简输出：要点控制在 6 条以内、事件详情不超过 2 个、实体卡片只保留最重要的（每个类型最多 3 个），确保完整输出不截断。',
+      ).catch(() => null)
+      if (retry?.content) {
+        notes = retry
+      } else {
+        const detail = fr ? `finish_reason=${fr}` : 'AI 返回空内容'
+        step({ step: 5, title: 'AI 提炼笔记', subtitle: '提炼失败', status: 'error', detail })
+        log(`  ❌ AI 提炼失败（${detail}）`)
+        return null
+      }
+    } else {
+      const detail = fr ? `finish_reason=${fr}` : 'AI 返回空内容'
+      step({ step: 5, title: 'AI 提炼笔记', subtitle: '提炼失败', status: 'error', detail })
+      log(`  ❌ AI 提炼失败（${detail}）`)
+      return null
+    }
   }
 
-  // 质量评估 + 低分重试一次（AI 漏 frontmatter/链接时自动补救）
-  let qScore = evaluateQuality(finalTranscript, notes.content)
+  // 质量评估 + 低分重试一次（AI 漏 frontmatter/链接、或输出被 max_tokens 截断时自动补救）
+  const firstContent = notes.content
+  if (!firstContent) return null
+  let qScore = evaluateQuality(finalTranscript, firstContent)
+  const truncated = (notes as { finishReason?: string }).finishReason === 'length'
   if (
     !signal?.aborted &&
-    (qScore.formatCompliance < 70 || qScore.wikiLinkCoverage < 60) &&
-    notes.content
+    (qScore.formatCompliance < 70 || qScore.wikiLinkCoverage < 60 || truncated) &&
+    firstContent
   ) {
     log(
-      `  🔁 质量未达标（格式 ${qScore.formatCompliance}% | 链接 ${qScore.wikiLinkCoverage}%），重新生成一次...`,
+      `  🔁 质量未达标（格式 ${qScore.formatCompliance}% | 链接 ${qScore.wikiLinkCoverage}%${truncated ? ' | 输出被截断 finish_reason=length' : ''}），重新生成一次...`,
     )
     const retry = await generateNotes(
       providerConfig,
@@ -821,7 +846,9 @@ export async function processPodcast(
       signal,
       platformMetadata,
       undefined,
-      '上次输出格式不合规：必须严格以 YAML frontmatter 开头（含 type/show/date/tags/category 五个字段并正确闭合），且正文中出现的所有实体（人物/项目/概念/术语）必须用 [[名称]] 包裹成链接。',
+      truncated
+        ? '上次输出因长度限制被截断。请精简输出：要点控制在 8 条以内、事件详情不超过 3 个、实体卡片只保留最重要的（每个类型最多 4 个），确保完整输出不截断。'
+        : '上次输出格式不合规：必须严格以 YAML frontmatter 开头（含 type/show/date/tags/category 五个字段并正确闭合），且正文中出现的所有实体（人物/项目/概念/术语）必须用 [[名称]] 包裹成链接。',
     ).catch(() => null)
     if (retry?.content) {
       notes = retry
@@ -830,7 +857,8 @@ export async function processPodcast(
       }
     }
   }
-  if (!notes.content) return null
+  const content = notes.content
+  if (!content) return null
   const scoreLabel =
     qScore.overall >= 60 ? `质量 ${qScore.overall}/100` : `⚠ 质量 ${qScore.overall}/100（建议复核）`
   step({
@@ -847,14 +875,16 @@ export async function processPodcast(
   }
 
   // frontmatter 兜底：AI 仍未输出 frontmatter 时自动补一个（保证分类与规范）
-  if (!notes.content.trim().startsWith('---')) {
+  let finalContent = content
+  if (!finalContent.trim().startsWith('---')) {
     const fmDate = new Date().toISOString().split('T')[0]
     const fmShow = (platformMetadata && platformMetadata.channel) || providerId
-    notes.content = `---\ntype: podcast\nshow: ${fmShow}\nepisode: 单集\ndate: ${fmDate}\ntags: []\ncategory: ${defaultCategoryFor(providerId)}\n---\n\n${notes.content.trim()}`
+    finalContent = `---\ntype: podcast\nshow: ${fmShow}\nepisode: 单集\ndate: ${fmDate}\ntags: []\ncategory: ${defaultCategoryFor(providerId)}\n---\n\n${finalContent.trim()}`
     log('  📝 已自动补全缺失的 frontmatter')
   }
+  notes.content = finalContent
 
-  const entities = parseEntityBlocks(notes.content)
+  const entities = parseEntityBlocks(finalContent)
 
   // 被过滤的非知名人物（主持人/嘉宾/博主等）：正文中的 [[链接]] 转为纯文本，不生成卡片
   const nonNotablePeople = getNonNotablePeopleNames(entities)
@@ -862,8 +892,9 @@ export async function processPodcast(
     for (const name of nonNotablePeople) {
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const linkRe = new RegExp(`\\[\\[${escaped}(?:\\|[^\\]]+)?\\]\\]`, 'g')
-      notes.content = notes.content.replace(linkRe, name)
+      finalContent = finalContent.replace(linkRe, name)
     }
+    notes.content = finalContent
     log(`  🚫 非知名人物链接已移除: ${nonNotablePeople.join(', ')}`)
   }
 
