@@ -26,10 +26,15 @@ const ENTITY_TYPE_META: Record<string, { label: string; color: string }> = {
   术语: { label: '术语', color: LINK_TYPE_COLORS.terms },
 }
 
+interface QAPanelProps {
+  /** 来源点击回调（嵌入笔记库时用于在阅读器打开）；缺省用系统默认应用打开 */
+  onOpenSource?: (source: QASource) => void
+}
+
 /**
  * 问答面板 — 与知识库对话（检索 + AI 总结 + 引用来源）
  */
-export default function QAPanel() {
+export default function QAPanel({ onOpenSource }: QAPanelProps) {
   const { t } = useI18n()
   const [items, setItems] = useState<QAItem[]>([])
   const [input, setInput] = useState('')
@@ -106,7 +111,11 @@ export default function QAPanel() {
   }
 
   const openSource = (source: QASource) => {
-    window.electronAPI.openPath(source.path)
+    if (onOpenSource) {
+      onOpenSource(source)
+    } else {
+      window.electronAPI.openPath(source.path)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

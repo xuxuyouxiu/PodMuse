@@ -4587,3 +4587,24 @@ a:focus-visible {
   color: var(--error);
   border-color: var(--error);
 }
+
+/* 笔记库右侧聊天侧边栏 */
+.notes-panel__chat {
+  width: 300px;
+  min-width: 260px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.notes-panel__chat .qa-panel__messages { padding: 14px 14px; }
+
+.notes-panel__chat .qa-panel__inputbar { padding: 10px 10px; }
+
+.notes-panel__chat .qa-item__user-text { font-size: 13px; }
+
+.notes-panel__chat .qa-item__answer { font-size: 13.5px; }
+
+.notes-panel__chat .qa-panel__empty-title { font-size: 14px; }

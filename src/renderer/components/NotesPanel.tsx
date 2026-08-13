@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import NoteMarkdown from './NoteMarkdown'
+import QAPanel from './QAPanel'
 import { useI18n } from '../i18n'
 
 interface NoteFileEntry {
@@ -435,6 +436,15 @@ export default function NotesPanel() {
             <div>{t('从左侧选择一篇笔记开始阅读')}</div>
           </div>
         )}
+      </div>
+
+      {/* 右侧聊天侧边栏 */}
+      <div className="notes-panel__chat">
+        <QAPanel
+          onOpenSource={source => {
+            openNote(source.path, source.title)
+          }}
+        />
       </div>
 
       {/* 悬停预览 — portal 到 body，避免被 transform/motion 容器影响定位 */}
