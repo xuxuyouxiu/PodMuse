@@ -34,7 +34,9 @@ import {
   stopClipboardWatcher,
   registerProtocol,
   handleProtocolUrl,
+  processUrl,
 } from './clipboard-watcher'
+import { startClipServer, stopClipServer } from './clip-server'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
@@ -775,6 +777,7 @@ app.whenReady().then(() => {
   // 剪贴板链接检测 + podmuse:// 协议（浏览器剪藏）
   registerProtocol()
   startClipboardWatcher()
+  startClipServer(url => processUrl(url))
   const protoArgv = process.argv.find(a => a.startsWith('podmuse://'))
   if (protoArgv) handleProtocolUrl(protoArgv)
 
@@ -802,6 +805,7 @@ app.on('before-quit', () => {
   isQuitting = true
   stopConsistencyChecker()
   stopClipboardWatcher()
+  stopClipServer()
   if (pendingAbort && !pendingAbort.signal.aborted) {
     pendingAbort.abort()
   }

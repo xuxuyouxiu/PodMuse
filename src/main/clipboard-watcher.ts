@@ -134,13 +134,7 @@ export function startClipboardWatcher(): void {
     }
     if (!text || text === lastClip) return
     lastClip = text
-    const url = text.trim()
-    const item = detect(url)
-    if (!item) return
-    void fetchTitle(url).then(title => {
-      if (title) item.title = title
-      showToast(item)
-    })
+    processUrl(text)
   }, POLL_INTERVAL_MS)
 }
 
@@ -151,17 +145,23 @@ export function stopClipboardWatcher(): void {
   }
 }
 
+/** 统一入口：识别链接并弹浮窗（剪贴板 / podmuse:// 协议 / 浏览器扩展共用） */
+export function processUrl(rawUrl: string): void {
+  const url = rawUrl.trim()
+  const item = detect(url)
+  if (!item) return
+  void fetchTitle(url).then(title => {
+    if (title) item.title = title
+    showToast(item)
+  })
+}
+
 export function handleProtocolUrl(rawUrl: string): void {
   try {
     const u = new URL(rawUrl)
     const url = u.searchParams.get('url')
     if (!url) return
-    const item = detect(url)
-    if (!item) return
-    void fetchTitle(url).then(title => {
-      if (title) item.title = title
-      showToast(item)
-    })
+    processUrl(url)
   } catch (e) {
     console.warn('[clipwatch] protocol parse failed:', e)
   }

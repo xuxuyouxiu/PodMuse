@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.35.0] - 2026-08-13
+
+### 新增
+- 浏览器扩展（Chrome/Edge 本地加载版）：工具栏图标 / 右键菜单一键发送当前页面到 PodMuse，仓库 `chrome-extension/`，安装包 `dist-chrome-extension/podmuse-clipper.zip`
+- 本地接收服务：PodMuse 监听 127.0.0.1:41987 接收扩展请求，仅放行 chrome-extension:// Origin（防恶意网页塞链接）
+
 ## [1.34.0] - 2026-08-13
 
 ### 改进
