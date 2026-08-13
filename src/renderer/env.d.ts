@@ -194,6 +194,7 @@ declare global {
     feedUrl: string
     artwork: string
     description: string
+    platform: 'xiaoyuzhou' | 'apple' | 'youtube'
   }
 
   interface UpdaterState {

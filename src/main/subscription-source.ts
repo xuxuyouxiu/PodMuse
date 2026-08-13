@@ -39,6 +39,7 @@ export interface RecommendedPodcast {
   feedUrl: string
   artwork: string
   description: string
+  platform: 'xiaoyuzhou' | 'apple' | 'youtube'
 }
 
 const searchCache = new Map<string, { at: number; results: PodcastSearchResult[] }>()

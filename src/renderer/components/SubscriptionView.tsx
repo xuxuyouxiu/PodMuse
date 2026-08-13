@@ -12,6 +12,9 @@ import {
   Check,
   Settings,
   ChevronDown,
+  Radio,
+  Podcast,
+  PlayCircle,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 
@@ -30,6 +33,13 @@ interface SubInfo {
 }
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s.trim())
+
+/** 推荐订阅平台分组 */
+const REC_GROUPS = [
+  { key: 'xiaoyuzhou', label: '小宇宙', icon: Radio },
+  { key: 'apple', label: 'Apple Podcasts', icon: Podcast },
+  { key: 'youtube', label: 'YouTube', icon: PlayCircle },
+] as const
 
 /**
  * 订阅视图（侧边栏一级入口）— 智能输入 + 搜索订阅 + 链接解析 + 推荐 + OPML 导入 + 订阅管理
@@ -384,38 +394,51 @@ export default function SubscriptionView() {
         </div>
       )}
 
-      {/* 推荐订阅（空状态冷启动） */}
+      {/* 推荐订阅（空状态冷启动，按平台模块化） */}
       {!loading && infos.length === 0 && !searchResults && !resolved && recommendedLoaded && recommended.length > 0 && (
         <div className="sub-view__recommended">
           <div className="sub-view__section-title">{t('推荐订阅')}</div>
-          <div className="sub-view__recommended-grid">
-            {recommended.map(r => {
-              const subscribed = subscribedFeeds.has(r.feedUrl)
-              return (
-                <div key={r.feedUrl} className="sub-view__rec-card">
-                  {r.artwork ? (
-                    <img className="sub-view__rec-artwork" src={r.artwork} alt="" />
-                  ) : (
-                    <div className="sub-view__rec-artwork sub-view__artwork--placeholder">
-                      <Rss size={20} />
-                    </div>
-                  )}
-                  <div className="sub-view__rec-info">
-                    <div className="sub-view__rec-title" title={r.name}>{r.name}</div>
-                    <div className="sub-view__rec-desc">{r.description}</div>
-                  </div>
-                  <button
-                    className="sub-view__confirm-btn"
-                    disabled={busy || subscribed}
-                    onClick={() => handleSubscribe(r.name, r.feedUrl)}
-                  >
-                    {subscribed ? <Check size={13} /> : <Plus size={13} />}
-                    {subscribed ? t('已订阅') : t('订阅')}
-                  </button>
+          {REC_GROUPS.map(g => {
+            const items = recommended.filter(r => r.platform === g.key)
+            if (items.length === 0) return null
+            return (
+              <div key={g.key} className="sub-view__rec-group">
+                <div className="sub-view__rec-group-title">
+                  <g.icon size={14} />
+                  {t(g.label)}
+                  <span className="sub-view__rec-group-count">{items.length}</span>
                 </div>
-              )
-            })}
-          </div>
+                <div className="sub-view__recommended-grid">
+                  {items.map(r => {
+                    const subscribed = subscribedFeeds.has(r.feedUrl)
+                    return (
+                      <div key={r.feedUrl} className="sub-view__rec-card">
+                        {r.artwork ? (
+                          <img className="sub-view__rec-artwork" src={r.artwork} alt="" />
+                        ) : (
+                          <div className="sub-view__rec-artwork sub-view__artwork--placeholder">
+                            <Rss size={20} />
+                          </div>
+                        )}
+                        <div className="sub-view__rec-info">
+                          <div className="sub-view__rec-title" title={r.name}>{r.name}</div>
+                          <div className="sub-view__rec-desc">{r.description}</div>
+                        </div>
+                        <button
+                          className="sub-view__confirm-btn"
+                          disabled={busy || subscribed}
+                          onClick={() => handleSubscribe(r.name, r.feedUrl)}
+                        >
+                          {subscribed ? <Check size={13} /> : <Plus size={13} />}
+                          {subscribed ? t('已订阅') : t('订阅')}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -541,13 +564,13 @@ export default function SubscriptionView() {
         {manualOpen && (
           <div className="sub-view__manual-form">
             <input
-              className="sub-view__input"
+              className="sub-view__field"
               placeholder={t('订阅名称（如：科技早知道）')}
               value={manualName}
               onChange={e => setManualName(e.target.value)}
             />
             <input
-              className="sub-view__input"
+              className="sub-view__field"
               placeholder={t('RSS 地址（https://...）')}
               value={manualUrl}
               onChange={e => setManualUrl(e.target.value)}
@@ -579,7 +602,7 @@ export default function SubscriptionView() {
                 type="number"
                 min={1}
                 max={24}
-                className="sub-view__input sub-view__input--small"
+                className="sub-view__field sub-view__field--small"
                 value={checkInterval}
                 onChange={e => setCheckInterval(Number(e.target.value))}
               />
@@ -587,7 +610,7 @@ export default function SubscriptionView() {
             <label className="sub-view__settings-row">
               <span>{t('RSSHub 服务地址')}</span>
               <input
-                className="sub-view__input"
+                className="sub-view__field"
                 value={rsshubBase}
                 onChange={e => setRsshubBase(e.target.value)}
               />

@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.26.0] - 2026-08-13
+
+### 修复
+- 订阅页搜索框紫色双框：根因是全局无障碍规则 `input:focus-visible` 的紫色 outline 叠加在输入框上（主界面 UrlInput 早已豁免，订阅页漏了），已豁免并与主界面输入框样式统一
+
+### 新增
+- 推荐订阅按平台模块化展示：小宇宙（25 个中文播客）/ Apple Podcasts（12 个英文播客）/ YouTube（5 个科技频道），共 42 个内容源（feedUrl 全部实测有效）
+
+### 改进
+- 订阅页搜索框换主界面 UrlInput 同款样式：44px 高卡片式、聚焦时 accent 边框 + 柔光圈、图标联动变色
+
 ## [1.25.0] - 2026-08-13
 
 ### 新增

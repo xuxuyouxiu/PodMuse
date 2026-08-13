@@ -527,6 +527,8 @@ const enDict: Record<string, string> = {
   '扫描中…': 'Scanning…',
   '查看各平台的支持状态和外部依赖': 'Check platform support status and external dependencies',
   '小宇宙': 'Xiaoyuzhou',
+  'Apple Podcasts': 'Apple Podcasts',
+  'YouTube': 'YouTube',
   'B 站': 'Bilibili',
   '喜马拉雅': 'Ximalaya',
   '直链音频': 'Direct Audio Link',

@@ -5290,30 +5290,93 @@ a:focus-visible {
 
 .sub-view__smart { display: flex; }
 
+/* 主界面 UrlInput 同款：单边框 + focus 柔光圈，显式豁免全局 focus-visible 紫色 outline */
 .sub-view__input-wrap {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
   flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 6px 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  transition: border-color 0.15s;
+  background: var(--bg-card);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  cursor: text;
 }
 
-.sub-view__input-wrap:focus-within { border-color: var(--accent); }
+.sub-view__input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
 
-.sub-view__input-icon { margin-left: 12px; color: var(--text-muted); flex-shrink: 0; }
+.sub-view__input-icon {
+  margin-left: 0;
+  color: var(--text-muted);
+  opacity: 0.35;
+  flex-shrink: 0;
+  transition:
+    color 0.2s,
+    opacity 0.2s;
+}
+
+.sub-view__input-wrap:focus-within .sub-view__input-icon {
+  opacity: 0.7;
+  color: var(--accent);
+}
 
 .sub-view__input {
   flex: 1;
+  min-width: 0;
+  height: 100%;
   border: none;
   background: none;
   outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
   color: var(--text-primary);
-  font-size: 13.5px;
-  padding: 11px 10px;
+  font-size: 13px;
+  padding: 0;
 }
+
+.sub-view__input:focus,
+.sub-view__input:focus-visible {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+/* 订阅页豁免全局无障碍 focus-visible 规则（防止在边框外叠加第二层紫色框） */
+.sub-view input:focus-visible,
+.sub-view textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 独立输入框（手动添加 / 订阅设置） */
+.sub-view__field {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s;
+}
+
+.sub-view__field:focus { border-color: var(--accent); }
+
+.sub-view__field:focus-visible { outline: none; box-shadow: none; }
+
+.sub-view__field--small { width: 90px; flex: none; padding: 6px 8px; }
 
 .sub-view__input-btn {
   display: flex;
@@ -5448,6 +5511,26 @@ a:focus-visible {
 .sub-view__section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 
 .sub-view__recommended { display: flex; flex-direction: column; gap: 10px; }
+
+.sub-view__rec-group { display: flex; flex-direction: column; gap: 10px; }
+
+.sub-view__rec-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sub-view__rec-group-count {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  padding: 1px 7px;
+}
 
 .sub-view__recommended-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 

@@ -1,16 +1,18 @@
 /**
- * 内置推荐播客清单（冷启动用）
- * feedUrl 均经 iTunes Search API 验证有效（2026-08-13）
+ * 内置推荐播客清单（冷启动用，按平台模块化展示）
+ * feedUrl 均经 iTunes Search API / YouTube 页面验证有效（2026-08-13）
  */
 import type { RecommendedPodcast } from '../subscription-source'
 
 export const recommendedPodcasts: RecommendedPodcast[] = [
+  // ── 小宇宙（中文播客）──
   {
     name: "What's Next｜科技早知道",
     author: '声动活泼',
     feedUrl: 'https://feeds.fireside.fm/guiguzaozhidao/rss',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts116/v4/f8/99/2a/f8992af8-b391-a6e9-72a2-dda4c223ace8/mza_3325716517235553759.jpg/600x600bb.jpg',
     description: '声动活泼出品，聊科技产业与商业动态',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '声动早咖啡',
@@ -18,6 +20,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://www.ximalaya.com/album/51076156.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts112/v4/a9/7f/7a/a97f7a8f-4451-05bc-bacc-637773b1b06a/mza_16067595309054880476.png/600x600bb.jpg',
     description: '每个工作日的科技商业晨间简报',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '声东击西',
@@ -25,6 +28,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feeds.fireside.fm/shengdongjixi/rss',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/34/fe/fd/34fefd10-2039-380d-7015-dbc28b79f625/mza_7380566725793754773.jpg/600x600bb.jpg',
     description: '世界大事背后的商业与人文视角',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '硅谷101',
@@ -32,6 +36,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feeds.fireside.fm/sv101/rss',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/96/d6/82/96d682e0-e42f-d8bf-68c3-c18ff9c20c8f/mza_15727650922171364471.jpg/600x600bb.jpg',
     description: '硅谷前线科技公司与创业者访谈',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '商业就是这样',
@@ -39,6 +44,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'http://www.ximalaya.com/album/46587439.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/81/00/a1/8100a107-d5d0-025b-0467-ab14e5e84463/mza_8338424597865304845.jpeg/600x600bb.jpg',
     description: '用通俗方式解读商业世界',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '疯投圈',
@@ -46,6 +52,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://crazy.capital/feed',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts115/v4/e8/d8/8e/e8d88ed9-b12c-b8d9-5e5d-25682f72c182/mza_4966428153200416701.png/600x600bb.jpg',
     description: '投资人视角聊消费、品牌与商业趋势',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '故事FM',
@@ -53,6 +60,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feeds.storyfm.cn/storyfm.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts116/v4/65/3c/2a/653c2a3c-e158-e0a7-3521-f44d7c281978/mza_2401098770430920951.png/600x600bb.jpg',
     description: '普通人讲述真实人生故事',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '半拿铁 | 商业沉浮录',
@@ -60,6 +68,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://proxy.wavpub.com/caffebreve.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts112/v4/95/33/4d/95334de1-1492-1ab0-aa7b-8f246bf89bde/mza_10728614257690800956.jpeg/600x600bb.jpg',
     description: '讲述品牌与商业背后的故事',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '大内密谈',
@@ -67,6 +76,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'http://rss.lizhi.fm/rss/14275.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/2d/57/59/2d5759d5-a2e7-1eac-f692-6e7ab41caa2a/mza_12105036362162660893.jpg/600x600bb.jpg',
     description: '嬉笑怒骂聊文化、音乐与生活',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '日谈公园',
@@ -74,6 +84,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'http://www.ximalaya.com/album/5574153.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts125/v4/7f/94/9e/7f949e9e-4b07-0e66-0321-733843fed63c/mza_2625935947068091835.jpg/600x600bb.jpg',
     description: '聊音乐、电影与青年文化',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '文化有限',
@@ -81,6 +92,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://s1.proxy.wavpub.com/weknownothing.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/80/9d/72/809d724d-e1f2-bb68-3da7-cfb4f821ddf9/mza_869025148758774393.jpg/600x600bb.jpg',
     description: '三位朋友聊书聊文化',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '乱翻书',
@@ -88,6 +100,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feed.xyzfm.space/yxuruh3f9mc4',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts122/v4/ea/72/29/ea722999-7d8f-bec9-4cbf-a5eb055bdc53/mza_6606904668877953006.jpg/600x600bb.jpg',
     description: '聊互联网公司与商业变迁',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '无人知晓',
@@ -95,6 +108,7 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feed.xyzfm.space/ypn9dydpbxpc',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts125/v4/99/76/95/99769525-5b7f-b1f4-3d11-b669ad4d0f71/mza_7503501950013528617.jpeg/600x600bb.jpg',
     description: '有知有行创始人孟岩聊投资与人生',
+    platform: 'xiaoyuzhou',
   },
   {
     name: '津津乐道',
@@ -102,5 +116,234 @@ export const recommendedPodcasts: RecommendedPodcast[] = [
     feedUrl: 'https://feeds.daopub.com/all.xml',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts114/v4/7a/30/c9/7a30c98c-a50e-9f0b-690c-30a749f834d3/mza_13763550855675413904.png/600x600bb.jpg',
     description: '聊科技、产品与开发者生活',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '谐星聊天会',
+    author: '单立人喜剧',
+    feedUrl: 'https://feeds.danlirencomedy.com/xxlth.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/63/5b/4e/635b4e6d-e2be-364f-eeaa-de7899c0a6ed/mza_8978952534818963368.jpeg/600x600bb.jpg',
+    description: '喜剧演员们的爆笑对谈',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '无聊斋',
+    author: '教主_单口喜剧',
+    feedUrl: 'https://feed.xyzfm.space/njwyhpcjqn9t',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/ab/3a/2e/ab3a2eb5-f806-72f5-ad47-2e7ae651533c/mza_9597552620621001448.jpeg/600x600bb.jpg',
+    description: '教主的闲谈播客，听段子长见识',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '不合时宜',
+    author: '不合时宜TheWeirdo',
+    feedUrl: 'https://feed.xyzfm.space/ww7cqnybekty',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts114/v4/12/9b/31/129b31cc-166a-1799-7085-9e1f0fe5c215/mza_4089001267238303775.png/600x600bb.jpg',
+    description: '聊社会议题、文化与时代情绪',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '跳岛FM',
+    author: '中信出版',
+    feedUrl: 'https://tiaodao.typlog.io/feed.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts116/v4/f9/aa/3c/f9aa3c12-ed74-20cf-34ca-4f196c5cfa96/mza_3493848468172459208.png/600x600bb.jpg',
+    description: '聊文学与阅读的岛屿电台',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '迟早更新',
+    author: '任宁、枪枪',
+    feedUrl: 'https://podcast.weareones.com/feed/audio.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts125/v4/33/b7/e4/33b7e475-7b72-0fa1-9612-ce7a25add795/mza_15233543567295755803.png/600x600bb.jpg',
+    description: '聊科技、设计与生活的细节',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '科技乱炖',
+    author: 'DAO',
+    feedUrl: 'https://feeds.daopub.com/ld.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts124/v4/07/e4/77/07e477c7-ec2e-f601-5241-7c2556585453/mza_2983857082481794487.png/600x600bb.jpg',
+    description: '把科技话题炖成一锅聊',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '三五环',
+    author: '刘飞Lufy',
+    feedUrl: 'https://proxy.wavpub.com/35huan.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/6e/d0/de/6ed0dedb-d782-a562-e40b-043ce20441d3/mza_5066303992234991879.jpeg/600x600bb.jpg',
+    description: '产品经理刘飞聊职场与商业',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '展开讲讲',
+    author: '展开讲讲编辑部',
+    feedUrl: 'http://www.ximalaya.com/album/24672021.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/64/5a/a0/645aa00c-a37a-46e9-cce2-767b56bcac85/mza_11485774630476479159.jpeg/600x600bb.jpg',
+    description: '三位媒体人聊影视与文化',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '史蒂夫说',
+    author: '史蒂夫说',
+    feedUrl: 'https://feed.xyzfm.space/lkyt7bnmxc9k',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/bd/62/9f/bd629fbf-4b92-5df2-d080-dec610526257/mza_1495365498756704259.jpg/600x600bb.jpg',
+    description: '心理咨询视角聊成长与关系',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '东腔西调',
+    author: '大观天下志',
+    feedUrl: 'https://www.ximalaya.com/album/41153937.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts125/v4/77/78/92/77789215-5d34-7ab7-c5a7-10c98272e7b6/mza_4912387649739782493.jpeg/600x600bb.jpg',
+    description: '东西方视角碰撞的谈话节目',
+    platform: 'xiaoyuzhou',
+  },
+  {
+    name: '忽左忽右',
+    author: 'JustPod',
+    feedUrl: 'https://feed.xyzfm.space/cv4bkgpuglwp',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/57/ff/ae/57ffae55-7f91-adfe-b34b-e5621f6a4f75/mza_14365442965271077171.png/600x600bb.jpg',
+    description: 'JustPod 出品的历史与国际观察',
+    platform: 'xiaoyuzhou',
+  },
+
+  // ── Apple Podcasts（英文播客）──
+  {
+    name: 'Lex Fridman Podcast',
+    author: 'Lex Fridman',
+    feedUrl: 'https://lexfridman.com/feed/podcast/',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts115/v4/3e/e3/9c/3ee39c89-de08-47a6-7f3d-3849cef6d255/mza_16657851278549137484.png/600x600bb.jpg',
+    description: 'AI 与科学家长对话',
+    platform: 'apple',
+  },
+  {
+    name: 'The Daily',
+    author: 'The New York Times',
+    feedUrl: 'https://feeds.simplecast.com/Sl5CSM3S',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/ab/64/66/ab6466a9-9a7d-e20e-7a3d-bc5be37d29ce/mza_15084852813176276273.jpg/600x600bb.jpg',
+    description: '纽约时报每日深度新闻',
+    platform: 'apple',
+  },
+  {
+    name: 'Acquired',
+    author: 'Ben Gilbert and David Rosenthal',
+    feedUrl: 'https://feeds.transistor.fm/acquired',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/a8/e1/de/a8e1deff-9f88-4e55-a541-b0dc793c0cdc/mza_11539673419613154037.jpg/600x600bb.jpg',
+    description: '深度拆解伟大公司的并购史',
+    platform: 'apple',
+  },
+  {
+    name: 'All-In',
+    author: 'All-In Podcast, LLC',
+    feedUrl: 'https://rss.libsyn.com/shows/254861/destinations/1928300.xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts124/v4/c7/d2/92/c7d292ea-44b3-47ff-2f5e-74fa5b23db6c/mza_7005270671777648882.png/600x600bb.jpg',
+    description: '四位投资人聊科技与经济',
+    platform: 'apple',
+  },
+  {
+    name: 'The a16z Show',
+    author: 'Andreessen Horowitz',
+    feedUrl: 'https://feeds.simplecast.com/JGE3yC0V',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/3e/04/91/3e049169-5b95-784c-2197-01cfff9f41eb/mza_10026788811025472218.jpg/600x600bb.jpg',
+    description: 'a16z 聊创业与前沿科技',
+    platform: 'apple',
+  },
+  {
+    name: 'Huberman Lab',
+    author: 'Scicomm Media',
+    feedUrl: 'https://feeds.megaphone.fm/hubermanlab',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/9a/d3/19/9ad31912-0b5a-a16e-2d7c-9fd074698b9c/mza_8994222203629500925.jpg/600x600bb.jpg',
+    description: '神经科学家聊大脑与健康',
+    platform: 'apple',
+  },
+  {
+    name: 'The Tim Ferriss Show',
+    author: 'Tim Ferriss',
+    feedUrl: 'https://rss.art19.com/tim-ferriss-show',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/18/39/b4/1839b420-7aff-c501-5d0d-af2842fba013/mza_6255154260686997849.jpeg/600x600bb.jpg',
+    description: '高效能人士的拆解式访谈',
+    platform: 'apple',
+  },
+  {
+    name: 'Founders',
+    author: 'David Senra',
+    feedUrl: 'https://feeds.megaphone.fm/DSLLC6297708582',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/ed/71/4f/ed714f67-f095-a4ef-f38e-d8c02300666a/mza_11432355988627368701.jpg/600x600bb.jpg',
+    description: '读企业家传记讲创业史',
+    platform: 'apple',
+  },
+  {
+    name: 'Syntax',
+    author: 'Wes Bos & Scott Tolinski',
+    feedUrl: 'https://feeds.megaphone.fm/FSI1483080183',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/14/0a/50/140a50d8-f974-6542-e6d5-8362701cde23/mza_16091458091864441720.jpeg/600x600bb.jpg',
+    description: '前端开发者的技术播客',
+    platform: 'apple',
+  },
+  {
+    name: "Dan Carlin's Hardcore History",
+    author: 'Dan Carlin',
+    feedUrl: 'https://feeds.feedburner.com/dancarlin/history?format=xml',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts115/v4/49/b7/eb/49b7eb32-8f08-6fac-aadb-2f002131fe5f/mza_15196161972010256532.jpg/600x600bb.jpg',
+    description: '史诗级历史叙事',
+    platform: 'apple',
+  },
+  {
+    name: 'The Knowledge Project',
+    author: 'Shane Parrish',
+    feedUrl: 'https://feeds.megaphone.fm/FSMI7575968096',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/4a/9c/e2/4a9ce2fd-ddf6-0d00-8760-4e7167378ecf/mza_16600443422050351456.jpeg/600x600bb.jpg',
+    description: '思维模型与决策智慧',
+    platform: 'apple',
+  },
+  {
+    name: 'My First Million',
+    author: 'Hubspot Media',
+    feedUrl: 'https://feeds.megaphone.fm/HS2300184645',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/2a/5e/4d/2a5e4df0-8f2f-c5c7-1be9-4d220778f967/mza_12868536899493151042.jpeg/600x600bb.jpg',
+    description: '聊创业点子和搞钱思路',
+    platform: 'apple',
+  },
+
+  // ── YouTube（科技频道）──
+  {
+    name: 'Mediastorm影视飓风',
+    author: '影视飓风',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC2cRwTuSWxxEtrRnT4lrlQA',
+    artwork: 'https://yt3.googleusercontent.com/evCZ-Qagp26bc7XQqI9WHRP_r5ej_BygMzkWA4jCwjT2Cd3LriPVBb8unD4gLhPazNGsheW5=s900-c-k-c0x00ffffff-no-rj',
+    description: '影像科技与拍摄幕后',
+    platform: 'youtube',
+  },
+  {
+    name: 'Geekerwan极客湾',
+    author: '极客湾',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCNi3K9HUzuTmILZH0iGupkw',
+    artwork: 'https://yt3.googleusercontent.com/ytc/AIdro_lXqPNPH34KtOawCRvzzZ3sjT_ON8SjGccynORU2ICojRc=s900-c-k-c0x00ffffff-no-rj',
+    description: '硬核芯片与数码评测',
+    platform: 'youtube',
+  },
+  {
+    name: '林亦LYi',
+    author: '林亦',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC4dtpugIYK56S_7btf5a-iQ',
+    artwork: 'https://yt3.googleusercontent.com/2A8k4i7ppGHDnBwzGHIJZ5an_fvHKJ7NpjwCLXrWk003gBVu_Aknt_Fzf-52nXcUA1cInkg9Mg=s900-c-k-c0x00ffffff-no-rj',
+    description: 'AI 工具与效率方法',
+    platform: 'youtube',
+  },
+  {
+    name: '翼王 Yi Wang',
+    author: '翼王',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCMENmPolwqsv-odwxqN5v2Q',
+    artwork: 'https://yt3.googleusercontent.com/ytc/AIdro_lFYAu2VR97KyI5sPe1chbUkKzWEI3gTv0IgvOMtCnDegM=s900-c-k-c0x00ffffff-no-rj',
+    description: '数码硬件与装机分享',
+    platform: 'youtube',
+  },
+  {
+    name: 'Links TV',
+    author: 'linksphotograph',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCz0ONCn6eRcDJGsUzupc3TA',
+    artwork: 'https://yt3.googleusercontent.com/GlNKVp3Gz4s76MzE7zZk6V7jUbQKfTxl7k_14EY-j048xZPL3vu2OBtshCkUrFnOWiDh-ZHxBj0=s900-c-k-c0x00ffffff-no-rj',
+    description: '摄影器材与旅行摄影',
+    platform: 'youtube',
   },
 ]
