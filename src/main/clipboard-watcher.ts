@@ -14,7 +14,9 @@ import { fetchPodcastTitle } from './podcast'
 const POLL_INTERVAL_MS = 1000
 const DEDUP_WINDOW_MS = 10_000
 const TOAST_WIDTH = 340
-const TOAST_HEIGHT = 108
+// 内容高度：padding(24) + title 两行(36) + domain(13) + 按钮行(26) + gaps(16) ≈ 115
+// 原 108 太矮会裁掉按钮行；加高并预留状态行空间
+const TOAST_HEIGHT = 156
 
 interface ClipItem {
   url: string
@@ -71,8 +73,9 @@ function showToast(item: ClipItem): void {
 
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
   const { x, y, width, height } = display.workArea
-  const posX = Math.round(x + width - TOAST_WIDTH - 24)
-  const posY = Math.round(y + height - TOAST_HEIGHT - 24)
+  // clamp 到 workArea 内（多屏/DPI 缩放下避免窗口跑出屏幕外只剩一条边）
+  const posX = Math.min(Math.max(x, Math.round(x + width - TOAST_WIDTH - 24)), x + width - TOAST_WIDTH)
+  const posY = Math.min(Math.max(y, Math.round(y + height - TOAST_HEIGHT - 24)), y + height - TOAST_HEIGHT)
 
   toastWindow = new BrowserWindow({
     width: TOAST_WIDTH,
