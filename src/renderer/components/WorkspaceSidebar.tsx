@@ -15,10 +15,12 @@ import {
   PanelLeftOpen,
   Rss,
   History,
+  Coffee,
 } from 'lucide-react'
 import { RecentTaskState } from '@shared/types'
 import { useI18n } from '../i18n'
 import UpdateDialog from './UpdateDialog'
+import DonateDialog from './DonateDialog'
 
 export type SidebarView = 'workspace' | 'notes' | 'backlinks' | 'search' | 'qa' | 'subscription' | 'history'
 
@@ -43,6 +45,7 @@ export default function WorkspaceSidebar({
   const [version, setVersion] = useState<string>('')
   const [updaterState, setUpdaterState] = useState<UpdaterState>({ phase: 'idle' })
   const [updateOpen, setUpdateOpen] = useState(false)
+  const [donateOpen, setDonateOpen] = useState(false)
   // ChatGPT 式侧栏：默认收缩为图标窄栏，点击展开完整侧栏
   const [expanded, setExpanded] = useState(true)
 
@@ -229,6 +232,18 @@ export default function WorkspaceSidebar({
           <Info size={16} />
           <span className="ws-label">{t("关于")}</span>
         </motion.button>
+        <motion.button
+          type="button"
+          className="workspace-sidebar__nav-item workspace-sidebar__nav-item--donate"
+          onClick={() => setDonateOpen(true)}
+          title={t('请我喝杯咖啡')}
+          style={{ gap: '10px' }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Coffee size={16} />
+          <span className="ws-label">{t("请我喝杯咖啡")}</span>
+        </motion.button>
       </div>
 
       {version && (
@@ -252,6 +267,7 @@ export default function WorkspaceSidebar({
           onManualCheck={() => window.electronAPI.updaterManualCheck()}
         />
       )}
+      {donateOpen && <DonateDialog onClose={() => setDonateOpen(false)} />}
     </aside>
   )
 }

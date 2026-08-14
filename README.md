@@ -1,163 +1,93 @@
-# PodMuse 播客笔记助手 🎧
+# 🎧 PodMuse — 把播客变成知识库
 
-[**English**](./README_EN.md) | **中文**
+**PodMuse** 是一款桌面应用：粘贴任意播客 / 视频链接，AI 自动完成**转写 → 提炼 → 生成结构化笔记 → 写入 Obsidian**，并把节目中出现的人物、公司、概念沉淀成可互链的**个人知识库**。
 
-> **PodMuse** — 把播客变成知识库。粘贴任意播客/视频链接，AI 自动转写、提炼、生成结构化笔记并写入 Obsidian。
+---
 
-支持**小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音**等多平台链接，一键自动完成提取、下载、Whisper 语音转写、AI 笔记生成，并自动写入 Obsidian 知识库。
+## ✨ 核心功能
 
-[![Version](https://img.shields.io/github/package-json/v/xuxuyouxiu/PodMuse?label=version)](package.json)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+| 功能 | 说明 |
+| --- | --- |
+| 🔗 一键处理 | 粘贴小宇宙 / B站 / 喜马拉雅 / Apple Podcasts / 抖音 / YouTube 链接，自动识别平台 |
+| 🎙 智能转写 | 本地 Whisper 转写（支持平台字幕直取），音频/转写自动缓存，重复处理秒级复用 |
+| 📝 AI 结构化笔记 | 一句话总结、要点、核心观点、事件详情、金句摘录、术语词典、实体卡片 |
+| 🧠 知识库 | 人物 / 项目 / 概念 / 术语四类实体卡片自动生成与互链，双击悬停预览，全局反向链接 |
+| 💬 知识问答 | 基于你的笔记库做 RAG 问答，回答附引用来源 |
+| 📡 智能订阅 | 订阅喜欢的播客，新节目自动入队处理，全程对普通用户隐藏 RSS 细节 |
+| 🧩 浏览器剪藏 | 复制链接自动弹窗（Chrome 扩展 / 书签小工具），一键入队处理 |
+| 📊 批量处理 | 多任务队列、实时步骤面板、完成报告、失败重试 |
+| 🕘 处理历史 | 任务资产视图、筛选搜索、分页、一键重新生成（可换 AI 模型） |
+| 📤 导出中心 | 单篇 / 合集 PDF、Markdown、分享卡片（1080×1440）、Notion / Logseq |
+| 🌐 多模型 | 支持 DeepSeek / 小米 MiMo / OpenAI 兼容接口，任务级模型覆盖 |
+| ⚡ 自动更新 | 增量自动更新，新版本即装即用 |
 
-## 功能特性
+## 🚀 快速开始
 
-- **多平台支持** — 小宇宙、B站、YouTube、喜马拉雅、Apple Podcasts、抖音，一个输入框全搞定
-- **一键处理** — 粘贴链接，自动完成提取、下载、转写、校对和笔记整理
-- **多 AI 供应商** — 支持 DeepSeek、OpenAI、Moonshot（Kimi）、智谱AI（GLM）、通义千问（Qwen）、零一万物（Yi）、MiniMax 等 7+ 供应商
-- **AI 笔记生成** — 大语言模型自动生成结构化笔记（核心观点、关键对话、术语词典、金句摘录等）
-- **自动实体卡片** — 自动识别播客中的人物、项目、概念，用预设模板生成独立卡片笔记
-- **双向链接** — 播客笔记与实体卡片之间自动建立 Obsidian 双向链接
-- **飞书消息集成** — 在飞书群聊中发送播客/视频链接即可自动触发处理流程
-- **Whisper 模型管理** — 支持 tiny 到 large-v3-turbo 多种模型切换，自动检测硬件兼容性
-- **Obsidian 模板化** — 使用自定义模板生成笔记，保持知识体系一致性
-- **现代化 UI** — Glassmorphism 设计风格，深色主题，流畅动画
+1. 从 [Releases](https://github.com/xuxuyouxiu/PodMuse/releases) 下载 `PodMuse-Setup-x.x.x.exe` 安装
+2. 打开应用 → 设置 → 配置 **Obsidian 库路径** + **AI 模型 API Key**
+3. 粘贴一个播客链接（如小宇宙、B站视频）→ 开始处理
+4. 笔记自动写入你的 Obsidian 库，实体卡片互链成知识网络
 
-## 快速开始
+> 使用本地 Whisper 转写需在设置中下载语音模型（首次使用自动提示）。
 
-### 前置依赖
+## 🛠 技术栈
 
-1. **Faster-Whisper-XXL** — 本地语音转文字引擎
-   - 下载：[GitHub Releases](https://github.com/Purfview/whisper-standalone-win/releases)
-   - 将 `faster-whisper-xxl.exe` 放置到本地目录
+- **Electron + TypeScript + React**（motion 动效、lucide 图标）
+- **Whisper**（本地转写）· **yt-dlp**（视频提取）· **rss-parser**（订阅）
+- **electron-updater**（增量自动更新）· **marked**（笔记渲染 / PDF 导出）
 
-2. **AI API Key** — AI 笔记生成（任选其一）
-   - [DeepSeek](https://platform.deepseek.com/)
-   - [OpenAI](https://platform.openai.com/)
-   - [Moonshot (Kimi)](https://platform.moonshot.cn/)
-   - [智谱AI (GLM)](https://open.bigmodel.cn/)
-   - [通义千问 (Qwen)](https://dashscope.aliyun.com/)
-   - [零一万物 (Yi)](https://platform.lingyiwanwu.com/)
-   - [MiniMax](https://platform.minimaxi.com/)
-   - 或其他 OpenAI 兼容接口
-
-3. **Obsidian**（可选）— 笔记知识库
-   - https://obsidian.md/
-
-4. **抖音支持**（可选）— 需要 Python 3.8+ 和 douyin-downloader
-   - 下载：[douyin-downloader](https://github.com/jiji262/douyin-downloader)
-   - 在设置中配置环境并获取 Cookie
-
-### 安装
-
-```bash
-# 克隆仓库
-git clone https://github.com/xuxuyouxiu/PodMuse.git
-cd podcast-notes
-
-# 安装依赖
-npm install
-
-# 创建配置文件（复制示例后填写真实配置）
-cp podcast_config.example.json podcast_config.json
-# 编辑 podcast_config.json 填入你的 API Key、飞书配置等
-
-# 启动
-npm start
-```
-
-### 配置文件说明
-
-```json
-{
-  "ai_provider": "deepseek",
-  "api_key": "你的 AI API Key",
-  "api_base_url": "https://api.deepseek.com/v1",
-  "model": "deepseek-chat",
-  "feishu_app_id": "你的飞书应用 App ID",
-  "feishu_app_secret": "你的飞书应用 App Secret",
-  "language": "auto",
-  "feishu_chat_id": "你的飞书群聊 Chat ID",
-  "obsidian_dir": "你的 Obsidian 笔记目录路径",
-  "audio_dir": "",
-  "whisper_exe_path": "你的 Faster-Whisper-XXL 可执行文件路径",
-  "whisper_model": "large-v3-turbo"
-}
-```
-
-配置持久化存储在 `%APPDATA%\播客笔记助手\podcast_config.json`，不受软件更新影响。
-
-## 处理流程
+## 📁 项目结构
 
 ```
-播客链接 → ① 解析页面 → ② 下载音频 → ③ Whisper 转文字
-         → ④ AI 专有名词修正 → ⑤ AI 笔记生成
-         → 写入 Obsidian（大分类文件夹） + 生成实体卡片（人物/项目/概念）
+PodMuse/
+├── src/main/          # Electron 主进程（管线、平台适配器、IPC、订阅、剪藏服务）
+├── src/renderer/      # React 渲染层（工作台、历史、问答、设置等视图）
+├── src/shared/        # 主/渲染共享类型与工具
+├── public/            # 静态资源（分享卡模板、平台图标、收款码）
+├── chrome-extension/  # 浏览器剪藏扩展（本地加载，免商店）
+└── docs/              # 设计文档
 ```
 
-## 项目结构
+## ☕ 支持作者
 
+如果 PodMuse 帮你省下了时间，一杯咖啡就是最好的鼓励 —— 谢谢！
 
-```
-podcast-notes/
-├── src/
-│   ├── main/               # Electron 主进程
-│   ├── renderer/           # React 渲染进程
-│   └── shared/             # 共享类型定义
-├── tests/                  # 测试文件
-├── obsidian_templates/     # Obsidian 笔记模板
-├── scripts/                # 构建部署脚本
-├── build/                  # 打包资源
-└── public/                 # 静态资源
-```
+| 微信支付 | 支付宝 |
+| :---: | :---: |
+| <img src="public/donate/wechat.png" width="200"> | <img src="public/donate/alipay.jpg" width="200"> |
 
-## 开发
+---
 
-```bash
-# 启动开发模式
-npm run dev
+## 🇬🇧 English
 
-# 代码检查
-npm run lint
+**PodMuse** — Turn podcasts into your knowledge base. Paste any podcast / video link and let AI transcribe, distill and write structured notes directly into your Obsidian vault, with people / companies / concepts linked into an interconnected knowledge graph.
 
-# 代码格式化
-npm run format:fix
+### ✨ Features
 
-# 构建测试包
-npm run refresh:test
-```
+- **One-click processing** — Xiao宇宙, Bilibili, Ximalaya, Apple Podcasts, Douyin, YouTube auto-detection
+- **Local Whisper transcription** with audio/transcript caching for instant re-processing
+- **AI structured notes** — summary, key points, deep dives, quotes, glossary, entity cards
+- **Knowledge base** — auto-linked entity cards (people / projects / concepts / terms), hover previews, backlinks
+- **RAG Q&A** over your notes with cited sources
+- **Smart subscriptions** — new episodes auto-queued, RSS fully hidden from users
+- **Browser clipping** — clipboard watcher, Chrome extension & bookmarklet
+- **Batch processing** with live step panel, reports and retry
+- **Processing history** — asset view, search & filters, pagination, regenerate with model choice
+- **Export hub** — single/collection PDF, Markdown, share cards, Notion / Logseq
+- **Multi-model support** — DeepSeek / Xiaomi MiMo / OpenAI-compatible APIs
+- **Auto-update** — incremental updates in place
 
-## 技术栈
+### 🚀 Getting Started
 
-| 技术 | 用途 |
-|---|---|
-| Electron 33 | 桌面应用框架 |
-| React 18 | 前端界面 |
-| TypeScript | 类型安全 |
-| Vite 6 | 构建工具 |
-| Tailwind CSS 3 | 样式系统 |
-| shadcn/ui | UI 组件库 |
-| Lucide React | 图标库 |
-| motion/react | 动画引擎 |
-| Whisper / faster-whisper-xxl | 语音转文字 |
-| 多 AI 供应商 | AI 笔记生成 |
-| yt-dlp | 多平台音视频提取 |
-| electron-builder | 打包分发 |
-| ESLint + Prettier | 代码规范 |
+1. Download `PodMuse-Setup-x.x.x.exe` from [Releases](https://github.com/xuxuyouxiu/PodMuse/releases)
+2. Settings → configure **Obsidian vault path** + **AI API key**
+3. Paste a podcast link → process
+4. Notes land in your vault, entities interlink into a knowledge network
 
-## 贡献
+### ☕ Support
 
-欢迎提交 Issue 和 Pull Request。详见 [`CONTRIBUTING.md`](CONTRIBUTING.md)
+If PodMuse saved you some time, buying me a coffee is the best way to say thanks! ☕ *(see QR codes above)*
 
-## 开源协议
+---
 
-本项目源码采用 [MIT License](LICENSE) 授权。
-
-### 第三方组件许可说明
-
-本项目的构建产物（安装包）中包含以下第三方组件，其许可证与本项目源码许可不同：
-
-- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)**：以预编译二进制形式随安装包分发，采用 [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) 许可。构建产物整体遵守 GPL-3.0 条款。
-- **[Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win)**：用户需自行下载并配置，不随本软件分发。
-- **[Electron](https://www.electronjs.org/)**：[MIT License](https://github.com/electron/electron/blob/main/LICENSE)。
-
-使用本软件前，请确保你理解并同意上述所有组件的许可条款。
+**License:** MIT
