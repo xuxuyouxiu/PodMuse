@@ -82,8 +82,44 @@ function fullTime(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
-/** 平台占位封面（无真实缩略图时使用平台首字） */
+/** 平台名 → 官方图标文件（public/platform-icons/，高清矢量或 128px PNG） */
+const PLATFORM_ICONS: Record<string, string> = {
+  小宇宙: 'xiaoyuzhou.png',
+  b站: 'bilibili.svg',
+  bilibili: 'bilibili.svg',
+  喜马拉雅: 'ximalaya.png',
+  ximalaya: 'ximalaya.png',
+  抖音: 'douyin.png',
+  douyin: 'douyin.png',
+  youtube: 'youtube.svg',
+  apple: 'applepodcasts.svg',
+}
+
+function platformIconOf(platform: string): string | null {
+  if (!platform) return null
+  const direct = PLATFORM_ICONS[platform]
+  if (direct) return direct
+  const lower = PLATFORM_ICONS[platform.toLowerCase()]
+  if (lower) return lower
+  for (const [key, file] of Object.entries(PLATFORM_ICONS)) {
+    if (platform.toLowerCase().includes(key)) return file
+  }
+  return null
+}
+
+/** 平台图标（官方高清图标，无图标时用平台首字占位） */
 function PlatformThumb({ platform, size }: { platform: string; size: number }) {
+  const icon = platformIconOf(platform)
+  if (icon) {
+    return (
+      <img
+        className="history-thumb history-thumb--icon"
+        src={`platform-icons/${icon}`}
+        alt={platform}
+        style={{ width: size, height: size, borderRadius: size >= 48 ? 8 : 6 }}
+      />
+    )
+  }
   const initial = (platform || '播').slice(0, 1)
   return (
     <div

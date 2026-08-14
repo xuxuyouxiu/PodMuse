@@ -6716,6 +6716,13 @@ a:focus-visible {
   letter-spacing: 0.02em;
 }
 
+/* 官方平台图标：白色圆角底（favicon 多带白底，统一垫白更清晰） */
+.history-thumb--icon {
+  object-fit: cover;
+  background: #fff;
+  padding: 3px;
+}
+
 .history-row__main {
   flex: 1;
   min-width: 0;

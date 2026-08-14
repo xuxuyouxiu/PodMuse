@@ -404,6 +404,7 @@ export class BatchQueueService {
         this.callbacks.sendStep(step)
       }
 
+      const processedTitle: { value: string | null } = { value: null }
       const result = await processPodcast(
         task.source,
         activeProvider,
@@ -418,6 +419,7 @@ export class BatchQueueService {
         signal,
         isLocalFile,
         false,
+        processedTitle,
       )
 
       if (signal.aborted) {
@@ -433,6 +435,10 @@ export class BatchQueueService {
         task.status = 'completed'
         task.filename = result
         task.completedAt = Date.now()
+        // 回填真实标题（B 站等平台处理时从 API 拿到的标题，覆盖预取的 URL）
+        if (processedTitle.value) {
+          task.title = processedTitle.value
+        }
         this.consecutiveFailures = 0
         this.callbacks.updateRecentState(state =>
           completeRecentTask(state, {
@@ -440,6 +446,7 @@ export class BatchQueueService {
             url: task.source,
             episodeId,
             filename: result,
+            title: processedTitle.value || null,
           }),
         )
         this.callbacks.sendLog(`✓ 完成：${task.title || task.source} → ${result}`)

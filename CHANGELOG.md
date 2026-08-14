@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.43.1] - 2026-08-13
+
+### 修复
+- B 站任务标题显示为链接地址：处理完成后从平台 API 拿到的真实标题不回填历史记录（预取标题失败时一直保持 URL）。修复：processPodcast 回传实际标题 → 任务完成后覆盖 task.title 并写入历史记录。历史中的旧 URL 标题任务，重新生成一次即可显示真实标题
+
+### 改进
+- 历史页平台封面改用官方高清图标：B站/小宇宙/喜马拉雅/抖音/YouTube/Apple Podcasts（矢量 SVG 或 128px PNG，白底圆角），无图标的平台用首字占位
+
 ## [1.43.0] - 2026-08-13
 
 ### 重构

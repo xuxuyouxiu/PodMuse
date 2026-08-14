@@ -56,6 +56,8 @@ export function completeRecentTask(
     url?: string
     episodeId?: string | null
     filename: string
+    /** 处理完成后从平台适配器回填的真实标题（预取失败时为 URL，这里覆盖） */
+    title?: string | null
   },
 ): FeishuState {
   const activeTask = findTaskByIdentityInActive(state, input)
@@ -71,7 +73,13 @@ export function completeRecentTask(
     processedUrls,
     activeTasks: state.activeTasks.filter(task => task.id !== activeTask.id),
     recentTasks: normalizeRecentTasks([
-      { ...activeTask, status: 'completed', filename: input.filename, updatedAt: Date.now() },
+      {
+        ...activeTask,
+        status: 'completed',
+        filename: input.filename,
+        ...(input.title ? { title: input.title } : {}),
+        updatedAt: Date.now(),
+      },
       ...state.recentTasks,
     ]),
   }

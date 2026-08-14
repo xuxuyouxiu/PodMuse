@@ -93,6 +93,8 @@ export async function processPodcast(
   signal?: AbortSignal,
   isLocalFile?: boolean,
   force: boolean = false,
+  /** 回传实际标题（平台 API 返回的真实标题，供调用方回填任务/历史记录） */
+  outTitle?: { value: string | null },
 ): Promise<string | null> {
   const log = (m: string) => {
     sendLog?.(m)
@@ -1012,6 +1014,9 @@ export async function processPodcast(
   }
 
   const filepath = path.join(targetDir, `${filename}.md`)
+
+  // 回传真实标题
+  if (outTitle) outTitle.value = title
 
   // ===== Post-process: 将正文中的 [[wiki links]] 转换为标准 Markdown 链接 =====
   const entityMap = new Map<string, string>()
