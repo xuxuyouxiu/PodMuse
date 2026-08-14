@@ -729,7 +729,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                     </button>
                   )}
                   {selectedEntry.filename && obsidianDir && (
-                    <NoteExportMenu busy={exportingId === selectedEntry.id ? (exportBusy || null) : null} onAction={action => handleExport(selectedEntry, action)} size={12} className="history-detail__btn" />
+                    <NoteExportMenu busy={exportingId === selectedEntry.id ? (exportBusy || null) : null} onAction={action => handleExport(selectedEntry, action)} size={12} className="history-detail__iconbtn" />
                   )}
                   <div className="history-view__more">
                     <button className="history-detail__btn" onClick={() => toggleMore(selectedEntry.id)} title={t('更多')}>

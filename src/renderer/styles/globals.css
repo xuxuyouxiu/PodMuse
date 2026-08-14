@@ -6650,6 +6650,8 @@ a:focus-visible {
 .history-view__detail-pane {
   width: 280px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .history-view__list-head {
@@ -6843,11 +6845,32 @@ a:focus-visible {
 .history-detail {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 100%;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--bg-surface);
-  overflow: hidden;
+}
+
+/* 详情面板专用导出图标按钮（避免与文字按钮样式冲突导致图标不可见） */
+.history-detail__iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-detail__iconbtn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .history-detail__head {

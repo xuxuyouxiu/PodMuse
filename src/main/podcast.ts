@@ -1,5 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
+import { createHash } from 'node:crypto'
 import { StepInfo, AIProviderId } from '@shared/types'
 import { cleanTitleForFilename } from '@shared/utils'
 import { runWhisper } from './whisper'
@@ -35,6 +36,50 @@ const HEADERS_UA =
 
 /** 通用 og:title 提取（兜底用，优先使用适配器的标题提取） */
 export { fetchOgTitle } from './platforms'
+
+/**
+ * 缓存文件名：标题前 80 字 + 内容 ID（去重 key）前 8 位。
+ * 解决超长标题被 Windows 文件名上限截断导致重处理缓存命中失败的问题——
+ * 内容 ID 保证同一节目每次处理文件名一致且不碰撞。
+ */
+export function cacheFileNameFor(url: string, title: string): string {
+  const clean = cleanTitleForFilename(title).slice(0, 80).trim()
+  let key = ''
+  try {
+    const dedupKey = platformRegistry.findAdapter(url)?.adapter.getDedupKey(url)
+    if (dedupKey) {
+      key = dedupKey.slice(0, 8)
+    }
+  } catch {
+    /* ignore */
+  }
+  if (!key) {
+    key = createHash('md5').update(url).digest('hex').slice(0, 8)
+  }
+  return `${clean}_${key}`
+}
+
+/**
+ * 兼容旧版缓存：标题超长时 Windows 会自动截断文件名（结尾形如 ....）。
+ * 按「标题前缀」在目录中查找已存在的音频文件。
+ */
+export function findLegacyCachedAudio(dir: string, baseName: string, ext: string): string | null {
+  try {
+    const prefix = baseName.split('_')[0].slice(0, 60)
+    if (!prefix) return null
+    const files = fs.readdirSync(dir)
+    const hit = files.find(
+      f =>
+        f.startsWith(prefix) &&
+        f.endsWith(`.${ext}`) &&
+        f.length < 255 &&
+        fs.statSync(path.join(dir, f)).size > 1024,
+    )
+    return hit ? path.join(dir, hit) : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * 智能标题预取：优先平台适配器的专用方法（如 B 站 view API），
@@ -437,7 +482,7 @@ export async function processPodcast(
         const tmp = getTempDir(audioDir)
         let ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3'
         if (!['mp3', 'm4a', 'm4s', 'ogg', 'aac', 'wav'].includes(ext)) ext = 'mp3'
-        const audioName = cleanTitleForFilename(title || 'episode')
+        const audioName = cacheFileNameFor(podcastUrl, title || 'episode')
         audioPath = path.join(tmp, `${audioName}.${ext}`)
 
         // 如果 audioUrl 是本地文件路径，直接使用原始路径（不复制到音频目录）
@@ -461,7 +506,20 @@ export async function processPodcast(
             progress: 100,
           })
         } else {
-          try {
+          // 兼容旧版缓存：标题超长被 Windows 截断（文件名以 .... 结尾）的历史文件
+          const legacy = findLegacyCachedAudio(tmp, audioName, ext)
+          if (legacy) {
+            audioPath = legacy
+            log('  ⏭ 命中旧版缓存音频（截断文件名），跳过下载')
+            step({
+              step: 2,
+              title: '下载音频',
+              subtitle: `${(fs.statSync(audioPath).size / 1048576).toFixed(1)} MB (已缓存)`,
+              status: 'done',
+              progress: 100,
+            })
+          } else {
+            try {
             const fetchHeaders: Record<string, string> = {
               'User-Agent': HEADERS_UA,
               ...result.headers,
@@ -523,6 +581,7 @@ export async function processPodcast(
             })
             log(`  ❌ 下载失败: ${errMsg(e)}`)
             return null
+          }
           }
         }
       }
