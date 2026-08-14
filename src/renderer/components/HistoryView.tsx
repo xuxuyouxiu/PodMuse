@@ -18,6 +18,9 @@ import {
   Inbox,
   SearchX,
   ChevronRight,
+  ListChecks,
+  CheckCircle2,
+  TrendingUp,
 } from 'lucide-react'
 import NotePreviewDialog from './NotePreviewDialog'
 import NoteExportMenu, { type ExportAction } from './NoteExportMenu'
@@ -154,6 +157,29 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [platformFilter, setPlatformFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
+  const [noteStats, setNoteStats] = useState<Record<string, { chars: number }>>({})
+
+  const noteStatsFor = (id: string) => noteStats[id]
+
+  // 选中任务变化时读取笔记字数（轻量展示）
+  useEffect(() => {
+    if (!selectedId) return
+    const entry = entries.find(e => e.id === selectedId)
+    if (!entry?.filename || !obsidianDir) return
+    const p = obsidianDir.replace(/[/\\]$/, '') + '/' + entry.filename
+    window.electronAPI
+      .readNote(p)
+      .then(res => {
+        const content = typeof res === 'string' ? res : res?.content
+        if (typeof content === 'string') {
+          setNoteStats(prev => ({ ...prev, [selectedId]: { chars: content.length } }))
+        }
+      })
+      .catch(() => {})
+  }, [selectedId, entries, obsidianDir])
 
   const flash = (msg: string) => {
     setNotice(msg)
@@ -357,6 +383,9 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     const completed = entries.filter(e => e.status === 'completed').length
     const failed = entries.filter(e => e.status === 'failed' || e.status === 'error').length
     const rate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0'
+    const withNote = entries.filter(e => e.status === 'completed' && e.filename).length
+    const weekAgo = (mountedAt || 0) - 7 * 86400000
+    const weekNew = entries.filter(e => e.status === 'completed' && e.updatedAt >= weekAgo).length
     const dist = new Map<string, number>()
     for (const e of entries) {
       dist.set(e.platformName, (dist.get(e.platformName) || 0) + 1)
@@ -365,7 +394,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
     const distMax = distList.length > 0 ? Math.max(...distList.map(d => d[1])) : 1
-    return { total, completed, failed, rate, distList, distMax }
+    return { total, completed, failed, rate, withNote, weekNew, distList, distMax }
   }, [entries])
 
   // ── 筛选 ──
@@ -392,8 +421,15 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         if (!hay.includes(kw)) return false
       }
       return true
-    })
-  }, [entries, search, statusFilter, platformFilter, timeFilter, mountedAt])
+    }).sort((a, b) =>
+      sortBy === 'newest' ? b.updatedAt - a.updatedAt : a.updatedAt - b.updatedAt,
+    )
+  }, [entries, search, statusFilter, platformFilter, timeFilter, mountedAt, sortBy])
+
+  // ── 分页 ──
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageEntries = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const selectedEntry = entries.find(e => e.id === selectedId) || null
   const isSearchEmpty = search.trim() !== '' && filtered.length === 0
@@ -425,40 +461,47 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
 
       {notice && <div className="history-view__notice">{notice}</div>}
 
-      {/* 统计卡片：4 张横向铺满 */}
+      {/* 统计卡片：5 张横向铺满 */}
       <div className="history-view__stats">
         <div className="history-view__stat">
-          <div className="history-view__stat-label">{t('总任务')}</div>
+          <div className="history-view__stat-head">
+            <span className="history-view__stat-label">{t('总任务')}</span>
+            <span className="history-view__stat-icon history-view__stat-icon--violet"><ListChecks size={14} /></span>
+          </div>
           <div className="history-view__stat-value">{stats.total}</div>
           <div className="history-view__stat-sub">{t('全部历史任务')}</div>
         </div>
         <div className="history-view__stat">
-          <div className="history-view__stat-label">{t('已完成')}</div>
+          <div className="history-view__stat-head">
+            <span className="history-view__stat-label">{t('已完成')}</span>
+            <span className="history-view__stat-icon history-view__stat-icon--green"><CheckCircle2 size={14} /></span>
+          </div>
           <div className="history-view__stat-value history-view__stat-value--ok">{stats.completed}</div>
           <div className="history-view__stat-sub">{t('成功率')} {stats.rate}%</div>
         </div>
         <div className="history-view__stat">
-          <div className="history-view__stat-label">{t('处理失败')}</div>
+          <div className="history-view__stat-head">
+            <span className="history-view__stat-label">{t('处理失败')}</span>
+            <span className="history-view__stat-icon history-view__stat-icon--red"><AlertCircle size={14} /></span>
+          </div>
           <div className="history-view__stat-value history-view__stat-value--fail">{stats.failed}</div>
           <div className="history-view__stat-sub">{t('可重新生成')}</div>
         </div>
-        <div className="history-view__stat history-view__stat--dist">
-          <div className="history-view__stat-label">{t('平台分布')}</div>
-          {stats.distList.length === 0 ? (
-            <div className="history-view__stat-empty">—</div>
-          ) : (
-            <div className="history-view__dist-bars">
-              {stats.distList.map(([name, count]) => (
-                <div key={name} className="history-view__dist-row">
-                  <span className="history-view__dist-name">{name}</span>
-                  <span className="history-view__dist-track">
-                    <span className="history-view__dist-fill" style={{ width: `${Math.round((count / stats.distMax) * 100)}%` }} />
-                  </span>
-                  <span className="history-view__dist-count">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="history-view__stat">
+          <div className="history-view__stat-head">
+            <span className="history-view__stat-label">{t('已生成笔记')}</span>
+            <span className="history-view__stat-icon history-view__stat-icon--blue"><FileText size={14} /></span>
+          </div>
+          <div className="history-view__stat-value">{stats.withNote}</div>
+          <div className="history-view__stat-sub">{t('有笔记可查看')}</div>
+        </div>
+        <div className="history-view__stat">
+          <div className="history-view__stat-head">
+            <span className="history-view__stat-label">{t('本周新增')}</span>
+            <span className="history-view__stat-icon history-view__stat-icon--orange"><TrendingUp size={14} /></span>
+          </div>
+          <div className="history-view__stat-value">{stats.weekNew}</div>
+          <div className="history-view__stat-sub">{t('最近 7 天')}</div>
         </div>
       </div>
 
@@ -495,6 +538,10 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
           <option value="7d">{t('近 7 天')}</option>
           <option value="30d">{t('近 30 天')}</option>
           <option value="year">{t('今年')}</option>
+        </select>
+        <select className="history-view__select" value={sortBy} onChange={e => setSortBy(e.target.value as 'newest' | 'oldest')}>
+          <option value="newest">{t('最新创建')}</option>
+          <option value="oldest">{t('最早创建')}</option>
         </select>
       </div>
 
@@ -534,8 +581,17 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
               </button>
             </div>
           ) : (
-            <div className="history-view__list">
-              {filtered.map(e => {
+            <>
+              <div className="history-table-head">
+                <span className="history-table-col history-table-col--check" />
+                <span className="history-table-col history-table-col--task">{t('任务信息')}</span>
+                <span className="history-table-col history-table-col--status">{t('状态')}</span>
+                <span className="history-table-col history-table-col--platform">{t('平台')}</span>
+                <span className="history-table-col history-table-col--time">{t('创建时间')}</span>
+                <span className="history-table-col history-table-col--ops">{t('操作')}</span>
+              </div>
+              <div className="history-view__list">
+              {pageEntries.map(e => {
                 const meta = STATUS_META[e.status]
                 const isSel = selectedId === e.id
                 return (
@@ -666,13 +722,38 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                 )
               })}
             </div>
+            {/* 分页栏 */}
+            {totalPages > 1 && (
+              <div className="history-view__pager">
+                <span className="history-view__pager-info">
+                  {t('共')} {filtered.length} {t('条记录')}
+                </span>
+                <div className="history-view__pager-nav">
+                  <button className="history-view__pager-btn" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
+                    ‹
+                  </button>
+                  <span className="history-view__pager-current">{safePage} / {totalPages}</span>
+                  <button className="history-view__pager-btn" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>
+                    ›
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
 
         {/* 右侧任务详情（小而精，与列表齐平） */}
         <div className="history-view__detail-pane">
           <div className="history-detail">
-            <div className="history-detail__head">{t('任务详情')}</div>
+            <div className="history-detail__head">
+              <span>{t('任务详情')}</span>
+              {selectedEntry && (
+                <button className="history-detail__close" onClick={() => setSelectedId('')} title={t('关闭')}>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
             {selectedEntry ? (
               <div className="history-detail__body">
                 <div className="history-detail__cover">
@@ -720,6 +801,12 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                     <span className="history-detail__value">—</span>
                   )}
                 </div>
+                {selectedEntry.filename && obsidianDir && (
+                  <div className="history-detail__row">
+                    <span className="history-detail__label">{t('笔记字数')}</span>
+                    <span className="history-detail__value">{noteStatsFor(selectedEntry.id)?.chars ?? '…'}</span>
+                  </div>
+                )}
                 <div className="history-detail__divider" />
                 <div className="history-detail__actions">
                   {selectedEntry.filename && obsidianDir && (
@@ -731,6 +818,12 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                   {selectedEntry.filename && obsidianDir && (
                     <NoteExportMenu busy={exportingId === selectedEntry.id ? (exportBusy || null) : null} onAction={action => handleExport(selectedEntry, action)} size={12} className="history-detail__iconbtn" />
                   )}
+                  <button className="history-detail__btn" onClick={() => copyLink(selectedEntry)} title={t('复制链接')}>
+                    <Copy size={12} />
+                  </button>
+                  <button className="history-detail__btn history-detail__btn--danger" onClick={() => handleRemove(selectedEntry.id)} title={t('删除')}>
+                    <Trash2 size={12} />
+                  </button>
                   <div className="history-view__more">
                     <button className="history-detail__btn" onClick={() => toggleMore(selectedEntry.id)} title={t('更多')}>
                       <MoreHorizontal size={12} />

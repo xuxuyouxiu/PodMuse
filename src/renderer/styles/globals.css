@@ -7134,3 +7134,175 @@ a:focus-visible {
   top: auto;
   bottom: calc(100% + 4px);
 }
+/* ===== 历史页 v1.44：5 统计卡 + 表格表头 + 分页 + 详情增强 ===== */
+
+/* 统计卡图标 */
+.history-view__stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-view__stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.history-view__stat-icon--violet {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+.history-view__stat-icon--green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.history-view__stat-icon--red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.history-view__stat-icon--blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.history-view__stat-icon--orange {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+/* 表格表头 */
+.history-table-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.history-table-col {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-table-col--check {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.history-table-col--task {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-table-col--status {
+  width: 76px;
+  flex-shrink: 0;
+}
+
+.history-table-col--platform {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.history-table-col--time {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.history-table-col--ops {
+  width: 96px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* 分页栏 */
+.history-view__pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.history-view__pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-view__pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-view__pager-btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.history-view__pager-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.history-view__pager-current {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 详情头部关闭按钮 */
+.history-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-detail__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-detail__close:hover {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 详情危险按钮 */
+.history-detail__btn--danger:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
