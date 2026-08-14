@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.45.3] - 2026-08-14
+
+### 修复
+- 剪藏浮窗仍是空壳（按钮只有色块没有文字）：根因是 Windows 上 `transparent + focusable:false` 窗口在部分显卡合成器下内容不渲染——改为**非透明窗口**（背景色跟随系统深/浅色），渲染绝对稳定
+
 ## [1.45.2] - 2026-08-14
 
 ### 修复

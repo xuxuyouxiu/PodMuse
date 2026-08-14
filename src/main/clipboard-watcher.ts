@@ -4,7 +4,7 @@
  * 支持 podmuse:// 协议唤起（URL 链接直接入队）
  */
 
-import { app, clipboard, BrowserWindow, screen } from 'electron'
+import { app, clipboard, BrowserWindow, screen, nativeTheme } from 'electron'
 import { join } from 'node:path'
 import { loadConfig } from './config'
 import { platformRegistry } from './platforms'
@@ -83,7 +83,10 @@ function showToast(item: ClipItem): void {
     x: posX,
     y: posY,
     frame: false,
-    transparent: true,
+    // Windows 上 transparent+focusable:false 窗口在部分显卡合成器下内容不渲染（只剩空壳色块）
+    // 改为非透明窗口保证渲染稳定
+    transparent: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#14141c' : '#ffffff',
     resizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
