@@ -82,17 +82,17 @@ function fullTime(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
-/** 平台名 → 官方图标文件（public/platform-icons/，高清矢量或 128px PNG） */
+/** 平台名 → 官方图标文件（public/platform-icons/，512px 官方彩色 PNG） */
 const PLATFORM_ICONS: Record<string, string> = {
   小宇宙: 'xiaoyuzhou.png',
-  b站: 'bilibili.svg',
-  bilibili: 'bilibili.svg',
+  b站: 'bilibili.png',
+  bilibili: 'bilibili.png',
   喜马拉雅: 'ximalaya.png',
   ximalaya: 'ximalaya.png',
   抖音: 'douyin.png',
   douyin: 'douyin.png',
-  youtube: 'youtube.svg',
-  apple: 'applepodcasts.svg',
+  youtube: 'youtube.png',
+  apple: 'applepodcasts.png',
 }
 
 function platformIconOf(platform: string): string | null {

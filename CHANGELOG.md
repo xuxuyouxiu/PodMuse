@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.43.4] - 2026-08-13
+
+### 修复
+- 浏览器剪藏浮窗「加入队列」点击反馈：入队成功立即显示「已加入队列」并 1.2 秒后关闭（此前 batchStart 失败时吞掉反馈、窗口不关）；关闭兜底双通道（IPC 失败再 window.close）
+- 浮窗按钮加按压/悬停动效（scale 0.94 + 主按钮高亮）
+
+### 改进
+- B 站图标升级为 dashboard-icons 官方彩色版（512px，用户提供来源）；YouTube/Apple Podcasts 同步升级同库彩色版
+
 ## [1.43.3] - 2026-08-13
 
 ### 修复

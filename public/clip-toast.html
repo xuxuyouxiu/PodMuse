@@ -90,14 +90,26 @@
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
-        transition: opacity 0.12s;
+        transition: opacity 0.12s, transform 0.08s, background 0.12s;
       }
       .btn:hover {
         opacity: 0.85;
       }
+      .btn:active {
+        transform: scale(0.94);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+        transform: none;
+      }
       .btn--primary {
         background: var(--accent);
         color: #fff;
+      }
+      .btn--primary:hover {
+        opacity: 1;
+        background: color-mix(in srgb, var(--accent) 88%, #fff);
       }
       .btn--ghost {
         background: transparent;
@@ -194,11 +206,19 @@
       }
 
       function close() {
-        // transparent 窗口 window.close() 不可靠，优先走主进程 IPC
+        // transparent 窗口 window.close() 不可靠，优先走主进程 IPC；失败再兜底
         if (window.electronAPI && window.electronAPI.closeToastWindow) {
-          window.electronAPI.closeToastWindow()
-        } else {
+          try {
+            window.electronAPI.closeToastWindow()
+            return
+          } catch {
+            /* fallthrough */
+          }
+        }
+        try {
           window.close()
+        } catch {
+          /* ignore */
         }
       }
 
@@ -234,14 +254,23 @@
         btnOk.onclick = async () => {
           setBusy(true)
           try {
-            await window.electronAPI.batchAdd([{ source: url, type: 'url' }])
-            await window.electronAPI.batchStart()
+            const addRes = await window.electronAPI.batchAdd([{ source: url, type: 'url' }])
+            if (addRes && (addRes as { error?: string }).error) {
+              throw new Error((addRes as { error: string }).error)
+            }
+            // 入队成功立即反馈（batchStart 失败也不影响已入队事实）
             showState(T.enqueued)
-            setTimeout(close, 1200)
           } catch (e) {
             showState(T.failed + ': ' + (e && e.message ? e.message : ''), true)
             setBusy(false)
+            return
           }
+          try {
+            await window.electronAPI.batchStart()
+          } catch {
+            /* 已入队即可，启动失败由主界面提示 */
+          }
+          setTimeout(close, 1200)
         }
         btnSubscribe.onclick = async () => {
           setBusy(true)
