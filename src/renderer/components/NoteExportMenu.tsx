@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Download, Image as ImageIcon, FileText, FileCode2, Loader2 } from 'lucide-react'
 import { useI18n } from '../i18n'
 
@@ -16,16 +17,43 @@ interface Props {
 export default function NoteExportMenu({ busy, onAction, className, size = 13 }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (
+        popRef.current &&
+        !popRef.current.contains(e.target as Node) &&
+        btnRef.current &&
+        !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
+
+  const openMenu = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      let top = rect.bottom + 4
+      let left = rect.left
+      // 空间不足向上弹
+      if (top + 180 > window.innerHeight) {
+        top = Math.max(8, rect.top - 180)
+      }
+      // 右侧溢出向左
+      if (left + 160 > window.innerWidth) {
+        left = window.innerWidth - 160 - 8
+      }
+      setPos({ top, left })
+    }
+    setOpen(o => !o)
+  }
 
   const items: { key: ExportAction; label: string; icon: React.ReactNode }[] = [
     { key: 'share', label: t('分享图'), icon: <ImageIcon size={12} /> },
@@ -36,32 +64,40 @@ export default function NoteExportMenu({ busy, onAction, className, size = 13 }:
   ]
 
   return (
-    <div className="export-menu" ref={ref}>
+    <>
       <button
+        ref={btnRef}
         className={`export-menu__trigger ${className || ''}`}
-        onClick={() => setOpen(o => !o)}
+        onClick={openMenu}
         title={t('导出')}
       >
         {busy ? <Loader2 size={size} className="note-preview__spin" /> : <Download size={size} />}
       </button>
-      {open && (
-        <div className="export-menu__pop">
-          {items.map(item => (
-            <button
-              key={item.key}
-              className="export-menu__item"
-              disabled={!!busy}
-              onClick={() => {
-                setOpen(false)
-                onAction(item.key)
-              }}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={popRef}
+            className="export-menu__pop export-menu__pop--fixed"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            {items.map(item => (
+              <button
+                key={item.key}
+                className="export-menu__item"
+                disabled={!!busy}
+                onClick={() => {
+                  setOpen(false)
+                  onAction(item.key)
+                }}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }

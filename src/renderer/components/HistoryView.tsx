@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
 import {
   RotateCcw,
@@ -139,6 +140,120 @@ function PlatformThumb({ platform, size }: { platform: string; size: number }) {
   )
 }
 
+function MorePop({
+  entry,
+  pos,
+  onClose,
+  onSelect,
+  onOpenNote,
+  onShowFolder,
+  onCopy,
+  onReprocess,
+  onRemove,
+  busy,
+}: {
+  entry: HistoryEntry | null
+  pos: { top: number; left: number }
+  onClose: () => void
+  onSelect: (e: HistoryEntry) => void
+  onOpenNote: (e: HistoryEntry) => void
+  onShowFolder: (e: HistoryEntry) => void
+  onCopy: (e: HistoryEntry) => void
+  onReprocess: (e: HistoryEntry) => void
+  onRemove: (id: string) => void
+  busy?: boolean
+}) {
+  const { t } = useI18n()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!entry) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [entry, onClose])
+
+  if (!entry) return null
+  const hasNote = !!entry.filename
+  return (
+    <div
+      ref={ref}
+      className="history-view__more-pop history-view__more-pop--fixed"
+      style={{ top: pos.top, left: pos.left }}
+    >
+      <button
+        className="history-view__more-item"
+        onClick={() => {
+          onClose()
+          onSelect(entry)
+        }}
+      >
+        <ChevronRight size={12} />
+        {t('查看详情')}
+      </button>
+      {hasNote && (
+        <>
+          <button
+            className="history-view__more-item"
+            onClick={() => {
+              onClose()
+              onOpenNote(entry)
+            }}
+          >
+            <ExternalLink size={12} />
+            {t('打开笔记')}
+          </button>
+          <button
+            className="history-view__more-item"
+            onClick={() => {
+              onClose()
+              onShowFolder(entry)
+            }}
+          >
+            <FolderOpen size={12} />
+            {t('打开所在文件夹')}
+          </button>
+        </>
+      )}
+      <button
+        className="history-view__more-item"
+        onClick={() => {
+          onClose()
+          onCopy(entry)
+        }}
+      >
+        <Copy size={12} />
+        {t('复制链接')}
+      </button>
+      {entry.status !== 'completed' && (
+        <button
+          className="history-view__more-item"
+          disabled={busy}
+          onClick={() => {
+            onClose()
+            onReprocess(entry)
+          }}
+        >
+          <RotateCcw size={12} />
+          {t('重新生成')}
+        </button>
+      )}
+      <button
+        className="history-view__more-item history-view__more-item--danger"
+        onClick={() => {
+          onClose()
+          onRemove(entry.id)
+        }}
+      >
+        <Trash2 size={12} />
+        {t('删除')}
+      </button>
+    </div>
+  )
+}
+
 export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const { t } = useI18n()
   const [entries, setEntries] = useState<HistoryEntry[]>([])
@@ -151,8 +266,20 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [exportingId, setExportingId] = useState('')
   const [exportBusy, setExportBusy] = useState<ExportAction | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [moreOpenId, setMoreOpenId] = useState('')
+  const [moreMenu, setMoreMenu] = useState<{ id: string; top: number; left: number } | null>(null)
   const [selectedId, setSelectedId] = useState('')
+
+  const toggleMore = (id: string, ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.stopPropagation()
+    const rect = ev.currentTarget.getBoundingClientRect()
+    let top = rect.bottom + 4
+    let left = rect.right - 160
+    if (top + 220 > window.innerHeight) top = Math.max(8, rect.top - 220)
+    if (left < 8) left = 8
+    setMoreMenu(prev => (prev && prev.id === id ? null : { id, top, left }))
+  }
+
+  const closeMore = () => setMoreMenu(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [platformFilter, setPlatformFilter] = useState('all')
@@ -225,7 +352,6 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     }
   }, [])
 
-  const toggleMore = (id: string) => setMoreOpenId(prev => (prev === id ? '' : id))
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
@@ -649,79 +775,9 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                         </button>
                       )}
                       <div className="history-view__more">
-                        <button className="history-row__btn" onClick={() => toggleMore(e.id)} title={t('更多')}>
+                        <button className="history-row__btn" onClick={ev => toggleMore(e.id, ev)} title={t('更多')}>
                           <MoreHorizontal size={12} />
                         </button>
-                        {moreOpenId === e.id && (
-                          <div className="history-view__more-pop">
-                            <button
-                              className="history-view__more-item"
-                              onClick={() => {
-                                setMoreOpenId('')
-                                setSelectedId(e.id)
-                              }}
-                            >
-                              <ChevronRight size={12} />
-                              {t('查看详情')}
-                            </button>
-                            {e.filename && obsidianDir && (
-                              <>
-                                <button
-                                  className="history-view__more-item"
-                                  onClick={() => {
-                                    setMoreOpenId('')
-                                    openNote(e)
-                                  }}
-                                >
-                                  <ExternalLink size={12} />
-                                  {t('打开笔记')}
-                                </button>
-                                <button
-                                  className="history-view__more-item"
-                                  onClick={() => {
-                                    setMoreOpenId('')
-                                    showInFolder(e)
-                                  }}
-                                >
-                                  <FolderOpen size={12} />
-                                  {t('打开所在文件夹')}
-                                </button>
-                              </>
-                            )}
-                            <button
-                              className="history-view__more-item"
-                              onClick={() => {
-                                setMoreOpenId('')
-                                copyLink(e)
-                              }}
-                            >
-                              <Copy size={12} />
-                              {t('复制链接')}
-                            </button>
-                            {e.status !== 'completed' && (
-                              <button
-                                className="history-view__more-item"
-                                onClick={() => {
-                                  setMoreOpenId('')
-                                  handleReprocessClick(e)
-                                }}
-                              >
-                                <RotateCcw size={12} />
-                                {t('重新生成')}
-                              </button>
-                            )}
-                            <button
-                              className="history-view__more-item history-view__more-item--danger"
-                              onClick={() => {
-                                setMoreOpenId('')
-                                handleRemove(e.id)
-                              }}
-                            >
-                              <Trash2 size={12} />
-                              {t('删除')}
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -825,7 +881,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                     <NoteExportMenu busy={exportingId === selectedEntry.id ? (exportBusy || null) : null} onAction={action => handleExport(selectedEntry, action)} size={12} className="history-detail__iconbtn" />
                   )}
                   <div className="history-view__more">
-                    <button className="history-detail__btn" onClick={() => toggleMore(selectedEntry.id)} title={t('更多')}>
+                    <button className="history-detail__btn" onClick={ev => toggleMore(selectedEntry.id, ev)} title={t('更多')}>
                       <MoreHorizontal size={12} />
                     </button>
                   </div>
@@ -849,6 +905,23 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
           onClose={() => setPreviewPath(null)}
         />
       )}
+
+      {moreMenu &&
+        createPortal(
+          <MorePop
+            entry={entries.find(e => e.id === moreMenu.id) || null}
+            pos={moreMenu}
+            onClose={closeMore}
+            onSelect={e => setSelectedId(e.id)}
+            onOpenNote={openNote}
+            onShowFolder={showInFolder}
+            onCopy={copyLink}
+            onReprocess={handleReprocessClick}
+            onRemove={handleRemove}
+            busy={busyId !== ''}
+          />,
+          document.body,
+        )}
 
       {modelPicker && (
         <div className="history-model-mask" onClick={() => setModelPicker(null)}>

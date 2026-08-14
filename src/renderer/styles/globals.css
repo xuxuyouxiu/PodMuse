@@ -6290,11 +6290,8 @@ a:focus-visible {
 }
 
 .export-menu__pop {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
   min-width: 150px;
-  z-index: 1300;
+  z-index: 99999;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -6304,6 +6301,11 @@ a:focus-visible {
   flex-direction: column;
   gap: 1px;
   animation: fadeIn 0.12s;
+}
+
+/* fixed 定位版本（portal 渲染，不受祖先 overflow 裁剪） */
+.export-menu__pop--fixed {
+  position: fixed;
 }
 
 .export-menu__item {
@@ -6655,7 +6657,8 @@ a:focus-visible {
 }
 
 .history-view__detail-pane {
-  width: 280px;
+  /* 宽度随窗口自适应（设计稿：min 240 / 28% / max 320） */
+  width: clamp(240px, 26%, 320px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -7152,11 +7155,8 @@ a:focus-visible {
 }
 
 .history-view__more-pop {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
   min-width: 156px;
-  z-index: 1300;
+  z-index: 99999;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -7166,6 +7166,11 @@ a:focus-visible {
   flex-direction: column;
   gap: 1px;
   animation: fadeIn 0.12s;
+}
+
+/* fixed 定位版本（portal 渲染，不受任何 overflow 裁剪） */
+.history-view__more-pop--fixed {
+  position: fixed;
 }
 
 .history-view__more-item {
@@ -7193,11 +7198,6 @@ a:focus-visible {
   background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
-/* 详情面板内的更多弹层向下弹（面板最右侧，向上会飘出详情框） */
-.history-detail .history-view__more-pop {
-  top: calc(100% + 4px);
-  bottom: auto;
-}
 /* ===== 历史页 v1.44：5 统计卡 + 表格表头 + 分页 + 详情增强 ===== */
 
 /* 统计卡图标 */
