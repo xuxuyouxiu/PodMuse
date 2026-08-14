@@ -3144,7 +3144,11 @@ input {
   align-items: center;
   flex: 1;
   min-width: 0;
-  justify-content: center;
+}
+
+/* 最后一项只有节点，不占拉伸空间 */
+.step-panel-track-item:last-child {
+  flex: 0 0 auto;
 }
 
 .step-panel-summary {
@@ -3308,11 +3312,14 @@ input {
 }
 
 .step-connector {
-  width: clamp(10px, 3vw, 32px);
-  min-width: clamp(10px, 3vw, 32px);
+  /* 连接线 flex 拉伸填满节点间距（此前固定宽度导致全屏时线短、两侧大片空白） */
+  flex: 1;
+  width: auto;
+  min-width: 14px;
+  max-width: 160px;
   height: 2px;
   border-radius: 1px;
-  margin: 0 2px;
+  margin: 0 8px;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;

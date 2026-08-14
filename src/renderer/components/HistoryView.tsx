@@ -97,12 +97,12 @@ const PLATFORM_ICONS: Record<string, string> = {
 
 function platformIconOf(platform: string): string | null {
   if (!platform) return null
-  const direct = PLATFORM_ICONS[platform]
+  // 归一化：去掉空格与大小写差异（'B 站'/'B站'/'bilibili' 均命中）
+  const norm = platform.toLowerCase().replace(/\s+/g, '')
+  const direct = PLATFORM_ICONS[platform] || PLATFORM_ICONS[norm]
   if (direct) return direct
-  const lower = PLATFORM_ICONS[platform.toLowerCase()]
-  if (lower) return lower
   for (const [key, file] of Object.entries(PLATFORM_ICONS)) {
-    if (platform.toLowerCase().includes(key)) return file
+    if (norm.includes(key) || key.includes(norm)) return file
   }
   return null
 }
