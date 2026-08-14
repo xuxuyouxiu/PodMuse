@@ -14,6 +14,7 @@ import {
   FolderOpen,
   Brain,
   X,
+  MoreHorizontal,
 } from 'lucide-react'
 import NotePreviewDialog from './NotePreviewDialog'
 import NoteExportMenu, { type ExportAction } from './NoteExportMenu'
@@ -138,6 +139,9 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [exportingId, setExportingId] = useState('')
   const [exportBusy, setExportBusy] = useState<ExportAction | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [moreOpenId, setMoreOpenId] = useState('')
+
+  const toggleMore = (id: string) => setMoreOpenId(prev => (prev === id ? '' : id))
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -504,54 +508,76 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                         onChange={() => toggleSelect(e.id)}
                         title={t('选择')}
                       />
+                      <button
+                        className="history-view__btn history-view__btn--text"
+                        onClick={() => openPreview(e)}
+                      >
+                        <FileText size={11} />
+                        {t('预览')}
+                      </button>
                       <NoteExportMenu
                         busy={exportingId === e.id ? (exportBusy || null) : null}
                         onAction={action => handleExport(e, action)}
                       />
-                      <button
-                        className="history-view__btn"
-                        onClick={() => openPreview(e)}
-                        title={t('预览')}
-                      >
-                        <FileText size={12} />
-                      </button>
-                      <button
-                        className="history-view__btn"
-                        onClick={() => openNote(e)}
-                        title={t('打开')}
-                      >
-                        <ExternalLink size={12} />
-                      </button>
-                      <button
-                        className="history-view__btn"
-                        onClick={() => showInFolder(e)}
-                        title={t('打开所在文件夹')}
-                      >
-                        <FolderOpen size={12} />
-                      </button>
+                      <div className="history-view__more">
+                        <button
+                          className="history-view__btn history-view__btn--text"
+                          onClick={() => toggleMore(e.id)}
+                        >
+                          {t('更多')}
+                          <MoreHorizontal size={12} />
+                        </button>
+                        {moreOpenId === e.id && (
+                          <div className="history-view__more-pop">
+                            <button
+                              className="history-view__more-item"
+                              onClick={() => {
+                                setMoreOpenId('')
+                                openNote(e)
+                              }}
+                            >
+                              <ExternalLink size={12} />
+                              {t('打开')}
+                            </button>
+                            <button
+                              className="history-view__more-item"
+                              onClick={() => {
+                                setMoreOpenId('')
+                                showInFolder(e)
+                              }}
+                            >
+                              <FolderOpen size={12} />
+                              {t('打开所在文件夹')}
+                            </button>
+                            <button
+                              className="history-view__more-item history-view__more-item--danger"
+                              onClick={() => {
+                                setMoreOpenId('')
+                                handleRemove(e.id)
+                              }}
+                            >
+                              <Trash2 size={12} />
+                              {t('删除')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                   {(e.status === 'completed' || e.status === 'failed' || e.status === 'error') && (
                     <button
-                      className="history-view__btn"
+                      className="history-view__btn history-view__btn--text"
                       onClick={() => handleReprocessClick(e)}
                       disabled={busyId === e.id}
-                      title={t('重新生成')}
                     >
                       {busyId === e.id ? (
-                        <Loader2 size={12} className="note-preview__spin" />
+                        <Loader2 size={11} className="note-preview__spin" />
                       ) : (
-                        <RotateCcw size={12} />
+                        <RotateCcw size={11} />
                       )}
+                      {t('重新生成')}
                     </button>
                   )}
-                  <button
-                    className="history-view__btn history-view__btn--danger"
-                    onClick={() => handleRemove(e.id)}
-                    title={t('删除')}
-                  >
-                    <Trash2 size={12} />
-                  </button>
                 </div>
               </motion.div>
             )

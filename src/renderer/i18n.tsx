@@ -395,6 +395,7 @@ const enDict: Record<string, string> = {
   '分享图': 'Share image',
   '导出 PDF': 'Export PDF',
   '导出 Markdown': 'Export Markdown',
+  '选择': 'Select',
   '导出到 Notion': 'Export to Notion',
   '导出到 Logseq': 'Export to Logseq',
   '导出合集': 'Export collection',
