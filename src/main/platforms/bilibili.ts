@@ -64,6 +64,18 @@ export class BilibiliAdapter implements PlatformAdapter {
     return this.extractBvId(url)
   }
 
+  /** 快速获取标题：直接调 B 站 view API（og:title 会被风控拒绝） */
+  async fetchTitle(url: string, signal?: AbortSignal): Promise<string | null> {
+    try {
+      const bvId = this.extractBvId(url)
+      if (!bvId) return null
+      const data = await this.fetchViewInfo(bvId, signal)
+      return data.title || null
+    } catch {
+      return null
+    }
+  }
+
   private extractBvId(url: string): string | null {
     const m = url.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i)
     return m ? m[1] : null

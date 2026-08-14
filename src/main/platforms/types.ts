@@ -34,6 +34,8 @@ export interface PlatformAdapter {
   extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult>
   /** 从 URL 提取去重 key */
   getDedupKey(url: string): string | null
+  /** 快速获取标题（用于入队预取，避免处理前显示 URL）；未实现时回退 og:title */
+  fetchTitle?(url: string, signal?: AbortSignal): Promise<string | null>
 }
 
 /** 已识别的平台信息 */

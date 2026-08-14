@@ -79,7 +79,7 @@ export default function RecentTasksPanel({
               <div className="task-card-header">
                 <div className="task-card-copy">
                   <div className="task-card-title">
-                    {cleanTitle(task.title || '') || cleanTitle(task.url || '') || task.url}
+                    {cleanTitle(task.title || '') || (task.filename || '').replace(/\.md$/i, '') || (task.url && !task.url.startsWith('http') ? task.url : t('未命名任务'))}
                   </div>
                   {task.status === 'error' && task.error && (
                     <div className="task-card-error">{task.error}</div>

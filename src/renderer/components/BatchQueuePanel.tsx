@@ -20,6 +20,14 @@ import {
 import { useI18n } from '../i18n'
 import NotePreviewDialog from './NotePreviewDialog'
 import NoteExportMenu, { type ExportAction } from './NoteExportMenu'
+
+/** 任务显示标题：title 缺失或为 URL 时用文件名/占位文字，绝不显示链接 */
+function displayTitle(t: { title?: string | null; filename?: string | null; url?: string; source?: string; status?: string }): string {
+  const title = t.title || ''
+  if (title && !title.startsWith('http')) return title
+  if (t.filename) return t.filename.replace(/\.md$/i, '')
+  return t.status === 'running' || t.status === 'pending' ? '识别标题中…' : '未命名任务'
+}
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
 interface Props {
@@ -219,7 +227,7 @@ function SummaryView({
                   <span className="bq-report__stext bq-report__stext--ok">{t('完成')}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--title">
-                  <span title={task.title || task.source}>{task.title || task.source}</span>
+                  <span title={displayTitle(task)}>{displayTitle(task)}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--action">
                   {task.filename && obsidianDir && (
@@ -267,7 +275,7 @@ function SummaryView({
                   <span className="bq-report__stext bq-report__stext--err">{t('失败')}</span>
                 </td>
                 <td className="bq-report__td bq-report__td--title">
-                  <span title={task.title || task.source}>{task.title || task.source}</span>
+                  <span title={displayTitle(task)}>{displayTitle(task)}</span>
                   {task.failureReason && <span className="bq-report__reason">{task.failureReason}</span>}
                 </td>
                 <td className="bq-report__td bq-report__td--action">
@@ -674,7 +682,7 @@ export default function BatchQueuePanel({
               <div className="batch-queue-task-row">
                 <span className="batch-queue-task-index">{i + 1}</span>
                 <TaskIcon task={task} />
-                <span className="batch-queue-task-name">{task.title || task.source}</span>
+                <span className="batch-queue-task-name">{displayTitle(task)}</span>
                 {task.platform && (
                   <span className="batch-queue-task-platform">{task.platform}</span>
                 )}

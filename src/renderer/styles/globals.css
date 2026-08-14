@@ -6892,6 +6892,14 @@ a:focus-visible {
   gap: 6px;
 }
 
+.history-detail__url {
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+  text-align: center;
+  line-height: 1.5;
+}
+
 .history-detail__divider {
   height: 1px;
   background: var(--border);

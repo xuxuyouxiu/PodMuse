@@ -29,6 +29,13 @@ const BATCH_STATUS_META: Record<BatchTask['status'], { label: TranslationKey; cl
   skipped: { label: '已跳过', className: 'stopped' },
 }
 
+function displayTitle(t: { title?: string | null; filename?: string | null; url?: string; source?: string; status?: string }): string {
+  const title = t.title || ''
+  if (title && !title.startsWith('http')) return title
+  if (t.filename) return t.filename.replace(/\.md$/i, '')
+  return t.status === 'running' || t.status === 'pending' ? '识别标题中…' : '未命名任务'
+}
+
 export default function ActiveTasksPanel({
   tasks,
   processing: _processing,
@@ -104,7 +111,7 @@ export default function ActiveTasksPanel({
             >
               <div className="task-card-header">
                 <div className="task-card-copy">
-                  <div className="task-card-title">{task.title || task.url}</div>
+                  <div className="task-card-title">{displayTitle(task)}</div>
                 </div>
                 <span className={`task-status-badge ${task.status}`}>{t(meta.label)}</span>
               </div>
@@ -163,7 +170,7 @@ export default function ActiveTasksPanel({
                   <div className="task-card-header">
                     <div className="task-card-copy">
                       <span className="batch-task-index">{i + 1}</span>
-                      <div className="task-card-title">{task.title || task.source}</div>
+                      <div className="task-card-title">{displayTitle(task)}</div>
                     </div>
                     <span className={`task-status-badge ${meta.className}`}>
                       {isProcessing && <Loader2 size={10} className="animate-spin" />}

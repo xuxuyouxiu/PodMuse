@@ -19,6 +19,8 @@ const enDict: Record<string, string> = {
   '历史': 'History',
   '处理历史': 'Processing History',
   '查看和管理已经处理过的任务': 'View and manage processed tasks',
+  '未命名任务': 'Untitled task',
+  '识别标题中…': 'Resolving title...',
   '总任务': 'Total tasks',
   '全部历史任务': 'All history tasks',
   '可重新生成': 'Can regenerate',

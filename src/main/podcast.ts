@@ -34,7 +34,24 @@ const HEADERS_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
 
 /** 通用 og:title 提取（兜底用，优先使用适配器的标题提取） */
-export { fetchOgTitle as fetchPodcastTitle } from './platforms'
+export { fetchOgTitle } from './platforms'
+
+/**
+ * 智能标题预取：优先平台适配器的专用方法（如 B 站 view API），
+ * 失败或无适配器时回退 og:title。保证任务入队即有真实标题，不在 UI 显示链接。
+ */
+export async function fetchPodcastTitle(url: string, signal?: AbortSignal): Promise<string | null> {
+  const platformInfo = platformRegistry.findAdapter(url)
+  if (platformInfo?.adapter.fetchTitle) {
+    try {
+      const title = await platformInfo.adapter.fetchTitle(url, signal)
+      if (title) return title
+    } catch {
+      /* 回退 og:title */
+    }
+  }
+  return fetchOgTitle(url, signal)
+}
 
 function getTempDir(audioDir: string) {
   const { app } = require('electron')

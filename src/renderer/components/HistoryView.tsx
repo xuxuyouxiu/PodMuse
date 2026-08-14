@@ -555,7 +555,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                     />
                     <PlatformThumb platform={e.platformName} size={48} />
                     <div className="history-row__main">
-                      <div className="history-row__title">{e.title || e.url}</div>
+                      <div className="history-row__title">{e.title && !e.title.startsWith('http') ? e.title : (e.filename || '').replace(/\.md$/i, '') || t('未命名任务')}</div>
                       <div className="history-row__meta">
                         <span className="history-row__platform">{e.platformName}</span>
                         {e.url && <span className="history-row__url">{e.url}</span>}
@@ -678,7 +678,12 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                 <div className="history-detail__cover">
                   <PlatformThumb platform={selectedEntry.platformName} size={56} />
                 </div>
-                <div className="history-detail__title">{selectedEntry.title || selectedEntry.url}</div>
+                <div className="history-detail__title">
+                  {selectedEntry.title && !selectedEntry.title.startsWith('http')
+                    ? selectedEntry.title
+                    : (selectedEntry.filename || '').replace(/\.md$/i, '') || t('未命名任务')}
+                </div>
+                {selectedEntry.url && <div className="history-detail__url">{selectedEntry.url}</div>}
                 <div className="history-detail__meta">
                   {selectedEntry.platformName && <span className="history-row__platform">{selectedEntry.platformName}</span>}
                 </div>
