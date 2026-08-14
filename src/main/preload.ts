@@ -165,6 +165,13 @@ try {
       podcastName?: string
       platform?: string
     }) => ipcRenderer.invoke('share:generate', params),
+    // 导出（PDF / Markdown / PDF 合集）
+    exportPdf: (params: { notePath: string; title?: string }) =>
+      ipcRenderer.invoke('export:pdf', params),
+    exportMd: (params: { notePath: string; title?: string }) =>
+      ipcRenderer.invoke('export:md', params),
+    exportPdfCollection: (items: { notePath: string; title: string }[]) =>
+      ipcRenderer.invoke('export:pdfCollection', { items }),
     onBatchTaskUpdate: (callback: (index: number, task: unknown) => void) => {
       const handler = (_e: IpcRendererEvent, index: number, task: unknown) => callback(index, task)
       ipcRenderer.on('batch:task-update', handler)

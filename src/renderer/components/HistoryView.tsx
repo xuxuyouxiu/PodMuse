@@ -14,9 +14,9 @@ import {
   FolderOpen,
   Brain,
   X,
-  Share2,
 } from 'lucide-react'
 import NotePreviewDialog from './NotePreviewDialog'
+import NoteExportMenu, { type ExportAction } from './NoteExportMenu'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -135,7 +135,18 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
   const [busyId, setBusyId] = useState('')
   const [modelPicker, setModelPicker] = useState<{ entry: HistoryEntry; models: ModelOption[] } | null>(null)
   const [notesThisWeek, setNotesThisWeek] = useState(0)
-  const [sharingId, setSharingId] = useState('')
+  const [exportingId, setExportingId] = useState('')
+  const [exportBusy, setExportBusy] = useState<ExportAction | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const load = useCallback(() => {
     window.electronAPI
@@ -247,27 +258,70 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     window.electronAPI.showInFolder(p)
   }
 
-  const handleShare = async (e: HistoryEntry) => {
+  /** 统一导出入口（分享图 / PDF / Markdown / Notion / Logseq） */
+  const handleExport = async (e: HistoryEntry, action: ExportAction) => {
     if (!e.filename || !obsidianDir) return
     const p = obsidianDir.replace(/[/\\]$/, '') + '/' + e.filename
-    setSharingId(e.id)
+    setExportingId(e.id)
+    setExportBusy(action)
     try {
-      const res = await window.electronAPI.shareGenerate({
-        notePath: p,
-        title: e.title || e.filename || '',
-        platform: e.platformName,
-      })
+      let res: { success: boolean; cancelled?: boolean; error?: string } | null = null
+      if (action === 'share') {
+        res = await window.electronAPI.shareGenerate({
+          notePath: p,
+          title: e.title || e.filename || '',
+          platform: e.platformName,
+        })
+      } else if (action === 'pdf') {
+        res = await window.electronAPI.exportPdf({ notePath: p, title: e.title || '' })
+      } else if (action === 'md') {
+        res = await window.electronAPI.exportMd({ notePath: p, title: e.title || '' })
+      } else if (action === 'notion') {
+        res = await window.electronAPI.exportToNotion(e.id)
+      } else if (action === 'logseq') {
+        res = await window.electronAPI.exportToLogseq(e.id)
+      }
+      if (!res) return
       if (res.success && !res.cancelled) {
-        flash(t('分享图已保存'))
-      } else if (res.success && res.cancelled) {
-        /* 用户取消保存，静默 */
+        flash(t('已导出'))
+      } else if (res.cancelled) {
+        /* 用户取消，静默 */
       } else {
-        flash(t('分享图生成失败') + ': ' + (res.error || ''))
+        flash(t('导出失败') + ': ' + (res.error || ''))
       }
     } catch (err) {
-      flash(t('分享图生成失败') + ': ' + String(err))
+      flash(t('导出失败') + ': ' + String(err))
     } finally {
-      setSharingId('')
+      setExportingId('')
+      setExportBusy(null)
+    }
+  }
+
+  /** 导出选中的多篇为 PDF 合集 */
+  const handleExportCollection = async () => {
+    const picked = entries.filter(e => selected.has(e.id) && e.filename && obsidianDir)
+    if (picked.length === 0) return
+    setExportingId('__collection')
+    setExportBusy('pdf')
+    try {
+      const items = picked.map(e => ({
+        notePath: obsidianDir!.replace(/[/\\]$/, '') + '/' + e.filename!,
+        title: e.title || e.filename || '',
+      }))
+      const res = await window.electronAPI.exportPdfCollection(items)
+      if (res.success && !res.cancelled) {
+        flash(t('已导出'))
+        setSelected(new Set())
+      } else if (res.cancelled) {
+        /* 用户取消 */
+      } else {
+        flash(t('导出失败') + ': ' + (res.error || ''))
+      }
+    } catch (err) {
+      flash(t('导出失败') + ': ' + String(err))
+    } finally {
+      setExportingId('')
+      setExportBusy(null)
     }
   }
 
@@ -279,6 +333,19 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
           {t('处理历史')}
         </div>
         <div className="history-view__actions">
+          {selected.size >= 2 && (
+            <button
+              className="history-view__toolbar-btn history-view__toolbar-btn--collection"
+              onClick={handleExportCollection}
+              title={`${t('导出合集')} (${selected.size})`}
+            >
+              {exportingId === '__collection' ? (
+                <Loader2 size={13} className="note-preview__spin" />
+              ) : (
+                <FileText size={13} />
+              )}
+            </button>
+          )}
           <button className="history-view__toolbar-btn" onClick={load} title={t('刷新')}>
             <RefreshCw size={13} />
           </button>
@@ -424,18 +491,17 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                 <div className="history-view__ops">
                   {e.filename && obsidianDir && (
                     <>
-                      <button
-                        className="history-view__btn history-view__btn--share"
-                        onClick={() => handleShare(e)}
-                        disabled={sharingId === e.id}
-                        title={t('分享')}
-                      >
-                        {sharingId === e.id ? (
-                          <Loader2 size={12} className="note-preview__spin" />
-                        ) : (
-                          <Share2 size={12} />
-                        )}
-                      </button>
+                      <input
+                        type="checkbox"
+                        className="history-view__check"
+                        checked={selected.has(e.id)}
+                        onChange={() => toggleSelect(e.id)}
+                        title={t('选择')}
+                      />
+                      <NoteExportMenu
+                        busy={exportingId === e.id ? (exportBusy || null) : null}
+                        onAction={action => handleExport(e, action)}
+                      />
                       <button
                         className="history-view__btn"
                         onClick={() => openPreview(e)}

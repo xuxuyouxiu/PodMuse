@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 import NotePreviewDialog from './NotePreviewDialog'
+import NoteExportMenu, { type ExportAction } from './NoteExportMenu'
 import type { BatchTask, BatchQueueSnapshot, BatchCompletionSummary, StepInfo } from '@shared/types'
 
 interface Props {
@@ -109,6 +110,48 @@ function SummaryView({
   const allSuccess = summary.failed === 0 && summary.skipped === 0
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [previewName, setPreviewName] = useState<string>('')
+  const [exportingTaskId, setExportingTaskId] = useState('')
+  const [exportAction, setExportAction] = useState<ExportAction | null>(null)
+
+  const exportBusyFor = (taskId: string) => (exportingTaskId === taskId ? exportAction : null)
+
+  /** 报告卡片统一导出（分享图 / PDF / Markdown / Notion / Logseq） */
+  const handleExport = async (task: BatchTask, action: ExportAction) => {
+    if (!task.filename || !obsidianDir) return
+    const p = obsidianDir.replace(/[/\\]$/, '') + '/' + task.filename
+    setExportingTaskId(task.id)
+    setExportAction(action)
+    try {
+      let res: { success: boolean; cancelled?: boolean; error?: string } | null = null
+      if (action === 'share') {
+        res = await window.electronAPI.shareGenerate({
+          notePath: p,
+          title: task.title || task.filename || '',
+        })
+      } else if (action === 'pdf') {
+        res = await window.electronAPI.exportPdf({ notePath: p, title: task.title || '' })
+      } else if (action === 'md') {
+        res = await window.electronAPI.exportMd({ notePath: p, title: task.title || '' })
+      } else if (action === 'notion') {
+        res = await window.electronAPI.exportToNotion(task.id)
+      } else if (action === 'logseq') {
+        res = await window.electronAPI.exportToLogseq(task.id)
+      }
+      if (!res) return
+      if (res.success && !res.cancelled) {
+        /* 报告内导出成功无需提示（保存对话框已反馈） */
+      } else if (res.cancelled) {
+        /* 用户取消 */
+      } else {
+        console.warn('导出失败:', res.error)
+      }
+    } catch (err) {
+      console.warn('导出失败:', err)
+    } finally {
+      setExportingTaskId('')
+      setExportAction(null)
+    }
+  }
 
   return (
     <div className="bq-report">
@@ -175,6 +218,12 @@ function SummaryView({
                 <td className="bq-report__td bq-report__td--action">
                   {task.filename && obsidianDir && (
                     <>
+                      <NoteExportMenu
+                        size={11}
+                        busy={exportBusyFor(task.id)}
+                        onAction={action => handleExport(task, action)}
+                        className="bq-report__btn"
+                      />
                       <motion.button
                         className="bq-report__btn bq-report__btn--preview"
                         onClick={() => {

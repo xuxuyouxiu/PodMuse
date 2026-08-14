@@ -350,6 +350,25 @@ declare global {
         podcastName?: string
         platform?: string
       }) => Promise<{ success: boolean; path?: string; cancelled?: boolean; error?: string }>
+      // 导出（PDF / Markdown / PDF 合集）
+      exportPdf: (params: { notePath: string; title?: string }) => Promise<{
+        success: boolean
+        path?: string
+        cancelled?: boolean
+        error?: string
+      }>
+      exportMd: (params: { notePath: string; title?: string }) => Promise<{
+        success: boolean
+        path?: string
+        cancelled?: boolean
+        error?: string
+      }>
+      exportPdfCollection: (items: { notePath: string; title: string }[]) => Promise<{
+        success: boolean
+        path?: string
+        cancelled?: boolean
+        error?: string
+      }>
       batchSkip: (index: number) => Promise<BatchQueueSnapshot>
       batchClear: () => Promise<BatchQueueSnapshot>
       batchRetry: (index: number) => Promise<BatchQueueSnapshot>
