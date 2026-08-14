@@ -57,19 +57,21 @@ let updaterHandle: UpdaterHandle | null = null
 // 单实例锁：防止重复打开，第二次启动时聚焦已有窗口
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
-  app.quit()
-} else {
-  app.on('second-instance', (_e, argv) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
-    }
-    // podmuse:// 协议唤起（书签小工具）
-    const proto = argv.find(a => typeof a === 'string' && a.startsWith('podmuse://'))
-    if (proto) handleProtocolUrl(proto)
-  })
+  // 已有实例运行：立即退出。app.quit() 是异步的，必须同步阻止后续初始化
+  // （否则 whenReady 仍会触发 startClipServer 等初始化 → 端口冲突崩溃）
+  app.exit(0)
 }
+
+app.on('second-instance', (_e, argv) => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+  // podmuse:// 协议唤起（书签小工具）
+  const proto = argv.find(a => typeof a === 'string' && a.startsWith('podmuse://'))
+  if (proto) handleProtocolUrl(proto)
+})
 
 function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true

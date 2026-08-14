@@ -55,6 +55,21 @@ export function startClipServer(handle: (url: string) => void): Server {
       }
     })
   })
+  // 端口被占用（已有实例/残留进程）时不崩主进程：探测是否已有服务在听，
+  // 有则复用（单实例锁未生效的极端情况），没有则降级（扩展剪藏不可用）
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[clip-server] 端口 ${CLIP_SERVER_PORT} 已被占用，扩展剪藏服务降级（可能已有 PodMuse 实例在运行）`)
+      try {
+        server?.close()
+      } catch {
+        /* ignore */
+      }
+      server = null
+      return
+    }
+    console.error('[clip-server] listen error:', err)
+  })
   server.listen(CLIP_SERVER_PORT, '127.0.0.1')
   console.log(`[clip-server] listening on 127.0.0.1:${CLIP_SERVER_PORT}`)
   return server

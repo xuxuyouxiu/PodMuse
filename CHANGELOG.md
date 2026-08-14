@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.43.3] - 2026-08-13
+
+### 修复
+- 重复打开软件时主进程崩溃（EADDRINUSE 127.0.0.1:41987）：
+  - 单实例锁失败时 app.quit() 是异步的，第二个实例仍会走完初始化 → 浏览器扩展端口冲突崩溃；改为 app.exit(0) 同步立即退出
+  - clip-server 增加 EADDRINUSE 容错：端口被占（极端残留场景）时降级不崩主进程，扩展剪藏功能静默关闭
+
 ## [1.43.2] - 2026-08-13
 
 ### 修复
