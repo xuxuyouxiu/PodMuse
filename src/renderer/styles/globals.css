@@ -7384,7 +7384,7 @@ a:focus-visible {
 }
 
 .donate-dialog {
-  width: 440px;
+  width: 520px;
   max-width: calc(100vw - 48px);
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -7451,8 +7451,9 @@ a:focus-visible {
 }
 
 .donate-dialog__code img {
-  width: 170px;
-  height: 170px;
+  width: 220px;
+  height: auto;
+  max-height: 340px;
   object-fit: contain;
   border-radius: 10px;
   border: 1px solid var(--border);

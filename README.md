@@ -1,49 +1,58 @@
-# 🎧 PodMuse — 把播客变成知识库
+<p align="center">
+  <img src="build/icon.png" width="96" alt="PodMuse logo" />
+</p>
 
-**PodMuse** 是一款桌面应用：粘贴任意播客 / 视频链接，AI 自动完成**转写 → 提炼 → 生成结构化笔记 → 写入 Obsidian**，并把节目中出现的人物、公司、概念沉淀成可互链的**个人知识库**。
+<h1 align="center">PodMuse</h1>
+<p align="center"><strong>把播客变成你的第二大脑 🧠</strong></p>
+<p align="center">粘贴一条链接，AI 自动转写、提炼、结构化，让每一期节目都沉淀为可复用、可互链的知识资产</p>
 
 ---
 
-## ✨ 核心功能
+## 为什么做 PodMuse？
 
-| 功能 | 说明 |
+听过的好节目总会忘记。PodMuse 帮你把「听」变成「存」：
+
+- **不再回听**：一句话总结 + 要点，扫一眼就想起整期内容
+- **知识互链**：节目中提到的人物、公司、概念自动生成卡片并互相链接，形成你的专属知识网络
+- **随时可问**：对着笔记库提问，答案带引用来源，比搜索引擎更懂你的上下文
+
+笔记以标准 Markdown 形式落到你**自己的笔记库**（兼容 Obsidian、Logseq 及任意支持 Markdown 链接的笔记工具），数据完全属于你。
+
+## ✨ 功能一览
+
+| 类别 | 功能 |
 | --- | --- |
-| 🔗 一键处理 | 粘贴小宇宙 / B站 / 喜马拉雅 / Apple Podcasts / 抖音 / YouTube 链接，自动识别平台 |
-| 🎙 智能转写 | 本地 Whisper 转写（支持平台字幕直取），音频/转写自动缓存，重复处理秒级复用 |
-| 📝 AI 结构化笔记 | 一句话总结、要点、核心观点、事件详情、金句摘录、术语词典、实体卡片 |
-| 🧠 知识库 | 人物 / 项目 / 概念 / 术语四类实体卡片自动生成与互链，双击悬停预览，全局反向链接 |
-| 💬 知识问答 | 基于你的笔记库做 RAG 问答，回答附引用来源 |
-| 📡 智能订阅 | 订阅喜欢的播客，新节目自动入队处理，全程对普通用户隐藏 RSS 细节 |
-| 🧩 浏览器剪藏 | 复制链接自动弹窗（Chrome 扩展 / 书签小工具），一键入队处理 |
-| 📊 批量处理 | 多任务队列、实时步骤面板、完成报告、失败重试 |
-| 🕘 处理历史 | 任务资产视图、筛选搜索、分页、一键重新生成（可换 AI 模型） |
-| 📤 导出中心 | 单篇 / 合集 PDF、Markdown、分享卡片（1080×1440）、Notion / Logseq |
-| 🌐 多模型 | 支持 DeepSeek / 小米 MiMo / OpenAI 兼容接口，任务级模型覆盖 |
-| ⚡ 自动更新 | 增量自动更新，新版本即装即用 |
+| 📥 **内容获取** | 小宇宙 / B站 / 喜马拉雅 / Apple Podcasts / 抖音 / YouTube 链接一键识别；浏览器复制链接自动弹窗剪藏；播客订阅自动追踪新节目 |
+| 🎙 **智能转写** | 本地 Whisper 转写（支持平台字幕直取）；音频与转写结果自动缓存，重复处理秒级完成 |
+| 📝 **AI 结构化笔记** | 一句话总结、核心观点、事件详情、金句摘录、术语词典、实体卡片，全自动生成 |
+| 🧠 **知识库沉淀** | 人物 / 项目 / 概念 / 术语四类实体自动建档与互链；悬停预览；全局反向链接 |
+| 💬 **知识问答** | 基于笔记库的 RAG 问答，每个回答附引用来源 |
+| ⚙️ **处理体验** | 多任务批量队列、实时步骤面板、失败一键重试、处理历史（筛选/搜索/分页/重新生成可换模型） |
+| 📤 **内容输出** | 单篇 / 合集 PDF、Markdown 导出、1080×1440 分享卡片、Notion / Logseq 同步 |
+| 🔌 **模型自由** | DeepSeek / 小米 MiMo / OpenAI 兼容接口；单任务级模型覆盖 |
+| ⚡ **持续更新** | 增量自动更新，新版本即装即用 |
 
 ## 🚀 快速开始
 
-1. 从 [Releases](https://github.com/xuxuyouxiu/PodMuse/releases) 下载 `PodMuse-Setup-x.x.x.exe` 安装
-2. 打开应用 → 设置 → 配置 **Obsidian 库路径** + **AI 模型 API Key**
-3. 粘贴一个播客链接（如小宇宙、B站视频）→ 开始处理
-4. 笔记自动写入你的 Obsidian 库，实体卡片互链成知识网络
+1. 到 [Releases](https://github.com/xuxuyouxiu/PodMuse/releases) 下载 `PodMuse-Setup-x.x.x.exe` 并安装
+2. 打开设置：指定**笔记库存放目录**，填入** AI 模型 API Key**（如 DeepSeek / 小米 MiMo）
+3. 回到工作台，粘贴一条播客或视频链接，开始处理
+4. 完成后去「笔记库」翻看：实体卡片已经自动互链，试试「问答」直接提问
 
-> 使用本地 Whisper 转写需在设置中下载语音模型（首次使用自动提示）。
+> 💡 语音转写使用本地 Whisper，首次使用会提示下载语音模型（免费、离线）。
 
 ## 🛠 技术栈
 
-- **Electron + TypeScript + React**（motion 动效、lucide 图标）
-- **Whisper**（本地转写）· **yt-dlp**（视频提取）· **rss-parser**（订阅）
-- **electron-updater**（增量自动更新）· **marked**（笔记渲染 / PDF 导出）
+Electron · TypeScript · React · Whisper（本地转写）· yt-dlp（视频提取）· rss-parser（订阅）· electron-updater（自动更新）
 
 ## 📁 项目结构
 
 ```
 PodMuse/
-├── src/main/          # Electron 主进程（管线、平台适配器、IPC、订阅、剪藏服务）
-├── src/renderer/      # React 渲染层（工作台、历史、问答、设置等视图）
-├── src/shared/        # 主/渲染共享类型与工具
-├── public/            # 静态资源（分享卡模板、平台图标、收款码）
+├── src/main/          # Electron 主进程：处理管线 / 平台适配器 / IPC / 订阅 / 剪藏服务
+├── src/renderer/      # React 界面：工作台 / 笔记库 / 历史 / 问答 / 设置
+├── src/shared/        # 共享类型与工具
+├── public/            # 静态资源（分享卡模板 / 平台图标 / 收款码）
 ├── chrome-extension/  # 浏览器剪藏扩展（本地加载，免商店）
 └── docs/              # 设计文档
 ```
@@ -58,35 +67,51 @@ PodMuse/
 
 ---
 
-## 🇬🇧 English
+## 🇬🇧 English Version
 
-**PodMuse** — Turn podcasts into your knowledge base. Paste any podcast / video link and let AI transcribe, distill and write structured notes directly into your Obsidian vault, with people / companies / concepts linked into an interconnected knowledge graph.
+<p align="center"><strong>PodMuse — Turn podcasts into your second brain 🧠</strong></p>
+<p align="center">Paste a link, and AI transcribes, distills and structures every episode into reusable, interlinked knowledge assets.</p>
 
-### ✨ Features
+### Why PodMuse?
 
-- **One-click processing** — Xiao宇宙, Bilibili, Ximalaya, Apple Podcasts, Douyin, YouTube auto-detection
-- **Local Whisper transcription** with audio/transcript caching for instant re-processing
-- **AI structured notes** — summary, key points, deep dives, quotes, glossary, entity cards
-- **Knowledge base** — auto-linked entity cards (people / projects / concepts / terms), hover previews, backlinks
-- **RAG Q&A** over your notes with cited sources
-- **Smart subscriptions** — new episodes auto-queued, RSS fully hidden from users
-- **Browser clipping** — clipboard watcher, Chrome extension & bookmarklet
-- **Batch processing** with live step panel, reports and retry
-- **Processing history** — asset view, search & filters, pagination, regenerate with model choice
-- **Export hub** — single/collection PDF, Markdown, share cards, Notion / Logseq
-- **Multi-model support** — DeepSeek / Xiaomi MiMo / OpenAI-compatible APIs
-- **Auto-update** — incremental updates in place
+Great episodes get forgotten. PodMuse turns "listening" into "keeping":
 
-### 🚀 Getting Started
+- **No more re-listening** — a one-line summary plus key points brings the whole episode back at a glance
+- **Interlinked knowledge** — people, companies and concepts mentioned in episodes become auto-linked entity cards, growing into your personal knowledge graph
+- **Ask anything** — Q&A over your own notes with cited sources, more context-aware than any search engine
+
+Notes are saved as standard Markdown into **your own note vault** (compatible with Obsidian, Logseq and any Markdown-friendly tool) — your data stays yours.
+
+### Features
+
+| Category | Highlights |
+| --- | --- |
+| 📥 **Capture** | One-click processing for 小宇宙 / Bilibili / Ximalaya / Apple Podcasts / Douyin / YouTube; clipboard clipping with popup; subscriptions that auto-track new episodes |
+| 🎙 **Transcription** | Local Whisper (or platform subtitles) with audio/transcript caching for instant re-processing |
+| 📝 **AI Notes** | Summary, key viewpoints, event details, quotes, glossary and entity cards — fully automated |
+| 🧠 **Knowledge Base** | People / Projects / Concepts / Terms auto-filed and interlinked; hover previews; global backlinks |
+| 💬 **Q&A** | RAG over your note vault, every answer with cited sources |
+| ⚙️ **Workflow** | Batch queue, live step panel, one-click retry, processing history with search / filters / pagination / regenerate-with-model-choice |
+| 📤 **Export** | Single & collection PDF, Markdown, 1080×1440 share cards, Notion / Logseq sync |
+| 🔌 **Models** | DeepSeek / Xiaomi MiMo / OpenAI-compatible APIs; per-task model override |
+| ⚡ **Updates** | Incremental auto-updates |
+
+### Getting Started
 
 1. Download `PodMuse-Setup-x.x.x.exe` from [Releases](https://github.com/xuxuyouxiu/PodMuse/releases)
-2. Settings → configure **Obsidian vault path** + **AI API key**
-3. Paste a podcast link → process
-4. Notes land in your vault, entities interlink into a knowledge network
+2. Settings → choose your **note vault directory** and fill in your **AI API key**
+3. Paste a podcast or video link in the workspace and start processing
+4. Browse your notes — entity cards are already interlinked; try asking questions in the Q&A view
 
-### ☕ Support
+> 💡 Transcription runs on local Whisper; the app will prompt you to download the speech model on first use (free, offline).
 
-If PodMuse saved you some time, buying me a coffee is the best way to say thanks! ☕ *(see QR codes above)*
+### Tech Stack
+
+Electron · TypeScript · React · Whisper (local STT) · yt-dlp (media extraction) · rss-parser (subscriptions) · electron-updater (auto-update)
+
+### Support
+
+If PodMuse saved you some time, a coffee is the best way to say thanks! ☕ *(see QR codes above)*
 
 ---
 

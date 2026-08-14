@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.45.1] - 2026-08-14
+
+### 改进
+- 打赏弹窗收款码放大并保持原始比例（220px 宽 + 弹窗加宽到 520px，此前 170px 方形压缩导致二维码不清晰）
+- README 精细化重写：换掉「写入 Obsidian」表述（改为「沉淀到自己的笔记库，兼容 Obsidian/Logseq 等」）、增加「为什么做 PodMuse」、功能按类别分组、英文翻译版紧随中文介绍之后
+
 ## [1.45.0] - 2026-08-14
 
 ### 新增
