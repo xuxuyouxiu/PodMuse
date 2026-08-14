@@ -255,8 +255,8 @@
           setBusy(true)
           try {
             const addRes = await window.electronAPI.batchAdd([{ source: url, type: 'url' }])
-            if (addRes && (addRes as { error?: string }).error) {
-              throw new Error((addRes as { error: string }).error)
+            if (addRes && addRes.error) {
+              throw new Error(addRes.error)
             }
             // 入队成功立即反馈（batchStart 失败也不影响已入队事实）
             showState(T.enqueued)
