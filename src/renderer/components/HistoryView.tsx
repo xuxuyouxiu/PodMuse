@@ -395,7 +395,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
       .slice(0, 3)
     const distMax = distList.length > 0 ? Math.max(...distList.map(d => d[1])) : 1
     return { total, completed, failed, rate, withNote, weekNew, distList, distMax }
-  }, [entries])
+  }, [entries, mountedAt])
 
   // ── 筛选 ──
   const platforms = useMemo(() => Array.from(new Set(entries.map(e => e.platformName))), [entries])
@@ -601,34 +601,40 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                     onClick={() => setSelectedId(isSel ? '' : e.id)}
                     whileTap={{ scale: 0.995 }}
                   >
-                    <input
-                      type="checkbox"
-                      className="history-row__check"
-                      checked={selected.has(e.id)}
-                      onClick={ev => ev.stopPropagation()}
-                      onChange={() => toggleSelect(e.id)}
-                      title={t('选择')}
-                    />
-                    <PlatformThumb platform={e.platformName} size={48} />
-                    <div className="history-row__main">
-                      <div className="history-row__title">{e.title && !e.title.startsWith('http') ? e.title : (e.filename || '').replace(/\.md$/i, '') || t('未命名任务')}</div>
-                      <div className="history-row__meta">
-                        <span className="history-row__platform">{e.platformName}</span>
-                        {e.url && <span className="history-row__url">{e.url}</span>}
-                      </div>
-                      <div className="history-row__bottom">
-                        {(e.status === 'completed' || e.status === 'failed' || e.status === 'error') && (
-                          <span className={`history-badge ${meta.cls}`}>
-                            {meta.icon === 'ok' ? <Check size={10} /> : <AlertCircle size={10} />}
-                            {t(meta.label)}
-                          </span>
-                        )}
-                        <span className="history-row__time" title={e.timeFullText}>
-                          {e.timeText}
-                        </span>
+                    <span className="history-table-col history-table-col--check">
+                      <input
+                        type="checkbox"
+                        className="history-row__check"
+                        checked={selected.has(e.id)}
+                        onClick={ev => ev.stopPropagation()}
+                        onChange={() => toggleSelect(e.id)}
+                        title={t('选择')}
+                      />
+                    </span>
+                    <div className="history-table-col history-table-col--task history-row__task">
+                      <PlatformThumb platform={e.platformName} size={36} />
+                      <div className="history-row__task-main">
+                        <div className="history-row__title">{e.title && !e.title.startsWith('http') ? e.title : (e.filename || '').replace(/\.md$/i, '') || t('未命名任务')}</div>
+                        {e.url && <div className="history-row__url">{e.url}</div>}
                       </div>
                     </div>
-                    <div className="history-row__ops" onClick={ev => ev.stopPropagation()}>
+                    <span className="history-table-col history-table-col--status">
+                      {(e.status === 'completed' || e.status === 'failed' || e.status === 'error') && (
+                        <span className={`history-badge ${meta.cls}`}>
+                          {meta.icon === 'ok' ? <Check size={10} /> : <AlertCircle size={10} />}
+                          {t(meta.label)}
+                        </span>
+                      )}
+                    </span>
+                    <span className="history-table-col history-table-col--platform history-row__platform-col">
+                      <span className="history-row__platform">{e.platformName}</span>
+                    </span>
+                    <span className="history-table-col history-table-col--time">
+                      <span className="history-row__time" title={e.timeFullText}>
+                        {e.timeText}
+                      </span>
+                    </span>
+                    <div className="history-table-col history-table-col--ops history-row__ops" onClick={ev => ev.stopPropagation()}>
                       {e.filename && obsidianDir && (
                         <button className="history-row__btn" onClick={() => openPreview(e)} title={t('预览')}>
                           <FileText size={12} />
@@ -818,12 +824,6 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
                   {selectedEntry.filename && obsidianDir && (
                     <NoteExportMenu busy={exportingId === selectedEntry.id ? (exportBusy || null) : null} onAction={action => handleExport(selectedEntry, action)} size={12} className="history-detail__iconbtn" />
                   )}
-                  <button className="history-detail__btn" onClick={() => copyLink(selectedEntry)} title={t('复制链接')}>
-                    <Copy size={12} />
-                  </button>
-                  <button className="history-detail__btn history-detail__btn--danger" onClick={() => handleRemove(selectedEntry.id)} title={t('删除')}>
-                    <Trash2 size={12} />
-                  </button>
                   <div className="history-view__more">
                     <button className="history-detail__btn" onClick={() => toggleMore(selectedEntry.id)} title={t('更多')}>
                       <MoreHorizontal size={12} />

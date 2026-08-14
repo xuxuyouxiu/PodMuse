@@ -6476,10 +6476,10 @@ a:focus-visible {
   font-weight: 600;
 }
 
-/* ── 统计卡片：4 张横向铺满 ── */
+/* ── 统计卡片：5 张横向铺满 ── */
 .history-view__stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -6684,12 +6684,13 @@ a:focus-visible {
   gap: 8px;
 }
 
-/* ── 紧凑任务行 ── */
+/* ── 紧凑任务行：与表头同列布局 ── */
 .history-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 8px 14px;
+  min-height: 56px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-surface);
@@ -6704,6 +6705,69 @@ a:focus-visible {
 .history-row--selected {
   border-color: var(--accent);
   background: var(--accent-glow);
+}
+
+/* 任务信息列：封面 + 标题 + 链接 */
+.history-row__task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.history-row__task-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-row__title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.history-row__url {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 平台列 */
+.history-row__platform-col {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.history-row__platform {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 1px 8px;
+  border-radius: 6px;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 时间列 */
+.history-row__time {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .history-row__check {
@@ -7129,10 +7193,10 @@ a:focus-visible {
   background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
-/* 详情面板内的更多弹层朝上弹（避免超出面板） */
+/* 详情面板内的更多弹层向下弹（面板最右侧，向上会飘出详情框） */
 .history-detail .history-view__more-pop {
-  top: auto;
-  bottom: calc(100% + 4px);
+  top: calc(100% + 4px);
+  bottom: auto;
 }
 /* ===== 历史页 v1.44：5 统计卡 + 表格表头 + 分页 + 详情增强 ===== */
 
