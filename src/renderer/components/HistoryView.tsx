@@ -273,9 +273,15 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
           platform: e.platformName,
         })
       } else if (action === 'pdf') {
-        res = await window.electronAPI.exportPdf({ notePath: p, title: e.title || '' })
+        res = await window.electronAPI.exportPdf({
+          notePath: p,
+          title: (e.filename || '').replace(/\.md$/i, ''),
+        })
       } else if (action === 'md') {
-        res = await window.electronAPI.exportMd({ notePath: p, title: e.title || '' })
+        res = await window.electronAPI.exportMd({
+          notePath: p,
+          title: (e.filename || '').replace(/\.md$/i, ''),
+        })
       } else if (action === 'notion') {
         res = await window.electronAPI.exportToNotion(e.id)
       } else if (action === 'logseq') {
@@ -306,7 +312,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
     try {
       const items = picked.map(e => ({
         notePath: obsidianDir!.replace(/[/\\]$/, '') + '/' + e.filename!,
-        title: e.title || e.filename || '',
+        title: e.filename!.replace(/\.md$/i, ''),
       }))
       const res = await window.electronAPI.exportPdfCollection(items)
       if (res.success && !res.cancelled) {

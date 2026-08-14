@@ -129,9 +129,15 @@ function SummaryView({
           title: task.title || task.filename || '',
         })
       } else if (action === 'pdf') {
-        res = await window.electronAPI.exportPdf({ notePath: p, title: task.title || '' })
+        res = await window.electronAPI.exportPdf({
+          notePath: p,
+          title: (task.filename || '').replace(/\.md$/i, ''),
+        })
       } else if (action === 'md') {
-        res = await window.electronAPI.exportMd({ notePath: p, title: task.title || '' })
+        res = await window.electronAPI.exportMd({
+          notePath: p,
+          title: (task.filename || '').replace(/\.md$/i, ''),
+        })
       } else if (action === 'notion') {
         res = await window.electronAPI.exportToNotion(task.id)
       } else if (action === 'logseq') {

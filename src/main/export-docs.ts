@@ -28,13 +28,30 @@ function stripFrontmatter(md: string): string {
   return fmEnd > 0 ? md.substring(fmEnd + 4) : md
 }
 
-/** 提取第一个 # 标题（无则用文件名） */
+/** 笔记固定模块标题（提取标题时跳过） */
+const MODULE_TITLES = new Set([
+  '一句话总结',
+  '本期主要内容',
+  '核心观点',
+  '事件详情',
+  '事件详情与深度分析',
+  '金句摘录',
+  '术语词典',
+  '术语词典（索引）',
+  '关联实体索引',
+  '关联人物',
+  '关联项目',
+  '关联概念',
+])
+
+/** 提取笔记标题：优先传入标题；无则取第一个非模块 # 标题；再兜底文件名 */
 function extractTitle(md: string, fallback: string): string {
-  const first = md
-    .split(/\r?\n/)
-    .map(l => l.trim())
-    .find(l => l.startsWith('#'))
-  if (first) return first.replace(/^#+\s*/, '').trim()
+  for (const line of md.split(/\r?\n/)) {
+    const t = line.trim()
+    if (!t.startsWith('#')) continue
+    const title = t.replace(/^#+\s*/, '').trim()
+    if (title && !MODULE_TITLES.has(title)) return title
+  }
   return fallback
 }
 
@@ -117,7 +134,7 @@ export async function exportNotePdf(params: { notePath: string; title?: string }
   try {
     const md = assertSafeNotePath(params.notePath)
     if (!md.trim()) return { success: false, error: '笔记为空' }
-    const title = extractTitle(md, params.title || '笔记')
+    const title = params.title?.trim() || extractTitle(md, '笔记')
     const html = mdToHtml(md)
     const pdf = await renderPdf(`<article class="note"><h1>${escapeHtml(title)}</h1>${html}</article>`)
     const filePath = await showSaveDialog(`PodMuse-笔记-${sanitizeFilename(title)}.pdf`, 'PDF 文档', 'pdf')
@@ -134,7 +151,7 @@ export async function exportNoteMd(params: { notePath: string; title?: string })
   try {
     const md = assertSafeNotePath(params.notePath)
     if (!md.trim()) return { success: false, error: '笔记为空' }
-    const title = extractTitle(md, params.title || '笔记')
+    const title = params.title?.trim() || extractTitle(md, '笔记')
     const filePath = await showSaveDialog(`PodMuse-笔记-${sanitizeFilename(title)}.md`, 'Markdown 文档', 'md')
     if (!filePath) return { success: true, cancelled: true }
     fs.writeFileSync(filePath, md, 'utf-8')
@@ -168,7 +185,7 @@ export async function exportCollectionPdf(params: { items: ExportItem[] }): Prom
       } catch {
         continue
       }
-      const title = extractTitle(md, item.title || '未命名笔记')
+      const title = item.title?.trim() || extractTitle(md, '未命名笔记')
       entries.push({ title, html: mdToHtml(md) })
     }
     for (const e of entries) {
