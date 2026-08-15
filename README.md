@@ -69,6 +69,18 @@
 
 > 💡 语音转写使用本地 Whisper，首次使用会提示下载语音模型（免费、离线）。
 
+## 🧩 剪藏插件怎么用
+
+复制链接自动弹窗、一键送入 PodMuse 处理的浏览器剪藏扩展（本地加载，无需商店）：
+
+1. 打开浏览器扩展管理页：
+   - Chrome / Edge：地址栏输入 `chrome://extensions`（Edge 为 `edge://extensions`）
+2. 打开右上角 **「开发者模式」** 开关
+3. 点击 **「加载已解压的扩展程序」**，选择项目里的 `chrome-extension/` 目录
+4. 完成！之后你在浏览器里**复制任意播客 / 视频链接**，页面右下角会自动弹出 PodMuse 剪藏小窗——点击确认，链接直接送进软件处理队列
+
+> ⚠️ 扩展更新后（`chrome-extension/` 目录内容变化），回到扩展管理页点一下 PodMuse 卡片的**刷新图标**即可。
+
 ## 🛠 技术栈
 
 Electron · TypeScript · React · Whisper（本地转写）· yt-dlp（视频提取）· rss-parser（订阅）· electron-updater（自动更新）
@@ -132,6 +144,17 @@ Notes are saved as standard Markdown into **your own note vault** (compatible wi
 4. Browse your notes — entity cards are already interlinked; try asking questions in the Q&A view
 
 > 💡 Transcription runs on local Whisper; the app will prompt you to download the speech model on first use (free, offline).
+
+### 🧩 Browser Clipper (How to Use)
+
+The clipboard-clipping extension pops up whenever you copy a podcast/video link and sends it straight to PodMuse (loaded locally, no store needed):
+
+1. Open the extensions page in your browser: `chrome://extensions` (or `edge://extensions`)
+2. Turn on **Developer mode** (top-right switch)
+3. Click **"Load unpacked"** and select the `chrome-extension/` folder in this repo
+4. Done! Copy any podcast / video link in your browser — a PodMuse clipping popup appears at the bottom-right; confirm it and the link goes straight into the processing queue
+
+> ⚠️ After the extension is updated, click the refresh icon on the PodMuse card in the extensions page.
 
 ### Tech Stack
 
