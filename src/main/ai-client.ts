@@ -540,6 +540,53 @@ export async function generateNotes(
   )
 }
 
+/**
+ * 分享卡三点总结：把笔记提炼成 3 条「让人一眼就想了解」的钩子式知识点。
+ * 用于分享图，要求具体、带数字/反差、短句直白。失败抛出，由调用方回退规则提取。
+ */
+export async function generateSharePoints(
+  providerConfig: { baseUrl: string; apiKey: string; model: string },
+  providerId: AIProviderId,
+  md: string,
+  title: string,
+): Promise<string[]> {
+  const systemPrompt =
+    '你是分享图文案编辑，擅长把内容提炼成让人一眼就想点开阅读的钩子式知识点。'
+  const userPrompt = `以下是播客笔记《${title}》的内容。请提炼 3 条最具吸引力的知识点，要求：
+1. 制造好奇心缺口：读者看到任何一条就想去了解这篇笔记
+2. 具体：带数字、事实、反差或悬念，不要空话套话
+3. 每条不超过 28 个字，直白有力
+4. 不要编号、不要引号、不要多余解释
+
+只输出一个 JSON 数组，例如：["第一条","第二条","第三条"]
+
+笔记内容：
+${md.slice(0, 6000)}`
+
+  const res = await callAI(providerConfig, providerId, systemPrompt, userPrompt, 1024, undefined, 0.8)
+  const content = res.content
+  if (!content) return []
+
+  // 尝试解析 JSON 数组
+  try {
+    const cleaned = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
+    const arr: unknown = JSON.parse(cleaned)
+    if (Array.isArray(arr)) {
+      return arr
+        .map(s => String(s).trim())
+        .filter(s => s.length >= 6 && s.length <= 60)
+        .slice(0, 3)
+    }
+  } catch {
+    // 非 JSON：按行兜底解析
+  }
+  return content
+    .split(/[\r\n]+/)
+    .map(l => l.replace(/^\s*\d+[.、)）]\s*/, '').replace(/^[-*•]\s*/, '').trim())
+    .filter(l => l.length >= 6 && l.length <= 60)
+    .slice(0, 3)
+}
+
 // ── 分段处理 ──
 
 const SEGMENT_THRESHOLD = 16000

@@ -8,6 +8,8 @@ import { join } from 'node:path'
 import * as fs from 'fs'
 import { loadConfig } from './config'
 import { isPathWithinBase } from './security'
+import { generateSharePoints } from './ai-client'
+import { getActiveProviderConfig } from './ai-providers'
 
 interface ShareParams {
   notePath: string
@@ -225,9 +227,25 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
       return { success: false, error: '笔记读取失败：文件不存在或为空' }
     }
 
-    const points = extractPoints(md)
-    const chips = extractChips(md)
     const title = params.title || extractTitle(md)
+
+    // 三条知识点：优先 AI 钩子式总结（让人一眼想了解），失败回退规则提取
+    let points = extractPoints(md)
+    try {
+      const config = loadConfig()
+      const aiCfg = getActiveProviderConfig(config.ai_provider, config.ai_providers)
+      if (aiCfg) {
+        const aiPoints = await generateSharePoints(aiCfg, config.ai_provider, md, title)
+        if (aiPoints.length > 0) points = aiPoints
+      }
+    } catch (e) {
+      console.log(
+        '[share-card] AI 三点总结失败，回退规则提取:',
+        e instanceof Error ? e.message : e,
+      )
+    }
+
+    const chips = extractChips(md)
 
     const png = await renderAndCapture({
       title: encodeURIComponent(title),
