@@ -564,25 +564,25 @@ export async function analyzeForShareCard(
     '你是知识内容编辑，擅长把播客笔记包装成适合分享的知识卡片。你输出的 JSON 会被直接渲染成图片。'
   const userPrompt = '以下是播客笔记《' + originalTitle + '》的内容。请做一次完整的内容包装，只输出 JSON（不要 markdown 代码块、不要多余文字）：\n\n' +
     '{\n' +
-    '  "cardType": "内容类型六选一：知识总结 summary / 核心是金句观点 quote / 方法步骤 steps / 对比分析 compare / 流程框架 framework / 极简海报 poster",\n' +
+    '  "cardType": "六选一，见下方判据",\n' +
     '  "shareTitle": "传播标题（不是原笔记标题，要让人一眼想点开；观点型/冲突型/总结型都可以，≤26字）",\n' +
-    '  "summary": "一句话摘要，说清楚这篇讲了什么（≤60字）",\n' +
-    '  "points": [{"title": "知识点小标题（≤14字）", "desc": "一句话说明（≤40字）"}],\n' +
-    '  "quote": "最有传播力的金句原文或提炼（≤40字）",\n' +
+    '  "summary": "一句话摘要，说清楚这篇讲了什么（≤50字）",\n' +
+    '  "points": [{"title": "知识点小标题（≤14字）", "desc": "一句话说明（≤36字）"}],\n' +
+    '  "quote": "最有传播力的金句原文或提炼（≤36字）",\n' +
     '  "steps": ["步骤一", "步骤二", "步骤三"],\n' +
     '  "compare": {"leftTitle": "对比项A名称（≤8字）", "leftItems": ["A 的 3 个特点，每个≤12字"], "rightTitle": "对比项B名称（≤8字）", "rightItems": ["B 的 3 个特点，每个≤12字"]}\n' +
     '}\n\n' +
-    '按类型输出：\n' +
-    '1. summary：points 给 3~4 条（必须带数字/事实/反差），quote 给一条\n' +
-    '2. quote：quote 就是卡片主角，必须是最有传播力的一句\n' +
-    '3. steps：steps 给 3~5 步，每步≤24字\n' +
-    '4. compare：compare 必填，两列各 3~4 条，形成鲜明对比（如 普通做法 vs 高效做法）\n' +
-    '5. framework：steps 给 4~6 个阶段/节点（如 确定目标→了解考试→训练→复盘）\n' +
-    '6. poster：shareTitle 极致凝练（≤16字）+ quote 或 summary 一句点睛\n' +
-    '非本类型字段给空数组/空字符串。所有中文，直白有力。\n\n' +
+    '类型判据（严格按这个选，不要全部选 summary）：\n' +
+    '1. compare：内容的核心是「两种做法的鲜明对比」或「前后反差」（如 普通做法 vs 高效做法、误区 vs 正确做法）→ 选 compare 并填 compare 字段\n' +
+    '2. steps：内容的核心是「怎么做」的方法步骤、有明确的行动顺序 → 选 steps 并填 steps 字段（3~5 步，每步≤20字）\n' +
+    '3. quote：整篇的核心就是一句可传播的观点/金句，其他都是铺垫 → 选 quote，quote 字段给最有传播力的一句\n' +
+    '4. framework：内容是一个完整体系/路径/模型（如 备考完整路径、学习框架）→ 选 framework，steps 给 4~6 个阶段节点\n' +
+    '5. poster：内容可以用一句话极致概括、适合海报式呈现 → 选 poster，shareTitle ≤16字\n' +
+    '6. summary：以上都不符合的多点知识内容 → 选 summary，points 给 3 条（带数字/事实/反差）\n' +
+    '非本类型字段给空数组/空字符串。所有中文，直白有力。shareTitle 必填。\n\n' +
     '笔记内容：\n' + md.slice(0, 7000)
 
-  const res = await callAI(providerConfig, providerId, systemPrompt, userPrompt, 2500, undefined, 0.7)
+  const res = await callAI(providerConfig, providerId, systemPrompt, userPrompt, 2500, undefined, 0.3)
   const content = res.content
   if (!content) throw new Error('AI 未返回内容')
 
@@ -627,22 +627,22 @@ export async function analyzeForShareCard(
     ? parsed.points
         .map(pt => ({
           title: str(pt && typeof pt === 'object' ? (pt as { title?: unknown }).title : '', 14),
-          desc: str(pt && typeof pt === 'object' ? (pt as { desc?: unknown }).desc : '', 40),
+          desc: str(pt && typeof pt === 'object' ? (pt as { desc?: unknown }).desc : '', 36),
         }))
         .filter(pt => pt.title && pt.desc)
-        .slice(0, 4)
+        .slice(0, 3)
     : []
   const steps = Array.isArray(parsed.steps)
-    ? parsed.steps.map(st => str(st, 24)).filter(Boolean).slice(0, 6)
+    ? parsed.steps.map(st => str(st, 20)).filter(Boolean).slice(0, 6)
     : []
 
   let compare: ShareCardContent['compare']
   if (parsed.compare && typeof parsed.compare === 'object') {
     const leftItems = Array.isArray(parsed.compare.leftItems)
-      ? parsed.compare.leftItems.map(i => str(i, 14)).filter(Boolean).slice(0, 4)
+      ? parsed.compare.leftItems.map(i => str(i, 12)).filter(Boolean).slice(0, 4)
       : []
     const rightItems = Array.isArray(parsed.compare.rightItems)
-      ? parsed.compare.rightItems.map(i => str(i, 14)).filter(Boolean).slice(0, 4)
+      ? parsed.compare.rightItems.map(i => str(i, 12)).filter(Boolean).slice(0, 4)
       : []
     compare = {
       leftTitle: str(parsed.compare.leftTitle, 8),
@@ -652,20 +652,19 @@ export async function analyzeForShareCard(
     }
   }
 
-  if (!parsed.shareTitle) throw new Error('AI 未返回分享标题')
-
   return {
     cardType,
     shareTitle: str(parsed.shareTitle, cardType === 'poster' ? 16 : 26),
-    summary: str(parsed.summary, 60),
+    summary: str(parsed.summary, 50),
     points,
-    quote: str(parsed.quote, 40),
+    quote: str(parsed.quote, 36),
     steps,
     compare,
   }
 }
 
 // ── 分段处理 ──
+
 
 
 

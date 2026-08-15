@@ -11,10 +11,11 @@
       html,
       body {
         width: 1080px;
-        height: 1440px;
         overflow: hidden;
       }
       body {
+        /* 高度随内容自适应：最短 1080，内容多自动撑高（由主进程测量后调整窗口） */
+        min-height: 1080px;
         font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
         /* 米白「内容杂志」底 */
         background: #fbfaf7;
@@ -68,7 +69,7 @@
         letter-spacing: 0.005em;
         color: #111111;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
@@ -87,7 +88,7 @@
         line-height: 1.65;
         color: #4b5563;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
       }

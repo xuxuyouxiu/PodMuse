@@ -204,6 +204,21 @@ async function renderAndCapture(query: Record<string, string>): Promise<Buffer> 
       await sleep(100)
     }
     await sleep(300)
+
+    // 高度随内容自适应：测量内容自然高度，调整窗口后重截
+    try {
+      const contentHeight = (await win.webContents.executeJavaScript(
+        'document.body.scrollHeight',
+      )) as number
+      const h = Math.max(1080, Math.min(2560, Math.ceil(contentHeight)))
+      if (h !== 1440) {
+        win.setContentSize(1080, h)
+        await sleep(350)
+      }
+    } catch {
+      // 测量失败保持默认尺寸
+    }
+
     const image = await win.webContents.capturePage()
     return image.toPNG()
   } finally {
