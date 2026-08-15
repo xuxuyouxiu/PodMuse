@@ -23,6 +23,8 @@ export interface ShareResult {
   path?: string
   cancelled?: boolean
   error?: string
+  /** AI 未生效时的提示（展示给用户） */
+  warning?: string
 }
 
 /** 从 markdown 提取要点（按信息密度排序：关键数据 → 金句 → 动态列表兜底），最多 3 条 */
@@ -245,6 +247,7 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
     const title = params.title || extractTitle(md)
 
     // AI 内容编辑：类型判断 + 传播标题 + 摘要 + 知识点 + 金句（失败回退规则提取）
+    let aiWarning = ''
     let content:
       | {
           cardType: 'summary' | 'quote' | 'steps' | 'compare' | 'framework' | 'poster'
@@ -266,12 +269,16 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
       const aiCfg = getActiveProviderConfig(config.ai_provider, config.ai_providers)
       if (aiCfg) {
         content = await analyzeForShareCard(aiCfg, config.ai_provider, md, title)
+      } else {
+        aiWarning = '未配置 AI 模型，分享图使用原文要点'
       }
     } catch (e) {
-      console.log(
-        '[share-card] AI 内容编辑失败，回退规则提取:',
-        e instanceof Error ? e.message : e,
-      )
+      aiWarning =
+        'AI 内容编辑失败，已回退原文要点：' + (e instanceof Error ? e.message : String(e))
+      console.log('[share-card] AI 内容编辑失败，回退规则提取:', aiWarning)
+    }
+    if (content && !content.shareTitle) {
+      aiWarning = 'AI 未生成传播标题，已使用原笔记标题'
     }
 
     // 规则回退：传播标题用原标题，知识点用原文提取
@@ -309,7 +316,7 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
     }
 
     fs.writeFileSync(filePath, png)
-    return { success: true, path: filePath }
+    return { success: true, path: filePath, warning: aiWarning || undefined }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : String(e) }
   }

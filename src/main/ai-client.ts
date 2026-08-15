@@ -595,12 +595,17 @@ export async function analyzeForShareCard(
     }
   }
   try {
-    const cleaned = content
+    let raw = content
       .trim()
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/```\s*$/, '')
       .trim()
-    parsed = JSON.parse(cleaned)
+    // 宽容解析：AI 可能输出「好的，以下是 JSON：{...}」等包装文字，
+    // 提取第一个 { 到最后一个 } 再解析
+    const first = raw.indexOf('{')
+    const last = raw.lastIndexOf('}')
+    if (first >= 0 && last > first) raw = raw.slice(first, last + 1)
+    parsed = JSON.parse(raw)
   } catch {
     throw new Error('AI 输出不是合法 JSON')
   }
