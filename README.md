@@ -32,6 +32,34 @@
 | 🔌 **模型自由** | DeepSeek / 小米 MiMo / OpenAI 兼容接口；单任务级模型覆盖 |
 | ⚡ **持续更新** | 增量自动更新，新版本即装即用 |
 
+## 📸 界面预览 · Screenshots
+
+| 工作台 · Workspace | 笔记库 · Library |
+| :---: | :---: |
+| <img src="docs/screenshots/工作台界面.png" width="400" alt="工作台"> | <img src="docs/screenshots/知识库阅读笔记页面.png" width="400" alt="笔记库"> |
+
+| 知识关联 · Knowledge Graph | 实体展示 · Entities |
+| :---: | :---: |
+| <img src="docs/screenshots/知识关联页面的关系图谱.png" width="400" alt="知识图谱"> | <img src="docs/screenshots/知识关联页面实体展示.png" width="400" alt="实体展示"> |
+
+| AI 问答 · Q&A | 订阅 · Subscriptions |
+| :---: | :---: |
+| <img src="docs/screenshots/ai问答页面.png" width="400" alt="问答"> | <img src="docs/screenshots/订阅页面.png" width="400" alt="订阅"> |
+
+| 历史 · History | 搜索 · Search |
+| :---: | :---: |
+| <img src="docs/screenshots/历史页面.png" width="400" alt="历史"> | <img src="docs/screenshots/搜索页面.png" width="400" alt="搜索"> |
+
+| 剪藏插件 · Extension | 分享卡片 · Share Card |
+| :---: | :---: |
+| <img src="docs/screenshots/插件展示.png" width="400" alt="插件"> | <img src="docs/screenshots/导出的宣传图.png" width="400" alt="分享卡"> |
+
+#### PDF 导出 · PDF Export
+
+| 样式 1 | 样式 2 | 样式 3 |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/PDF导出展示1.png" width="260" alt="PDF 1"> | <img src="docs/screenshots/PDF导出展示2.png" width="260" alt="PDF 2"> | <img src="docs/screenshots/PDF导出展示3.png" width="260" alt="PDF 3"> |
+
 ## 🚀 快速开始
 
 1. 到 [Releases](https://github.com/xuxuyouxiu/PodMuse/releases) 下载 `PodMuse-Setup-x.x.x.exe` 并安装
