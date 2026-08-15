@@ -209,6 +209,136 @@
         max-width: 780px;
       }
 
+      /* ── 对比分析模板：双列对比 ── */
+      .compare {
+        margin-top: 52px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+      }
+      .compare__col {
+        border-radius: 18px;
+        padding: 40px 36px;
+      }
+      .compare__col--left {
+        background: #f3f1ed;
+        border: 1px solid #e8e4dc;
+      }
+      .compare__col--right {
+        background: #f5f1fd;
+        border: 1px solid #e2d9f8;
+      }
+      .compare__head {
+        font-size: 29px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .compare__col--left .compare__head {
+        color: #6b7280;
+      }
+      .compare__col--right .compare__head {
+        color: #6d28d9;
+      }
+      .compare__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        font-size: 25px;
+        line-height: 1.5;
+        color: #3f3f46;
+        margin-bottom: 22px;
+      }
+      .compare__item:last-child {
+        margin-bottom: 0;
+      }
+      .compare__dot {
+        flex-shrink: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 14px;
+      }
+      .compare__col--left .compare__dot {
+        background: #d1d5db;
+      }
+      .compare__col--right .compare__dot {
+        background: #7c3aed;
+      }
+
+      /* ── 框架流程模板：纵向节点 ── */
+      .framework {
+        margin-top: 56px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .fnode {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        border: 2px solid #e2d9f8;
+        border-radius: 999px;
+        padding: 20px 42px;
+        font-size: 28px;
+        font-weight: 700;
+        color: #4c1d95;
+      }
+      .fnode--start {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+      }
+      .flink {
+        width: 2px;
+        height: 44px;
+        background: #d8ccf7;
+        position: relative;
+      }
+      .flink::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-top: 9px solid #b9a5f0;
+      }
+
+      /* ── 极简海报模板 ── */
+      .poster {
+        margin-top: 130px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 44px;
+      }
+      .poster__rule {
+        width: 56px;
+        height: 3px;
+        background: #7c3aed;
+        border-radius: 2px;
+      }
+      .poster__title {
+        font-size: 88px;
+        font-weight: 800;
+        line-height: 1.35;
+        color: #111111;
+        max-width: 880px;
+        letter-spacing: 0.01em;
+      }
+      .poster__sub {
+        font-size: 28px;
+        color: #6b7280;
+        line-height: 1.7;
+        max-width: 720px;
+      }
+
       /* ── 底部 ── */
       .footer {
         margin-top: auto;
@@ -265,6 +395,29 @@
       <div class="quote-hero__sub" id="quoteSub"></div>
     </div>
 
+    <!-- 极简海报型 -->
+    <div class="poster" id="posterCard" style="display: none">
+      <div class="poster__rule"></div>
+      <div class="poster__title" id="posterTitle"></div>
+      <div class="poster__sub" id="posterSub"></div>
+    </div>
+
+    <!-- 对比分析型 -->
+    <div id="compareCard" style="display: none">
+      <div class="title" id="compareTitle"></div>
+      <div class="title-rule"></div>
+      <div class="summary" id="compareSummary"></div>
+      <div class="compare" id="compareBox"></div>
+    </div>
+
+    <!-- 框架流程型 -->
+    <div id="frameworkCard" style="display: none">
+      <div class="title" id="frameworkTitle"></div>
+      <div class="title-rule"></div>
+      <div class="summary" id="frameworkSummary"></div>
+      <div class="framework" id="frameworkBox"></div>
+    </div>
+
     <!-- 常规型：标题 + 摘要 + 知识点/步骤 -->
     <div id="normalCard">
       <div class="title" id="title"></div>
@@ -309,6 +462,7 @@
       const quote = get('quote')
       const points = jget('points')
       const steps = jget('steps')
+      const compare = jget('compare')
       const source = get('source')
       const date = get('date')
 
@@ -323,6 +477,60 @@
         // 金句模板主角 = 金句本身（quote 字段）；副行 = 摘要
         document.getElementById('quoteText').textContent = quote || title || '本期节目'
         document.getElementById('quoteSub').textContent = summary || ''
+      } else if (template === 'poster') {
+        document.getElementById('posterCard').style.display = 'flex'
+        document.getElementById('normalCard').style.display = 'none'
+        document.getElementById('posterTitle').textContent = title || '本期节目'
+        document.getElementById('posterSub').textContent = quote || summary || ''
+      } else if (template === 'compare') {
+        document.getElementById('compareCard').style.display = 'block'
+        document.getElementById('normalCard').style.display = 'none'
+        document.getElementById('compareTitle').textContent = title || '本期节目'
+        document.getElementById('compareSummary').textContent = summary || ''
+        const box = document.getElementById('compareBox')
+        const mkCol = (cls, head, items) => {
+          const col = document.createElement('div')
+          col.className = 'compare__col ' + cls
+          const h = document.createElement('div')
+          h.className = 'compare__head'
+          h.textContent = head || ''
+          col.appendChild(h)
+          ;(items || []).forEach(text => {
+            const row = document.createElement('div')
+            row.className = 'compare__item'
+            const dot = document.createElement('span')
+            dot.className = 'compare__dot'
+            const t = document.createElement('span')
+            t.textContent = text
+            row.appendChild(dot)
+            row.appendChild(t)
+            col.appendChild(row)
+          })
+          return col
+        }
+        box.appendChild(
+          mkCol('compare__col--left', compare.leftTitle || '做法 A', compare.leftItems),
+        )
+        box.appendChild(
+          mkCol('compare__col--right', compare.rightTitle || '做法 B', compare.rightItems),
+        )
+      } else if (template === 'framework') {
+        document.getElementById('frameworkCard').style.display = 'block'
+        document.getElementById('normalCard').style.display = 'none'
+        document.getElementById('frameworkTitle').textContent = title || '本期节目'
+        document.getElementById('frameworkSummary').textContent = summary || ''
+        const box = document.getElementById('frameworkBox')
+        ;(steps || []).forEach((text, i) => {
+          const node = document.createElement('div')
+          node.className = 'fnode' + (i === 0 ? ' fnode--start' : '')
+          node.textContent = text
+          box.appendChild(node)
+          if (i < steps.length - 1) {
+            const link = document.createElement('div')
+            link.className = 'flink'
+            box.appendChild(link)
+          }
+        })
       } else {
         document.getElementById('title').textContent = title || '本期节目'
         document.getElementById('summary').textContent = summary || ''

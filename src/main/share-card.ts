@@ -232,12 +232,18 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
     // AI 内容编辑：类型判断 + 传播标题 + 摘要 + 知识点 + 金句（失败回退规则提取）
     let content:
       | {
-          cardType: 'summary' | 'quote' | 'steps'
+          cardType: 'summary' | 'quote' | 'steps' | 'compare' | 'framework' | 'poster'
           shareTitle: string
           summary: string
           points: { title: string; desc: string }[]
           quote: string
           steps: string[]
+          compare?: {
+            leftTitle: string
+            rightTitle: string
+            leftItems: string[]
+            rightItems: string[]
+          }
         }
       | null = null
     try {
@@ -271,6 +277,7 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
       quote: encodeURIComponent(quote),
       points: encodeURIComponent(JSON.stringify(points)),
       steps: encodeURIComponent(JSON.stringify(steps)),
+      compare: encodeURIComponent(JSON.stringify(content?.compare || {})),
       source: encodeURIComponent(params.podcastName || ''),
       date: encodeURIComponent(extractDate(md)),
     })

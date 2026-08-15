@@ -545,12 +545,13 @@ export async function generateNotes(
  * 返回结构化结果，由调用方按 cardType 选择模板渲染。
  */
 export interface ShareCardContent {
-  cardType: 'summary' | 'quote' | 'steps'
+  cardType: 'summary' | 'quote' | 'steps' | 'compare' | 'framework' | 'poster'
   shareTitle: string
   summary: string
   points: { title: string; desc: string }[]
   quote: string
   steps: string[]
+  compare?: { leftTitle: string; rightTitle: string; leftItems: string[]; rightItems: string[] }
 }
 
 export async function analyzeForShareCard(
@@ -563,32 +564,43 @@ export async function analyzeForShareCard(
     '你是知识内容编辑，擅长把播客笔记包装成适合分享的知识卡片。你输出的 JSON 会被直接渲染成图片。'
   const userPrompt = '以下是播客笔记《' + originalTitle + '》的内容。请做一次完整的内容包装，只输出 JSON（不要 markdown 代码块、不要多余文字）：\n\n' +
     '{\n' +
-    '  "cardType": "内容类型：知识总结选 summary；核心是一个金句/观点的选 quote；讲方法步骤的选 steps",\n' +
+    '  "cardType": "内容类型六选一：知识总结 summary / 核心是金句观点 quote / 方法步骤 steps / 对比分析 compare / 流程框架 framework / 极简海报 poster",\n' +
     '  "shareTitle": "传播标题（不是原笔记标题，要让人一眼想点开；观点型/冲突型/总结型都可以，≤26字）",\n' +
     '  "summary": "一句话摘要，说清楚这篇讲了什么（≤60字）",\n' +
     '  "points": [{"title": "知识点小标题（≤14字）", "desc": "一句话说明（≤40字）"}],\n' +
     '  "quote": "最有传播力的金句原文或提炼（≤40字）",\n' +
-    '  "steps": ["步骤一", "步骤二", "步骤三"]\n' +
+    '  "steps": ["步骤一", "步骤二", "步骤三"],\n' +
+    '  "compare": {"leftTitle": "对比项A名称（≤8字）", "leftItems": ["A 的 3 个特点，每个≤12字"], "rightTitle": "对比项B名称（≤8字）", "rightItems": ["B 的 3 个特点，每个≤12字"]}\n' +
     '}\n\n' +
-    '要求：\n' +
-    '1. points 给 3~4 条，每条必须有信息量（数字/事实/反差），拒绝空话\n' +
-    '2. quote 单独给一条；cardType 为 quote 时这条就是卡片主角\n' +
-    '3. steps 仅 cardType 为 steps 时给 3~5 步，其他类型给空数组\n' +
-    '4. 所有中文，直白有力\n\n' +
+    '按类型输出：\n' +
+    '1. summary：points 给 3~4 条（必须带数字/事实/反差），quote 给一条\n' +
+    '2. quote：quote 就是卡片主角，必须是最有传播力的一句\n' +
+    '3. steps：steps 给 3~5 步，每步≤24字\n' +
+    '4. compare：compare 必填，两列各 3~4 条，形成鲜明对比（如 普通做法 vs 高效做法）\n' +
+    '5. framework：steps 给 4~6 个阶段/节点（如 确定目标→了解考试→训练→复盘）\n' +
+    '6. poster：shareTitle 极致凝练（≤16字）+ quote 或 summary 一句点睛\n' +
+    '非本类型字段给空数组/空字符串。所有中文，直白有力。\n\n' +
     '笔记内容：\n' + md.slice(0, 7000)
 
-  const res = await callAI(providerConfig, providerId, systemPrompt, userPrompt, 2000, undefined, 0.7)
+  const res = await callAI(providerConfig, providerId, systemPrompt, userPrompt, 2500, undefined, 0.7)
   const content = res.content
   if (!content) throw new Error('AI 未返回内容')
 
-  let parsed: Partial<ShareCardContent>
+  let parsed: Partial<ShareCardContent> & {
+    compare?: {
+      leftTitle?: unknown
+      rightTitle?: unknown
+      leftItems?: unknown
+      rightItems?: unknown
+    }
+  }
   try {
     const cleaned = content
       .trim()
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/```\s*$/, '')
       .trim()
-    parsed = JSON.parse(cleaned) as Partial<ShareCardContent>
+    parsed = JSON.parse(cleaned)
   } catch {
     throw new Error('AI 输出不是合法 JSON')
   }
@@ -597,8 +609,19 @@ export async function analyzeForShareCard(
     const t = String(v ?? '').trim()
     return t.length > max ? t.slice(0, max) : t
   }
-  const cardType: ShareCardContent['cardType'] =
-    parsed.cardType === 'quote' || parsed.cardType === 'steps' ? parsed.cardType : 'summary'
+  const validTypes: ShareCardContent['cardType'][] = [
+    'summary',
+    'quote',
+    'steps',
+    'compare',
+    'framework',
+    'poster',
+  ]
+  const cardType: ShareCardContent['cardType'] = validTypes.includes(
+    parsed.cardType as ShareCardContent['cardType'],
+  )
+    ? (parsed.cardType as ShareCardContent['cardType'])
+    : 'summary'
 
   const points = Array.isArray(parsed.points)
     ? parsed.points
@@ -610,22 +633,40 @@ export async function analyzeForShareCard(
         .slice(0, 4)
     : []
   const steps = Array.isArray(parsed.steps)
-    ? parsed.steps.map(st => str(st, 24)).filter(Boolean).slice(0, 5)
+    ? parsed.steps.map(st => str(st, 24)).filter(Boolean).slice(0, 6)
     : []
+
+  let compare: ShareCardContent['compare']
+  if (parsed.compare && typeof parsed.compare === 'object') {
+    const leftItems = Array.isArray(parsed.compare.leftItems)
+      ? parsed.compare.leftItems.map(i => str(i, 14)).filter(Boolean).slice(0, 4)
+      : []
+    const rightItems = Array.isArray(parsed.compare.rightItems)
+      ? parsed.compare.rightItems.map(i => str(i, 14)).filter(Boolean).slice(0, 4)
+      : []
+    compare = {
+      leftTitle: str(parsed.compare.leftTitle, 8),
+      leftItems,
+      rightTitle: str(parsed.compare.rightTitle, 8),
+      rightItems,
+    }
+  }
 
   if (!parsed.shareTitle) throw new Error('AI 未返回分享标题')
 
   return {
     cardType,
-    shareTitle: str(parsed.shareTitle, 26),
+    shareTitle: str(parsed.shareTitle, cardType === 'poster' ? 16 : 26),
     summary: str(parsed.summary, 60),
     points,
     quote: str(parsed.quote, 40),
     steps,
+    compare,
   }
 }
 
 // ── 分段处理 ──
+
 
 
 const SEGMENT_THRESHOLD = 16000
