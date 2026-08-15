@@ -16,185 +16,294 @@
       }
       body {
         font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
-        background: linear-gradient(160deg, #14141c 0%, #1e1b33 55%, #191434 100%);
-        color: #e6e6ef;
+        /* 米白「内容杂志」底 */
+        background: #fbfaf7;
+        color: #1a1a1a;
         display: flex;
         flex-direction: column;
-        padding: 72px 76px;
+        padding: 64px 76px 56px;
       }
-      .brand {
+
+      /* ── 顶部：品牌退到第二层 ── */
+      .topbar {
         display: flex;
         align-items: center;
-        gap: 18px;
+        justify-content: space-between;
       }
-      .brand__logo {
-        width: 72px;
-        height: 72px;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      .topbar__brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .topbar__logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #7c3aed;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 34px;
+        font-size: 19px;
         font-weight: 800;
         color: #fff;
       }
-      .brand__text {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+      .topbar__name {
+        font-size: 19px;
+        font-weight: 600;
+        color: #6b7280;
+        letter-spacing: 0.04em;
       }
-      .brand__name {
-        font-size: 40px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-      }
-      .brand__slogan {
-        font-size: 22px;
-        color: #9a9aad;
+      .topbar__date {
+        font-size: 17px;
+        color: #9ca3af;
         letter-spacing: 0.06em;
       }
-      .meta {
-        margin-top: 64px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-      .meta__platform {
-        font-size: 24px;
-        font-weight: 700;
-        color: #a78bfa;
-        background: rgba(139, 92, 246, 0.16);
-        border: 1px solid rgba(139, 92, 246, 0.4);
-        border-radius: 999px;
-        padding: 8px 22px;
-      }
-      .meta__podcast {
-        font-size: 26px;
-        color: #9a9aad;
-      }
+
+      /* ── 标题：绝对主角 ── */
       .title {
-        margin-top: 40px;
-        font-size: 64px;
+        margin-top: 48px;
+        font-size: 62px;
         font-weight: 800;
-        line-height: 1.32;
-        letter-spacing: -0.01em;
-        color: #ffffff;
+        line-height: 1.3;
+        letter-spacing: 0.005em;
+        color: #111111;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
-      .divider {
-        margin-top: 44px;
+      .title-rule {
+        margin-top: 28px;
         height: 2px;
-        background: linear-gradient(90deg, #8b5cf6 0%, rgba(139, 92, 246, 0.15) 100%);
+        width: 64px;
+        background: #7c3aed;
         border-radius: 1px;
       }
+
+      /* ── 摘要 ── */
+      .summary {
+        margin-top: 26px;
+        font-size: 27px;
+        line-height: 1.65;
+        color: #4b5563;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* ── 知识点列表（杂志式编号） ── */
       .points {
-        margin-top: 48px;
+        margin-top: 44px;
         display: flex;
         flex-direction: column;
-        gap: 30px;
+        gap: 34px;
       }
       .point {
         display: flex;
-        align-items: flex-start;
-        gap: 22px;
+        gap: 24px;
       }
-      .point__dot {
+      .point__num {
         flex-shrink: 0;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #8b5cf6;
-        margin-top: 16px;
-        box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.15);
+        font-size: 26px;
+        font-weight: 700;
+        color: #7c3aed;
+        width: 58px;
+        text-align: right;
+        padding-top: 3px;
       }
-      .point__text {
-        font-size: 32px;
-        line-height: 1.5;
-        color: #d8d8e4;
+      .point__body {
+        flex: 1;
+        border-left: 1px solid #e8e4dc;
+        padding-left: 24px;
+      }
+      .point__title {
+        font-size: 30px;
+        font-weight: 700;
+        color: #18181b;
+      }
+      .point__desc {
+        margin-top: 8px;
+        font-size: 25px;
+        line-height: 1.55;
+        color: #52525b;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
-      .chips {
-        margin-top: auto;
+
+      /* ── 步骤（方法论型） ── */
+      .steps {
+        margin-top: 44px;
         display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
+        flex-direction: column;
+        gap: 24px;
       }
-      .chip {
-        font-size: 26px;
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .step__num {
+        flex-shrink: 0;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: #f1ecfe;
+        color: #7c3aed;
+        font-size: 24px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .step__text {
+        font-size: 28px;
         font-weight: 600;
-        border-radius: 999px;
-        padding: 10px 24px;
+        color: #27272a;
       }
-      .chip--person {
+      .step__arrow {
+        flex-shrink: 0;
         color: #c4b5fd;
-        background: rgba(167, 139, 250, 0.14);
-        border: 1px solid rgba(167, 139, 250, 0.35);
+        font-size: 26px;
+        font-weight: 700;
       }
-      .chip--concept {
-        color: #fde68a;
-        background: rgba(250, 204, 21, 0.12);
-        border: 1px solid rgba(250, 204, 21, 0.3);
+
+      /* ── 金句框 ── */
+      .quotebox {
+        margin-top: 52px;
+        background: #f5f1fd;
+        border-radius: 18px;
+        padding: 44px 48px;
+        position: relative;
       }
-      .chip--project {
-        color: #86efac;
-        background: rgba(74, 222, 128, 0.12);
-        border: 1px solid rgba(74, 222, 128, 0.3);
+      .quotebox__mark {
+        position: absolute;
+        top: 14px;
+        left: 30px;
+        font-size: 88px;
+        line-height: 1;
+        color: #c4b5fd;
+        font-family: Georgia, serif;
       }
-      .chip--term {
-        color: #d1d5db;
-        background: rgba(209, 213, 219, 0.1);
-        border: 1px solid rgba(209, 213, 219, 0.25);
+      .quotebox__text {
+        font-size: 31px;
+        font-weight: 700;
+        line-height: 1.6;
+        color: #2e1065;
+        position: relative;
+        z-index: 1;
       }
+
+      /* ── 金句型卡片：极简居中 ── */
+      .quote-hero {
+        margin-top: 120px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 34px;
+      }
+      .quote-hero__mark {
+        font-size: 110px;
+        line-height: 1;
+        color: #d8ccf7;
+        font-family: Georgia, serif;
+      }
+      .quote-hero__text {
+        font-size: 62px;
+        font-weight: 800;
+        line-height: 1.45;
+        color: #111111;
+        max-width: 820px;
+      }
+      .quote-hero__sub {
+        font-size: 26px;
+        color: #6b7280;
+        line-height: 1.6;
+        max-width: 760px;
+      }
+
+      /* ── 底部 ── */
       .footer {
-        margin-top: 56px;
+        margin-top: auto;
+        padding-top: 40px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-top: 1px solid #ece8e0;
       }
-      .footer__date {
-        font-size: 24px;
-        color: #6b6b7d;
+      .footer__src {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 21px;
+        color: #6b7280;
+      }
+      .footer__src-dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: #7c3aed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        color: #fff;
+        font-weight: 700;
       }
       .footer__brand {
-        font-size: 24px;
+        text-align: right;
+        font-size: 20px;
+        color: #9ca3af;
+        line-height: 1.5;
+      }
+      .footer__brand b {
+        color: #7c3aed;
         font-weight: 700;
-        color: #8b5cf6;
-        letter-spacing: 0.08em;
       }
     </style>
   </head>
   <body>
-    <div class="brand">
-      <div class="brand__logo">P</div>
-      <div class="brand__text">
-        <div class="brand__name">PodMuse</div>
-        <div class="brand__slogan">把播客变成知识库</div>
+    <!-- 顶部小品牌 -->
+    <div class="topbar">
+      <div class="topbar__brand">
+        <div class="topbar__logo">P</div>
+        <span class="topbar__name">PodMuse · AI 知识卡片</span>
+      </div>
+      <span class="topbar__date" id="date"></span>
+    </div>
+
+    <!-- 金句型：极简居中 -->
+    <div class="quote-hero" id="quoteHero" style="display: none">
+      <div class="quote-hero__mark">“</div>
+      <div class="quote-hero__text" id="quoteText"></div>
+      <div class="quote-hero__sub" id="quoteSub"></div>
+    </div>
+
+    <!-- 常规型：标题 + 摘要 + 知识点/步骤 -->
+    <div id="normalCard">
+      <div class="title" id="title"></div>
+      <div class="title-rule"></div>
+      <div class="summary" id="summary"></div>
+      <div class="points" id="points"></div>
+      <div class="steps" id="steps"></div>
+      <div class="quotebox" id="quotebox">
+        <div class="quotebox__mark">“</div>
+        <div class="quotebox__text" id="quote"></div>
       </div>
     </div>
 
-    <div class="meta">
-      <span class="meta__platform" id="platform"></span>
-      <span class="meta__podcast" id="podcast"></span>
-    </div>
-
-    <div class="title" id="title"></div>
-
-    <div class="divider"></div>
-
-    <div class="points" id="points"></div>
-
-    <div class="chips" id="chips"></div>
-
+    <!-- 底部 -->
     <div class="footer">
-      <span class="footer__date" id="date"></span>
-      <span class="footer__brand">PODMUSE</span>
+      <div class="footer__src">
+        <span class="footer__src-dot">♪</span>
+        <span id="source"></span>
+      </div>
+      <div class="footer__brand">由 <b>PodMuse</b> 整理<br />把播客变成你的知识库</div>
     </div>
 
     <script>
@@ -206,50 +315,102 @@
           return params.get(k) || ''
         }
       }
+      const jget = k => {
+        try {
+          return JSON.parse(get(k) || '[]')
+        } catch {
+          return []
+        }
+      }
 
+      const template = get('template') || 'summary'
       const title = get('title')
-      const podcast = get('podcast')
-      const platform = get('platform')
+      const summary = get('summary')
+      const quote = get('quote')
+      const points = jget('points')
+      const steps = jget('steps')
+      const source = get('source')
       const date = get('date')
-      const points = get('points') ? JSON.parse(get('points')) : []
-      const chips = get('chips') ? JSON.parse(get('chips')) : []
 
-      document.getElementById('platform').textContent = platform || '播客'
-      document.getElementById('podcast').textContent = podcast || ''
-      document.getElementById('title').textContent = title || '本期节目'
       document.getElementById('date').textContent = date || ''
 
-      const pointsEl = document.getElementById('points')
-      if (points.length === 0) {
-        pointsEl.style.display = 'none'
+      const srcEl = document.getElementById('source')
+      srcEl.textContent = source ? '来源：' + source : ''
+
+      if (template === 'quote') {
+        document.getElementById('quoteHero').style.display = 'flex'
+        document.getElementById('normalCard').style.display = 'none'
+        document.getElementById('quoteText').textContent = title || '本期节目'
+        document.getElementById('quoteSub').textContent = summary || quote || ''
       } else {
-        points.forEach(text => {
-          const row = document.createElement('div')
-          row.className = 'point'
-          const dot = document.createElement('span')
-          dot.className = 'point__dot'
-          const t = document.createElement('span')
-          t.className = 'point__text'
-          t.textContent = text
-          row.appendChild(dot)
-          row.appendChild(t)
-          pointsEl.appendChild(row)
-        })
+        document.getElementById('title').textContent = title || '本期节目'
+        document.getElementById('summary').textContent = summary || ''
+
+        if (template === 'steps' && steps.length > 0) {
+          document.getElementById('points').style.display = 'none'
+          const stepsEl = document.getElementById('steps')
+          steps.forEach((text, i) => {
+            const row = document.createElement('div')
+            row.className = 'step'
+            const num = document.createElement('span')
+            num.className = 'step__num'
+            num.textContent = String(i + 1).padStart(2, '0')
+            const t = document.createElement('span')
+            t.className = 'step__text'
+            t.textContent = text
+            row.appendChild(num)
+            row.appendChild(t)
+            if (i < steps.length - 1) {
+              const arrow = document.createElement('span')
+              arrow.className = 'step__arrow'
+              arrow.textContent = '↓'
+              row.appendChild(arrow)
+            }
+            stepsEl.appendChild(row)
+          })
+          if (quote) {
+            document.getElementById('quote').textContent = quote
+          } else {
+            document.getElementById('quotebox').style.display = 'none'
+          }
+        } else {
+          document.getElementById('steps').style.display = 'none'
+          const pointsEl = document.getElementById('points')
+          if (points.length === 0) {
+            pointsEl.style.display = 'none'
+          } else {
+            points.forEach(p => {
+              const t = typeof p === 'string' ? { title: '', desc: p } : p
+              const row = document.createElement('div')
+              row.className = 'point'
+              const num = document.createElement('span')
+              num.className = 'point__num'
+              num.textContent = String(points.indexOf(p) + 1).padStart(2, '0')
+              const body = document.createElement('div')
+              body.className = 'point__body'
+              if (t.title) {
+                const h = document.createElement('div')
+                h.className = 'point__title'
+                h.textContent = t.title
+                body.appendChild(h)
+              }
+              const d = document.createElement('div')
+              d.className = 'point__desc'
+              d.textContent = t.desc || t.title
+              body.appendChild(d)
+              row.appendChild(num)
+              row.appendChild(body)
+              pointsEl.appendChild(row)
+            })
+          }
+          if (quote) {
+            document.getElementById('quote').textContent = quote
+          } else {
+            document.getElementById('quotebox').style.display = 'none'
+          }
+        }
       }
 
-      const chipsEl = document.getElementById('chips')
-      if (chips.length === 0) {
-        chipsEl.style.display = 'none'
-      } else {
-        chips.forEach(c => {
-          const el = document.createElement('span')
-          el.className = 'chip chip--' + (c.type || 'term')
-          el.textContent = c.name
-          chipsEl.appendChild(el)
-        })
-      }
-
-      // 渲染完成标记（主进程截图时机）
       document.body.dataset.ready = '1'
     </script>
   </body>

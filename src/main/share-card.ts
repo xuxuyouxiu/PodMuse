@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import * as fs from 'fs'
 import { loadConfig } from './config'
 import { isPathWithinBase } from './security'
-import { generateSharePoints } from './ai-client'
+import { analyzeForShareCard } from './ai-client'
 import { getActiveProviderConfig } from './ai-providers'
 
 interface ShareParams {
@@ -229,30 +229,49 @@ export async function generateShareCard(params: ShareParams): Promise<ShareResul
 
     const title = params.title || extractTitle(md)
 
-    // 三条知识点：优先 AI 钩子式总结（让人一眼想了解），失败回退规则提取
-    let points = extractPoints(md)
+    // AI 内容编辑：类型判断 + 传播标题 + 摘要 + 知识点 + 金句（失败回退规则提取）
+    let content:
+      | {
+          cardType: 'summary' | 'quote' | 'steps'
+          shareTitle: string
+          summary: string
+          points: { title: string; desc: string }[]
+          quote: string
+          steps: string[]
+        }
+      | null = null
     try {
       const config = loadConfig()
       const aiCfg = getActiveProviderConfig(config.ai_provider, config.ai_providers)
       if (aiCfg) {
-        const aiPoints = await generateSharePoints(aiCfg, config.ai_provider, md, title)
-        if (aiPoints.length > 0) points = aiPoints
+        content = await analyzeForShareCard(aiCfg, config.ai_provider, md, title)
       }
     } catch (e) {
       console.log(
-        '[share-card] AI 三点总结失败，回退规则提取:',
+        '[share-card] AI 内容编辑失败，回退规则提取:',
         e instanceof Error ? e.message : e,
       )
     }
 
-    const chips = extractChips(md)
+    // 规则回退：传播标题用原标题，知识点用原文提取
+    const shareTitle = content?.shareTitle || title
+    const summary = content?.summary || ''
+    const points =
+      content?.points.length
+        ? content.points
+        : extractPoints(md).map(text => ({ title: '', desc: text }))
+    const quote = content?.quote || ''
+    const steps = content?.steps || []
+    const template = content?.cardType || 'summary'
 
     const png = await renderAndCapture({
-      title: encodeURIComponent(title),
-      podcast: encodeURIComponent(params.podcastName || ''),
-      platform: encodeURIComponent(params.platform || ''),
+      template: encodeURIComponent(template),
+      title: encodeURIComponent(shareTitle),
+      summary: encodeURIComponent(summary),
+      quote: encodeURIComponent(quote),
       points: encodeURIComponent(JSON.stringify(points)),
-      chips: encodeURIComponent(JSON.stringify(chips)),
+      steps: encodeURIComponent(JSON.stringify(steps)),
+      source: encodeURIComponent(params.podcastName || ''),
       date: encodeURIComponent(extractDate(md)),
     })
 
