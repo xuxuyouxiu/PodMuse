@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.47.3] - 2026-08-15
+
+### 改进
+- 应用图标全面焕新：全新紫色渐变 squircle 图标（白色 P 形 + 播放三角 + 波形条），同步替换安装包图标（icon.ico/icon.png）、侧边栏与关于对话框 logo
+
 ## [1.47.2] - 2026-08-15
 
 ### 修复
