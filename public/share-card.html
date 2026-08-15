@@ -176,55 +176,37 @@
         background: #f5f1fd;
         border-radius: 18px;
         padding: 44px 48px;
-        position: relative;
-      }
-      .quotebox__mark {
-        position: absolute;
-        top: 14px;
-        left: 30px;
-        font-size: 88px;
-        line-height: 1;
-        color: #c4b5fd;
-        font-family: Georgia, serif;
       }
       .quotebox__text {
         font-size: 31px;
         font-weight: 700;
         line-height: 1.6;
         color: #2e1065;
-        position: relative;
-        z-index: 1;
       }
 
-      /* ── 金句型卡片：极简居中 ── */
+      /* ── 金句型卡片：极简居中（无装饰引号） ── */
       .quote-hero {
-        margin-top: 120px;
+        margin-top: 100px;
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        gap: 34px;
-      }
-      .quote-hero__mark {
-        font-size: 110px;
-        line-height: 1;
-        color: #d8ccf7;
-        font-family: Georgia, serif;
+        gap: 40px;
       }
       .quote-hero__text {
-        font-size: 62px;
+        font-size: 64px;
         font-weight: 800;
-        line-height: 1.45;
+        line-height: 1.5;
         color: #111111;
-        max-width: 820px;
+        max-width: 860px;
       }
       .quote-hero__sub {
         font-size: 26px;
         color: #6b7280;
-        line-height: 1.6;
-        max-width: 760px;
+        line-height: 1.7;
+        max-width: 780px;
       }
 
       /* ── 底部 ── */
@@ -279,7 +261,6 @@
 
     <!-- 金句型：极简居中 -->
     <div class="quote-hero" id="quoteHero" style="display: none">
-      <div class="quote-hero__mark">“</div>
       <div class="quote-hero__text" id="quoteText"></div>
       <div class="quote-hero__sub" id="quoteSub"></div>
     </div>
@@ -292,7 +273,6 @@
       <div class="points" id="points"></div>
       <div class="steps" id="steps"></div>
       <div class="quotebox" id="quotebox">
-        <div class="quotebox__mark">“</div>
         <div class="quotebox__text" id="quote"></div>
       </div>
     </div>
@@ -340,8 +320,9 @@
       if (template === 'quote') {
         document.getElementById('quoteHero').style.display = 'flex'
         document.getElementById('normalCard').style.display = 'none'
-        document.getElementById('quoteText').textContent = title || '本期节目'
-        document.getElementById('quoteSub').textContent = summary || quote || ''
+        // 金句模板主角 = 金句本身（quote 字段）；副行 = 摘要
+        document.getElementById('quoteText').textContent = quote || title || '本期节目'
+        document.getElementById('quoteSub').textContent = summary || ''
       } else {
         document.getElementById('title').textContent = title || '本期节目'
         document.getElementById('summary').textContent = summary || ''
