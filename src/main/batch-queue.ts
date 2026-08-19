@@ -3,7 +3,7 @@ import * as path from 'path'
 import { basename, extname } from 'path'
 import { processPodcast, fetchPodcastTitle } from './podcast'
 import { loadConfig, getUserDataDir } from './config'
-import { getActiveProviderConfig } from './ai-providers'
+import { getActiveProviderConfig, normalizeBaseUrl } from './ai-providers'
 import type { AIProviderConfig } from '../shared/types'
 import { platformRegistry } from './platforms'
 import { sendNotification } from './notify'
@@ -378,11 +378,8 @@ export class BatchQueueService {
         const p = (
           config.ai_providers as Record<string, AIProviderConfig | undefined> | undefined
         )?.[task.providerId]
-        if (p?.apiKey) {
-          let baseUrl = p.baseUrl
-          if (baseUrl && !baseUrl.includes('/v1')) {
-            baseUrl = baseUrl.replace(/\/+$/, '') + '/v1'
-          }
+        if (p?.apiKey?.trim()) {
+          const baseUrl = normalizeBaseUrl(p.baseUrl)
           activeProvider = { baseUrl, apiKey: p.apiKey, model: task.model }
           console.log(`[batch] 任务使用指定模型: ${task.providerId}/${task.model}`)
         }

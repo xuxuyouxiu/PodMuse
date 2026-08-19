@@ -1,4 +1,5 @@
 import type { AIProviderId } from '../shared/types'
+import { normalizeBaseUrl } from './ai-providers'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -281,12 +282,8 @@ function getAIPrompt(): string {
 
 // 构建请求URL
 export function buildApiUrl(baseUrl: string, _providerId: AIProviderId): string {
-  // 确保 baseUrl 以 /v1 结尾
-  let url = baseUrl.replace(/\/+$/, '')
-  if (!url.endsWith('/v1')) {
-    url += '/v1'
-  }
-  return `${url}/chat/completions`
+  // 统一走 normalizeBaseUrl：版本化路径（如智谱 /api/paas/v4）不追加 /v1
+  return `${normalizeBaseUrl(baseUrl)}/chat/completions`
 }
 
 // 判断错误是否可重试

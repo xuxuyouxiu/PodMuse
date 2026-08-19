@@ -467,6 +467,11 @@ export async function exportToNotion(params: {
 }): Promise<ExportResult> {
   const { token, databaseId, markdown, relativePath } = params
 
+  // 0. 空凭据前置校验（与 testNotionConnection 一致；exportNote 已有更高层校验，这里是防御性兜底）
+  if (!token?.trim() || !databaseId?.trim()) {
+    return { success: false, error: 'Token 和 Database ID 不能为空' }
+  }
+
   // 1. 解析 frontmatter
   const { frontmatter, body } = parseFrontmatter(markdown)
 
@@ -494,11 +499,16 @@ export async function exportToNotion(params: {
 
   // 4. 转换
   const properties = frontmatterToNotionProperties(frontmatter, schema)
-  // 确保 title property 有值（fallback 到文件名）
-  if (schema.titleProperty && !properties[schema.titleProperty]) {
-    properties[schema.titleProperty] = {
-      type: 'title',
-      title: buildRichText(fallbackTitle),
+  // 确保 title property 有值（frontmatter 无 title 时 fallback 到文件名）
+  // 注意：frontmatterToNotionProperties 总是先写入 title（可能为空数组），
+  // 因此不能只判断属性是否存在，要判断 title 数组是否为空
+  if (schema.titleProperty) {
+    const existingTitle = properties[schema.titleProperty] as { title?: unknown[] } | undefined
+    if (!existingTitle?.title?.length) {
+      properties[schema.titleProperty] = {
+        type: 'title',
+        title: buildRichText(fallbackTitle),
+      }
     }
   }
   const children = markdownToNotionBlocks(body)

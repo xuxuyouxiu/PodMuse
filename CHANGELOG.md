@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.48.2] - 2026-08-19
+
+### 修复
+- **智谱（zhipu）baseUrl 归一化 bug**：预设地址 /api/paas/v4 被机械追加 /v1 成未文档化的 /v4/v1 路径——新增统一 `normalizeBaseUrl`（对 /v1、/v4 等版本段结尾不再追加），AI 调用/模型列表/批量任务模型覆盖全部走统一函数，官方端点 /v4/chat/completions 正确拼接
+- Notion 导出：新增空凭据前置校验；修复无 frontmatter 时标题 fallback 失效（此前真实导出会被 Notion 400 拒绝）
+- AI Key 校验 trim：纯空格 key 不再被当作已配置
+
+### 测试
+- 新增 AI 供应商测试 32 例：/v1 归一化全边界、版本化路径、无 key 优雅失败、任务级模型覆盖、QA 无 key 可读错误
+- 新增 Notion 集成测试 25 例：请求构造（URL/鉴权头/signal）、导出成功链路、空凭据、>100 块截断、错误传播
+- 全量 271 测试通过；真实连通性矩阵：6 个非 DeepSeek 供应商全部可达且鉴权路径正常（假 key 401），无网络阻断
+
 ## [1.48.1] - 2026-08-19
 
 ### 修复

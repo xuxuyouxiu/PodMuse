@@ -54,22 +54,29 @@ export function getAllDefaultProviderConfigs(): Record<AIProviderId, AIProviderC
   return configs as Record<AIProviderId, AIProviderConfig>
 }
 
+/**
+ * 归一化 baseUrl：去尾斜杠；已有版本段（/v1、/v4 等）保持原样，否则补 /v1。
+ * 注意：智谱官方端点是 /api/paas/v4（不含 /v1），机械追加 /v1 会得到
+ * 未文档化的 /v4/v1 路径——所有拼 URL 的地方必须统一走本函数。
+ */
+export function normalizeBaseUrl(baseUrl: string): string {
+  const url = baseUrl.trim().replace(/\/+$/, '')
+  // 已含 /v1（任意位置，兼容用户粘贴完整 chat/completions 地址）或
+  // 以版本段结尾（如智谱 /api/paas/v4）→ 保持原样；否则补 /v1
+  if (!url || url.includes('/v1') || /\/v\d+$/.test(url)) return url
+  return url + '/v1'
+}
+
 // 获取当前活跃供应商的API配置
 export function getActiveProviderConfig(
   providerId: AIProviderId,
   providers: Record<AIProviderId, AIProviderConfig>,
 ): { baseUrl: string; apiKey: string; model: string } | null {
   const config = providers[providerId]
-  if (!config || !config.apiKey) return null
-
-  // 确保 baseUrl 以 /v1 结尾或包含 /v1/
-  let baseUrl = config.baseUrl
-  if (baseUrl && !baseUrl.includes('/v1')) {
-    baseUrl = baseUrl.replace(/\/+$/, '') + '/v1'
-  }
+  if (!config || !config.apiKey?.trim()) return null
 
   return {
-    baseUrl,
+    baseUrl: normalizeBaseUrl(config.baseUrl),
     apiKey: config.apiKey,
     model: config.model,
   }

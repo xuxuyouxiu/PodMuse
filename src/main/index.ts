@@ -5,7 +5,7 @@ import { isSafeUrl } from './security'
 import { registerCoreIPC } from './ipc'
 import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
-import { getActiveProviderConfig } from './ai-providers'
+import { getActiveProviderConfig, normalizeBaseUrl } from './ai-providers'
 import { fetchPodcastTitle } from './podcast'
 import { platformRegistry } from './platforms'
 import { scanLocalModels, checkHardware, autoDetectExePath } from './whisper-model-manager'
@@ -692,11 +692,7 @@ function setupIPC() {
         if (!isSafeUrl(baseUrl)) {
           return { success: false, error: 'API 地址必须使用 http:// 或 https:// 协议', models: [] }
         }
-        let url = baseUrl.replace(/\/+$/, '')
-        if (!url.endsWith('/v1')) {
-          url += '/v1'
-        }
-        url += '/models'
+        const url = normalizeBaseUrl(baseUrl) + '/models'
 
         const resp = await fetch(url, {
           method: 'GET',
