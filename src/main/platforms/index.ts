@@ -8,6 +8,7 @@ export { DouyinAdapter } from './douyin'
 export { YouTubeAdapter } from './youtube'
 export { XimalayaAdapter } from './ximalaya'
 export { ApplePodcastsAdapter } from './apple-podcasts'
+export { FiresideAdapter, parseFiresidePage, decodeHtmlEntities } from './fireside'
 export { DirectUrlAdapter } from './direct-url'
 export {
   detectYtDlp,

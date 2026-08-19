@@ -10,6 +10,7 @@ const URL_PATTERNS = [
   /https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|embed|shorts)|youtu\.be\/)[^\s]*/i,
   /https?:\/\/[^\s]*ximalaya\.com\/sound\/[^\s]*/i,
   /https?:\/\/[^\s]*podcasts\.apple\.com\/[^\s]*/i,
+  /https?:\/\/(?!feeds\.)[^\s]*\bfireside\.fm\/\d+/i,
 ]
 
 // 直接媒体链接匹配（兜底）

@@ -52,4 +52,16 @@ describe('MessageParser', () => {
     const result = parser.extract([])
     expect(result).toEqual([])
   })
+
+  it('extracts fireside episode page link', () => {
+    const messages = [{
+      message_id: 'msg5',
+      msg_type: 'text',
+      body: { content: JSON.stringify({ text: '听这期 https://guiguzaozhidao.fireside.fm/20240440 很棒' }) },
+    }]
+    const result = parser.extract(messages)
+    expect(result[0].kind).toBe('podcast')
+    expect(result[0].url).toBe('https://guiguzaozhidao.fireside.fm/20240440')
+    expect(result[0].episodeId).toBe('guiguzaozhidao.fireside.fm/20240440')
+  })
 })

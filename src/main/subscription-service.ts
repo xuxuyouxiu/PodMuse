@@ -9,12 +9,17 @@ import Parser from 'rss-parser'
 import { loadConfig, saveConfig } from './config'
 import type { Subscription } from '../shared/types'
 import type { BatchQueueService } from './batch-queue'
+import { platformRegistry } from './platforms'
 
 interface Episode {
   key: string
   title: string
   link: string
   pubDate?: string
+  /** RSS enclosure 媒体直链（页面链接无适配器时的入队兜底 source） */
+  enclosureUrl?: string
+  /** 入队时实际使用的 source（主进程按平台适配器匹配结果选择，供渲染层手动入队使用） */
+  enqueueSource?: string
 }
 
 interface SubscriptionState {
@@ -29,6 +34,17 @@ export interface SubscriptionInfo {
   lastCheckAt: number | null
   newEpisodes: Episode[]
   lastError?: string
+}
+
+/**
+ * 选择入队 source：页面链接有平台适配器时优先用页面链接（标题美、去重 key 可读）；
+ * 否则 enclosure 是媒体直链（能被 DirectUrlAdapter 等识别）时用它兜底；再否则保持原链接。
+ */
+export function pickEpisodeSource(ep: Pick<Episode, 'link' | 'enclosureUrl'>): string {
+  if (platformRegistry.findAdapter(ep.link)) return ep.link
+  const enclosureUrl = (ep.enclosureUrl || '').trim()
+  if (enclosureUrl && platformRegistry.findAdapter(enclosureUrl)) return enclosureUrl
+  return ep.link
 }
 
 const MAX_SEEN = 500
@@ -245,6 +261,7 @@ export class SubscriptionService {
         title: item.title || '未命名节目',
         link: item.link || '',
         pubDate: item.pubDate || item.isoDate,
+        enclosureUrl: item.enclosure?.url || '',
       }))
       .filter(ep => ep.key && ep.link)
   }
@@ -294,7 +311,11 @@ export class SubscriptionService {
               const queue = this.getBatchQueue()
               if (queue) {
                 queue.addTasks(
-                  fresh.map(ep => ({ source: ep.link, type: 'url' as const, title: ep.title })),
+                  fresh.map(ep => ({
+                    source: pickEpisodeSource(ep),
+                    type: 'url' as const,
+                    title: ep.title,
+                  })),
                 )
               }
               for (const ep of fresh) {
@@ -346,7 +367,8 @@ export class SubscriptionService {
       return {
         sub,
         lastCheckAt: this.lastCheckAt[sub.id] ?? null,
-        newEpisodes: pending,
+        // 原链接保留展示，另附主进程选定的入队 source（手动入队走 batch:add 时使用）
+        newEpisodes: pending.map(ep => ({ ...ep, enqueueSource: pickEpisodeSource(ep) })),
         lastError: undefined,
       }
     })

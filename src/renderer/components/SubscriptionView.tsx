@@ -29,7 +29,13 @@ interface SubInfo {
     processedCount: number
   }
   lastCheckAt: number | null
-  newEpisodes: { key: string; title: string; link: string; pubDate?: string }[]
+  newEpisodes: {
+    key: string
+    title: string
+    link: string
+    pubDate?: string
+    enqueueSource?: string
+  }[]
 }
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s.trim())
@@ -250,12 +256,27 @@ export default function SubscriptionView() {
     if (keys.length === 0) return
     const queue = keys
       .map(k => sub.newEpisodes.find(ep => ep.key === k))
-      .filter((ep): ep is { key: string; title: string; link: string; pubDate?: string } =>
-        Boolean(ep),
+      .filter(
+        (
+          ep,
+        ): ep is {
+          key: string
+          title: string
+          link: string
+          pubDate?: string
+          enqueueSource?: string
+        } => Boolean(ep),
       )
     if (queue.length > 0) {
       window.electronAPI
-        .batchAdd(queue.map(ep => ({ source: ep.link, type: 'url' as const, title: ep.title })))
+        .batchAdd(
+          queue.map(ep => ({
+            // 主进程选定的入队 source：页面链接有适配器用页面链接，否则回退 enclosure 媒体直链
+            source: ep.enqueueSource || ep.link,
+            type: 'url' as const,
+            title: ep.title,
+          })),
+        )
         .then(() => window.electronAPI.markSubscriptionSeen(subId, keys))
         .catch(() => {})
     }

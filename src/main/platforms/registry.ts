@@ -43,6 +43,7 @@ import { YouTubeAdapter } from './youtube'
 import { XimalayaAdapter } from './ximalaya'
 import { ApplePodcastsAdapter } from './apple-podcasts'
 import { DouyinAdapter } from './douyin'
+import { FiresideAdapter } from './fireside'
 import { DirectUrlAdapter } from './direct-url'
 
 platformRegistry.register(new XiaoyuzhouAdapter())
@@ -51,5 +52,6 @@ platformRegistry.register(new DouyinAdapter())
 platformRegistry.register(new YouTubeAdapter())
 platformRegistry.register(new XimalayaAdapter())
 platformRegistry.register(new ApplePodcastsAdapter())
+platformRegistry.register(new FiresideAdapter())
 // DirectUrlAdapter 放在最后作为兜底（仅匹配有媒体扩展名的 URL）
 platformRegistry.register(new DirectUrlAdapter())

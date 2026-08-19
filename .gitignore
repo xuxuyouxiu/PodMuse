@@ -40,6 +40,10 @@ docs/抖音封面.png
 *.swp
 *.tmp
 
+# 本地智能体基础设施（团队状态 / 项目技能）
+.agent-teams/
+.dsh/
+
 # 测试覆盖率
 coverage/
 

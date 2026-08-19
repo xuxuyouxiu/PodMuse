@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.48.0] - 2026-08-19
+
+### 新增
+- **支持 Fireside 播客平台**：新增 Fireside 适配器，直接粘贴节目页链接（如 guiguzaozhidao.fireside.fm/20240440）即可处理——自动解析页面的 og:audio:secure_url/og:audio/JSON-LD/<audio> 四级回退提取音频直链与 og:title 标题（含 HTML 实体解码），去重 key 用节目域+节目 id，跨节目唯一
+- 飞书消息链接识别新增 fireside 节目页模式（自动排除 feeds.fireside.fm RSS 链接）
+
+### 修复
+- 订阅 fireside.fm 播客自动入队报「暂不支持该平台，请使用本地文件方式」：入队 source 现按平台适配器智能选择——页面链接有适配器优先用页面链接，否则回退 RSS 的 enclosure 媒体直链（自动/手动两条入队路径都覆盖），标题继续随任务传递
+- 旧失败记录自愈：装上新适配器后，历史页对失败记录点「重新处理」即可直接重试成功
+
 ## [1.47.4] - 2026-08-19
 
 ### 修复

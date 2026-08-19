@@ -51,6 +51,8 @@ interface SubscriptionEpisode {
   title: string
   link: string
   pubDate?: string
+  /** 主进程按平台适配器匹配选定的入队 source（可能为 enclosure 媒体直链） */
+  enqueueSource?: string
 }
 
 interface SubscriptionInfo {
