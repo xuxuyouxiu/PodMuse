@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
 import { useI18n } from '../../i18n'
-import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown, Search, CheckCircle2 } from 'lucide-react'
+import GuideCarousel from '../GuideCarousel'
+import { ExternalLink, AlertTriangle, AlertCircle, ArrowDown, Search, CheckCircle2, BookOpen } from 'lucide-react'
 
 export default function TabWhisper({
   form,
@@ -33,6 +34,7 @@ export default function TabWhisper({
 }) {
   const [detecting, setDetecting] = useState(false)
   const [detectResult, setDetectResult] = useState<string | null>(null)
+  const [guideKey, setGuideKey] = useState<string | null>(null)
   const handleAutoDetect = async () => {
     setDetecting(true)
     setDetectResult(null)
@@ -180,6 +182,14 @@ export default function TabWhisper({
                 {t('GitHub 下载')}
               </span>
             </span>
+            <button
+              onClick={() => setGuideKey('whisper')}
+              className="settings-link-button"
+              style={{ marginLeft: 8 }}
+            >
+              <BookOpen size={11} />
+              {t('安装说明')}
+            </button>
           </div>
         </div>
 
@@ -232,6 +242,8 @@ export default function TabWhisper({
           {t(hardwareWarn.warning)}
         </div>
       )}
+
+      {guideKey && <GuideCarousel guideKey={guideKey} onClose={() => setGuideKey(null)} />}
     </div>
   )
 }

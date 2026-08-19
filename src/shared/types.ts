@@ -48,6 +48,88 @@ export interface NotionConfig {
   database_id: string
 }
 
+// ===== OAuth 连接服务（Notion / 飞书）=====
+// 凭据（clientSecret/accessToken/refreshToken…）只存在于主进程配置文件；
+// config:get 前清空 token 类字段，renderer 永不接触明文 token，
+// 只通过 notion:oauthStatus / feishu:oauthStatus 等 IPC 看到连接状态与目标名。
+
+export interface NotionOAuthConfig {
+  clientId: string
+  clientSecret: string
+  accessToken?: string
+  workspaceId?: string
+  botId?: string
+  databaseId?: string
+  connectedAt?: number
+}
+
+export interface FeishuOAuthConfig {
+  appId: string
+  appSecret: string
+  userAccessToken?: string
+  refreshToken?: string
+  expiresAt?: number
+  chatId?: string
+  chatName?: string
+  connectedAt?: number
+}
+
+/** OAuth 动作/请求的失败分类（绝不携带凭据内容） */
+export type OAuthErrorCode =
+  | 'oauth_not_configured'
+  | 'not_connected'
+  | 'auth_in_progress'
+  | 'auth_timeout'
+  | 'auth_cancelled'
+  | 'token_exchange_failed'
+  | 'token_expired'
+  | 'refresh_failed'
+  | 'network_error'
+
+export interface OAuthActionResult {
+  success: boolean
+  code?: OAuthErrorCode
+  error?: string
+}
+
+/** renderer 可见的 Notion OAuth 状态（无任何 token 字段） */
+export interface NotionOAuthStatus {
+  configured: boolean
+  connected: boolean
+  workspaceId?: string
+  databaseId?: string
+  connectedAt?: number
+}
+
+/** renderer 可见的飞书 OAuth 状态（无任何 token 字段） */
+export interface FeishuOAuthStatus {
+  configured: boolean
+  connected: boolean
+  tokenExpired?: boolean
+  chatId?: string
+  chatName?: string
+  connectedAt?: number
+}
+
+export interface NotionDatabaseInfo {
+  id: string
+  title: string
+}
+
+export interface FeishuChatInfo {
+  id: string
+  name: string
+}
+
+// 抖音登录状态（主进程闭环，renderer 只读状态与昵称，永不接触 cookie）
+export type DouyinLoginStatus = 'connected' | 'unverified' | 'expired'
+
+export interface DouyinLoginState {
+  status: DouyinLoginStatus
+  nickname?: string
+  verifiedAt?: number
+}
+
 export interface ExportConfig {
   logseq_dir: string
   notion: NotionConfig
@@ -71,6 +153,11 @@ export interface PodcastConfig {
   whisper_model: string
   notification_enabled: boolean
   douyin_cookie: string
+  douyin_login?: DouyinLoginState
+
+  // OAuth 连接服务（凭据就绪即可启用；token 唯一写入通道是 notion:oauth* / feishu:oauth* IPC）
+  notion_oauth?: NotionOAuthConfig
+  feishu_oauth?: FeishuOAuthConfig
 
   // 导出配置（可选，向后兼容）
   export?: ExportConfig

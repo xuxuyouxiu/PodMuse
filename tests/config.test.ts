@@ -426,6 +426,48 @@ describe('loadConfig', () => {
 })
 
 // ============================================================
+// loadSafeConfig（douyin_cookie 永不下发渲染层）
+// ============================================================
+
+describe('loadSafeConfig', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    mockExistsSync.mockReset()
+    mockReadFileSync.mockReset()
+    mockGetPath.mockReset()
+    mockGetPath.mockReturnValue(USER_DATA_DIR)
+  })
+
+  it('douyin_cookie 返回前置空（渲染层永不接触明文 cookie）', async () => {
+    mockExistsSync.mockImplementation((p: string) => p === USER_CONFIG_PATH)
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (p === USER_CONFIG_PATH)
+        return JSON.stringify({ douyin_cookie: 'sid_guard=secret; sessionid=secret' })
+      return ''
+    })
+
+    const { loadSafeConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
+    const result = loadSafeConfig()
+
+    expect(result.douyin_cookie).toBe('')
+  })
+
+  it('无 cookie 时同样返回空串，其余字段不受影响', async () => {
+    mockExistsSync.mockImplementation((p: string) => p === USER_CONFIG_PATH)
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (p === USER_CONFIG_PATH) return JSON.stringify({ api_key: 'sk-test' })
+      return ''
+    })
+
+    const { loadSafeConfig, clearConfigCache } = await import('../src/main/config'); clearConfigCache()
+    const result = loadSafeConfig()
+
+    expect(result.douyin_cookie).toBe('')
+    expect(result.api_key).toBe('sk-test')
+  })
+})
+
+// ============================================================
 // saveConfig
 // ============================================================
 

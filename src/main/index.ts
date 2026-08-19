@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, session } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
 import { join, basename, extname } from 'path'
 import { loadConfig, saveConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
@@ -42,6 +42,23 @@ import {
 import { startClipServer, stopClipServer } from './clip-server'
 import { closeToastWindow } from './clipboard-watcher'
 import { processedEpisodeIds, addProcessedId } from './dedup-store'
+import { connectDouyin, getDouyinStatus, disconnectDouyin, refreshDouyinStatus } from './douyin-auth'
+import {
+  startNotionAuth,
+  handleNotionOAuthCallback,
+  parseNotionCallback,
+  getNotionStatus,
+  listNotionDatabases,
+  setNotionDatabase,
+  disconnectNotion,
+} from './oauth/notion-oauth'
+import {
+  startFeishuAuth,
+  getFeishuStatus,
+  listFeishuChats,
+  setFeishuChat,
+  disconnectFeishu,
+} from './oauth/feishu-oauth'
 import type { StepInfo, FeishuStatus } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -68,10 +85,35 @@ app.on('second-instance', (_e, argv) => {
     mainWindow.show()
     mainWindow.focus()
   }
-  // podmuse:// 协议唤起（书签小工具）
+  // podmuse:// 协议唤起（书签小工具 / OAuth 回调）
   const proto = argv.find(a => typeof a === 'string' && a.startsWith('podmuse://'))
-  if (proto) handleProtocolUrl(proto)
+  if (proto) routeProtocolUrl(proto)
 })
+
+/** OAuth 状态广播（renderer 订阅 notion:oauthStatus / feishu:oauthStatus 事件） */
+function broadcastNotionOAuthStatus(): void {
+  try {
+    mainWindow?.webContents.send('notion:oauthStatus', getNotionStatus())
+  } catch {}
+}
+
+function broadcastFeishuOAuthStatus(): void {
+  try {
+    mainWindow?.webContents.send('feishu:oauthStatus', getFeishuStatus())
+  } catch {}
+}
+
+/**
+ * podmuse:// 路由：OAuth 回调（podmuse://notion/callback）先走授权码闭环，
+ * 其余交给剪贴板/书签处理（handleProtocolUrl）。飞书本地回调走 callback-server 的 http 端口。
+ */
+function routeProtocolUrl(rawUrl: string): void {
+  if (parseNotionCallback(rawUrl)) {
+    void handleNotionOAuthCallback(rawUrl, broadcastNotionOAuthStatus)
+    return
+  }
+  handleProtocolUrl(rawUrl)
+}
 
 function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true
@@ -291,54 +333,53 @@ function setupIPC() {
     return { success: true, path: downloadPath }
   })
 
-  // ---- 抖音 Cookie 登录 ----
-  ipcMain.handle('douyin:login', async () => {
-    return new Promise((resolve, reject) => {
-      const loginWin = new BrowserWindow({
-        width: 500,
-        height: 700,
-        title: '登录抖音',
-        parent: mainWindow || undefined,
-        modal: true,
-        webPreferences: {
-          session: session.defaultSession,
-          nodeIntegration: false,
-          contextIsolation: true,
-        },
-      })
+  // ---- 抖音登录（主进程闭环：cookie 不出主进程，renderer 只见状态与昵称） ----
+  ipcMain.handle('douyin:connect', async () => {
+    return await connectDouyin(mainWindow)
+  })
 
-      loginWin.loadURL('https://www.douyin.com/')
+  ipcMain.handle('douyin:status', () => {
+    return getDouyinStatus()
+  })
 
-      // 检查是否已登录（每3秒检查一次 cookie）
-      const checkInterval = setInterval(async () => {
-        try {
-          const cookies = await session.defaultSession.cookies.get({ domain: '.douyin.com' })
-          const hasLogin = cookies.some(c => c.name === 'sid_guard' || c.name === 'sessionid')
-          if (hasLogin) {
-            clearInterval(checkInterval)
-            // 收集所有抖音 cookie
-            const allCookies = await session.defaultSession.cookies.get({})
-            const douyinCookies = allCookies.filter(
-              c => c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'),
-            )
-            const cookieStr = douyinCookies.map(c => c.name + '=' + c.value).join('; ')
-            loginWin.close()
-            resolve(cookieStr)
-          }
-        } catch {}
-      }, 3000)
+  ipcMain.handle('douyin:disconnect', () => {
+    return disconnectDouyin()
+  })
 
-      loginWin.on('closed', () => {
-        clearInterval(checkInterval)
-        resolve('') // 用户关闭窗口，返回空
-      })
+  // ---- Notion OAuth 连接服务（凭据未注册时优雅降级为 oauth_not_configured） ----
+  ipcMain.handle('notion:oauthStatus', () => {
+    return getNotionStatus()
+  })
+  ipcMain.handle('notion:oauthStart', () => {
+    return startNotionAuth({ onStatusChange: broadcastNotionOAuthStatus })
+  })
+  ipcMain.handle('notion:oauthDatabases', () => {
+    return listNotionDatabases()
+  })
+  ipcMain.handle('notion:oauthSelectDb', (_e, databaseId: string) => {
+    return setNotionDatabase(typeof databaseId === 'string' ? databaseId : '')
+  })
+  ipcMain.handle('notion:oauthDisconnect', () => {
+    return disconnectNotion()
+  })
 
-      loginWin.webContents.on('did-fail-load', (_e, code, desc) => {
-        clearInterval(checkInterval)
-        loginWin.close()
-        reject(new Error('页面加载失败: ' + desc))
-      })
-    })
+  // ---- 飞书 OAuth 连接服务（本地回调 server 优先；凭据未注册时优雅降级） ----
+  ipcMain.handle('feishu:oauthStatus', () => {
+    return getFeishuStatus()
+  })
+  ipcMain.handle('feishu:oauthStart', () => {
+    return startFeishuAuth(broadcastFeishuOAuthStatus)
+  })
+  ipcMain.handle('feishu:oauthChats', () => {
+    return listFeishuChats()
+  })
+  ipcMain.handle('feishu:oauthSelectChat', (_e, params: { chatId?: string; chatName?: string }) => {
+    const chatId = typeof params?.chatId === 'string' ? params.chatId : ''
+    const chatName = typeof params?.chatName === 'string' ? params.chatName : undefined
+    return setFeishuChat(chatId, chatName)
+  })
+  ipcMain.handle('feishu:oauthDisconnect', () => {
+    return disconnectFeishu()
   })
 
   // ---- 以下为涉及模块级状态的 handler，保留在 index.ts 中 ----
@@ -804,6 +845,9 @@ app.whenReady().then(() => {
   setupIPC()
   createTray()
 
+  // 启动时自动刷新抖音登录状态（已存 cookie 时重验，失效标 expired；不阻塞启动）
+  void refreshDouyinStatus().catch(() => {})
+
   // 自动更新（增量）：开发/便携模式自动跳过
   updaterHandle = setupUpdater({
     send: state => {
@@ -822,7 +866,7 @@ app.whenReady().then(() => {
   startClipServer(url => processUrl(url))
   ipcMain.on('toast:close', () => closeToastWindow())
   const protoArgv = process.argv.find(a => a.startsWith('podmuse://'))
-  if (protoArgv) handleProtocolUrl(protoArgv)
+  if (protoArgv) routeProtocolUrl(protoArgv)
 
   startConsistencyChecker(
     hasActiveProcess,

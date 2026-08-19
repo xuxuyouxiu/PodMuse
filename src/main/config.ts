@@ -91,6 +91,10 @@ const DEFAULTS: PodcastConfig = {
   youtube_mirror_base: '',
   clipboard_watch_enabled: true,
 
+  // OAuth 连接服务默认空壳（平台注册就绪前为「未配置」，入口优雅降级为 oauth_not_configured）
+  notion_oauth: { clientId: '', clientSecret: '' },
+  feishu_oauth: { appId: '', appSecret: '' },
+
   // 导出配置默认值
   export: {
     logseq_dir: '',
@@ -268,9 +272,34 @@ export function maskSecret(value: string): string {
  * 返回配置，用于通过 IPC 发送给渲染进程
  * 前端使用 type="password" 隐藏敏感字段的显示值，无需后端脱敏
  * 后端脱敏会导致 UI state 持有 **** 值，进而导致 API 调用使用无效凭据
+ *
+ * 例外：douyin_cookie 必须置空 —— 渲染层（UI/DOM/state）永不接触明文 cookie，
+ * 登录状态改由 douyin:status IPC 下发（docs/配置体系优化落地实现方案.md §2.3 第 3 步）。
+ * 同理，notion_oauth / feishu_oauth 的 token 类字段（accessToken/userAccessToken/refreshToken/
+ * clientSecret/appSecret/expiresAt）在 config:get 前清空，连接状态由 notion:oauthStatus /
+ * feishu:oauthStatus IPC 下发（docs/配置体系优化落地实现方案.md §1.5）。
  */
 export function loadSafeConfig(): PodcastConfig {
-  return loadConfig()
+  const safe = { ...loadConfig() }
+  safe.douyin_cookie = ''
+
+  if (safe.notion_oauth) {
+    safe.notion_oauth = {
+      ...safe.notion_oauth,
+      clientSecret: '',
+      accessToken: undefined,
+    }
+  }
+  if (safe.feishu_oauth) {
+    safe.feishu_oauth = {
+      ...safe.feishu_oauth,
+      appSecret: '',
+      userAccessToken: undefined,
+      refreshToken: undefined,
+      expiresAt: undefined,
+    }
+  }
+  return safe
 }
 
 let stateCache: FeishuState | null = null

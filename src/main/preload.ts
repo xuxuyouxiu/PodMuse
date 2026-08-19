@@ -14,8 +14,38 @@ try {
     getFeishuStatus: () => ipcRenderer.invoke('feishu:status'),
     testFeishuConnection: (params: { appId: string; appSecret: string; chatId: string }) =>
       ipcRenderer.invoke('feishu:testConnection', params),
-    douyinLogin: () => ipcRenderer.invoke('douyin:login'),
+    douyinConnect: () => ipcRenderer.invoke('douyin:connect'),
+    douyinGetStatus: () => ipcRenderer.invoke('douyin:status'),
+    douyinDisconnect: () => ipcRenderer.invoke('douyin:disconnect'),
     douyinSetup: () => ipcRenderer.invoke('douyin:setup'),
+
+    // Notion / 飞书 OAuth 连接服务（主进程闭环：token 不出主进程，renderer 只见状态与目标名）
+    notionOAuthStatus: () => ipcRenderer.invoke('notion:oauthStatus'),
+    notionOAuthStart: () => ipcRenderer.invoke('notion:oauthStart'),
+    notionOAuthDatabases: () => ipcRenderer.invoke('notion:oauthDatabases'),
+    notionOAuthSelectDb: (databaseId: string) =>
+      ipcRenderer.invoke('notion:oauthSelectDb', databaseId),
+    notionOAuthDisconnect: () => ipcRenderer.invoke('notion:oauthDisconnect'),
+    onNotionOAuthStatus: (callback: (status: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, status: unknown) => callback(status)
+      ipcRenderer.on('notion:oauthStatus', handler)
+      return () => {
+        ipcRenderer.removeListener('notion:oauthStatus', handler)
+      }
+    },
+    feishuOAuthStatus: () => ipcRenderer.invoke('feishu:oauthStatus'),
+    feishuOAuthStart: () => ipcRenderer.invoke('feishu:oauthStart'),
+    feishuOAuthChats: () => ipcRenderer.invoke('feishu:oauthChats'),
+    feishuOAuthSelectChat: (chatId: string, chatName?: string) =>
+      ipcRenderer.invoke('feishu:oauthSelectChat', { chatId, chatName }),
+    feishuOAuthDisconnect: () => ipcRenderer.invoke('feishu:oauthDisconnect'),
+    onFeishuOAuthStatus: (callback: (status: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, status: unknown) => callback(status)
+      ipcRenderer.on('feishu:oauthStatus', handler)
+      return () => {
+        ipcRenderer.removeListener('feishu:oauthStatus', handler)
+      }
+    },
 
     processPodcast: (url: string, force = false, taskId?: string, isLocalFile = false) =>
       ipcRenderer.invoke('podcast:process', { url, force, taskId, isLocalFile }),

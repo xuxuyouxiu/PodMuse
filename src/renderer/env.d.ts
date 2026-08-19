@@ -244,6 +244,56 @@ declare global {
     error?: string
   }
 
+  interface DouyinConnectResult {
+    success: boolean
+    nickname?: string
+    error?: string
+    cancelled?: boolean
+    /** 登录已保存但网络不可达未完成校验 */
+    warning?: string
+  }
+
+  interface DouyinStatusInfo {
+    status: 'disconnected' | 'connected' | 'unverified' | 'expired'
+    nickname?: string
+    verifiedAt?: number
+  }
+
+  // ===== Notion / 飞书 OAuth 连接服务（renderer 只见状态与目标名，永不接触 token） =====
+
+  interface OAuthActionResult {
+    success: boolean
+    code?: string
+    error?: string
+  }
+
+  interface NotionOAuthStatusInfo {
+    configured: boolean
+    connected: boolean
+    workspaceId?: string
+    databaseId?: string
+    connectedAt?: number
+  }
+
+  interface FeishuOAuthStatusInfo {
+    configured: boolean
+    connected: boolean
+    tokenExpired?: boolean
+    chatId?: string
+    chatName?: string
+    connectedAt?: number
+  }
+
+  interface NotionDatabaseInfo {
+    id: string
+    title: string
+  }
+
+  interface FeishuChatInfo {
+    id: string
+    name: string
+  }
+
   interface Window {
     electronAPI: {
       getConfig: () => Promise<PodcastConfig | null>
@@ -259,8 +309,23 @@ declare global {
         appSecret: string
         chatId: string
       }) => Promise<{ success: boolean; message: string }>
-      douyinLogin: () => Promise<string>
+      douyinConnect: () => Promise<DouyinConnectResult>
+      douyinGetStatus: () => Promise<DouyinStatusInfo>
+      douyinDisconnect: () => Promise<DouyinStatusInfo>
       douyinSetup: () => Promise<{ success: boolean; error?: string; path?: string }>
+      // Notion / 飞书 OAuth 连接服务
+      notionOAuthStatus: () => Promise<NotionOAuthStatusInfo>
+      notionOAuthStart: () => Promise<OAuthActionResult & { port?: number }>
+      notionOAuthDatabases: () => Promise<OAuthActionResult & { databases?: NotionDatabaseInfo[] }>
+      notionOAuthSelectDb: (databaseId: string) => Promise<OAuthActionResult>
+      notionOAuthDisconnect: () => Promise<NotionOAuthStatusInfo>
+      onNotionOAuthStatus: (callback: (status: NotionOAuthStatusInfo) => void) => () => void
+      feishuOAuthStatus: () => Promise<FeishuOAuthStatusInfo>
+      feishuOAuthStart: () => Promise<OAuthActionResult>
+      feishuOAuthChats: () => Promise<OAuthActionResult & { chats?: FeishuChatInfo[] }>
+      feishuOAuthSelectChat: (chatId: string, chatName?: string) => Promise<OAuthActionResult>
+      feishuOAuthDisconnect: () => Promise<FeishuOAuthStatusInfo>
+      onFeishuOAuthStatus: (callback: (status: FeishuOAuthStatusInfo) => void) => () => void
       processPodcast: (
         url: string,
         force?: boolean,

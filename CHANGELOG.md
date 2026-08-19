@@ -5,6 +5,22 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.49.0] - 2026-08-20
+
+### 新增
+- **设置页「连接服务」模式**（方案 docs/配置体系优化落地实现方案.md P0）：
+  - 图文说明书内置：新增 GuideCarousel 图文弹层 + 6 组步骤指南（AI Key/飞书/抖音/Notion/Whisper/笔记目录），AI、飞书、Notion、Whisper、目录区均有一键「看图文」；截图缺失时以占位卡优雅降级，后续把 PNG 放入 public/onboarding/<key>/n.png 即零代码补图
+  - 抖音「无 Cookie」登录：登录窗扫码后主进程自动捕获并校验 Cookie（校验接口实测：无 cookie 返回 error_code=1 会话过期），设置页只显示「已连接·昵称 / 已过期」状态卡；Cookie 全程不出主进程、渲染层零接触（config:get 置空 + config:save 无条件还原），配置新增 douyin_login 状态
+  - 飞书 / Notion OAuth 连接骨架：授权码模式主进程闭环（127.0.0.1 临时回调 server、token 交换与飞书 5 分钟自动续期、群聊/数据库选择器、401 置断开），未注册平台时按钮优雅置灰；手动高级模式折叠保留，notion 导出优先使用 OAuth 凭据
+- i18n 新增连接服务相关文案（含英文翻译）
+
+### 修复
+- 抖音登录窗子资源加载失败不再误关窗口（仅主框架 did-fail-load 才中止）
+
+### 测试
+- 新增 75 例：douyin-auth 27（校验四分支/状态流转）、oauth-client 39（token 交换/续期/断开/未配置降级）、guide-carousel 9（manifest 与降级）
+- 全量 348 测试通过
+
 ## [1.48.2] - 2026-08-19
 
 ### 修复

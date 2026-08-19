@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
+import { BookOpen } from 'lucide-react'
+import GuideCarousel from '../GuideCarousel'
+import NotionOAuthCard from './NotionOAuthCard'
 
 interface Props {
   form: PodcastConfig
@@ -21,6 +24,7 @@ export default function TabExport({ form, update }: Props) {
 
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [guideKey, setGuideKey] = useState<string | null>(null)
 
   function updateLogseqDir(dir: string) {
     update('export', { ...exportConfig, logseq_dir: dir })
@@ -83,60 +87,79 @@ export default function TabExport({ form, update }: Props) {
 
       {/* Notion */}
       <div>
-        <div className="settings-section-title" style={{ marginBottom: 8 }}>
-          {t('Notion 集成')}
-        </div>
-        <div className="settings-grid">
-          <Field
-            label="Integration Token"
-            value={notion.token}
-            onChange={v => updateNotionField('token', v)}
-            secret
-            placeholder="secret_xxxxxxxxxxxxxxxxxxx"
-          />
-          <Field
-            label="Database ID"
-            value={notion.database_id}
-            onChange={v => updateNotionField('database_id', v)}
-            placeholder={`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx ${t('或')} database URL`}
-          />
-        </div>
-        <div className="settings-test-row">
-          <button
-            onClick={handleTestConnection}
-            disabled={testing || !notion.token.trim() || !notion.database_id.trim()}
-            className="settings-browse-button"
-            style={{
-              opacity: testing || !notion.token.trim() || !notion.database_id.trim() ? 0.6 : 1,
-            }}
-          >
-            {testing ? t('测试中…') : t('测试连接')}
+        <div
+          className="settings-dir-row"
+          style={{ justifyContent: 'space-between', marginBottom: 8 }}
+        >
+          <div className="settings-section-title">{t('Notion 集成')}</div>
+          <button className="settings-link-button" onClick={() => setGuideKey('notion')}>
+            <BookOpen size={11} />
+            {t('三步图文')}
           </button>
-          {testResult && (
-            <span
-              className={
-                testResult.success
-                  ? 'settings-test-result--success'
-                  : 'settings-test-result--error'
-              }
-            >
-              {testResult.success ? '✓ ' : '✗ '}
-              {t(testResult.message)}
-            </span>
-          )}
         </div>
-        <div className="settings-hint" style={{ marginTop: 8 }}>
-          {t('在 Notion 中创建 integration（')}
-          <span
-            onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')}
+        <NotionOAuthCard />
+
+        <details style={{ marginTop: 8 }}>
+          <summary
             className="settings-link-button"
-            style={{ display: 'inline' }}
+            style={{ display: 'inline-block', cursor: 'pointer' }}
           >
-            https://www.notion.so/my-integrations
-          </span>
-          {t('），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。')}
-        </div>
+            {t('高级模式（手动 Token）')}
+          </summary>
+          <div className="settings-grid" style={{ marginTop: 10 }}>
+            <Field
+              label="Integration Token"
+              value={notion.token}
+              onChange={v => updateNotionField('token', v)}
+              secret
+              placeholder="secret_xxxxxxxxxxxxxxxxxxx"
+            />
+            <Field
+              label="Database ID"
+              value={notion.database_id}
+              onChange={v => updateNotionField('database_id', v)}
+              placeholder={`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx ${t('或')} database URL`}
+            />
+          </div>
+          <div className="settings-test-row">
+            <button
+              onClick={handleTestConnection}
+              disabled={testing || !notion.token.trim() || !notion.database_id.trim()}
+              className="settings-browse-button"
+              style={{
+                opacity: testing || !notion.token.trim() || !notion.database_id.trim() ? 0.6 : 1,
+              }}
+            >
+              {testing ? t('测试中…') : t('测试连接')}
+            </button>
+            {testResult && (
+              <span
+                className={
+                  testResult.success
+                    ? 'settings-test-result--success'
+                    : 'settings-test-result--error'
+                }
+              >
+                {testResult.success ? '✓ ' : '✗ '}
+                {t(testResult.message)}
+              </span>
+            )}
+          </div>
+          <div className="settings-hint" style={{ marginTop: 8 }}>
+            {t('在 Notion 中创建 integration（')}
+            <span
+              onClick={() => window.electronAPI.openExternal('https://www.notion.so/my-integrations')}
+              className="settings-link-button"
+              style={{ display: 'inline' }}
+            >
+              https://www.notion.so/my-integrations
+            </span>
+            {t('），将目标 database 分享给该 integration，复制 token 和 database ID 填入上方。Database 需包含 title 列，可选列：show/episode/host/guest/platform（rich_text）、date（date）、category/platform（select）、tags（multi_select）。')}
+          </div>
+        </details>
       </div>
+
+      {guideKey && <GuideCarousel guideKey={guideKey} onClose={() => setGuideKey(null)} />}
     </div>
   )
 }

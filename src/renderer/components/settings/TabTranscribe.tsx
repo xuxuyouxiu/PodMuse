@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField } from './FieldComponents'
 import { useI18n } from '../../i18n'
+import GuideCarousel from '../GuideCarousel'
 
 export default function TabTranscribe({
   form,
@@ -12,9 +14,15 @@ export default function TabTranscribe({
   onBrowse: (key: 'obsidian_dir' | 'audio_dir' | 'whisper_exe_path') => void
 }) {
   const { t } = useI18n()
+  const [guide, setGuide] = useState<string | null>(null)
   return (
     <div>
       <TabHeader title={t('转写偏好')} subtitle={t('设置语音识别语言和文件存储位置')} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button type="button" className="settings-link-button" onClick={() => setGuide('dirs')}>
+          {t('怎么选笔记目录？看图文')}
+        </button>
+      </div>
       <div className="settings-grid">
         <div className="settings-field">
           <div className="settings-field-label">{t('语音识别语言')}</div>
@@ -52,6 +60,7 @@ export default function TabTranscribe({
           onBrowse={() => onBrowse('audio_dir')}
         />
       </div>
+      {guide && <GuideCarousel guideKey={guide} onClose={() => setGuide(null)} />}
     </div>
   )
 }

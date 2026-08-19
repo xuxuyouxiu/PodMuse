@@ -3,6 +3,9 @@ import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
+import GuideCarousel from '../GuideCarousel'
+import DouyinConnectionCard from './DouyinConnectionCard'
+import FeishuOAuthCard from './FeishuOAuthCard'
 
 // 飞书测试连接结果 → 多语言显示
 function formatFeishuResult(
@@ -28,6 +31,7 @@ function formatFeishuResult(
 import {
   Fish,
   Bot,
+  BookOpen,
   Moon,
   Cpu,
   Cloud,
@@ -76,9 +80,6 @@ export default function TabApi({
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsStatus, setFetchModelsStatus] = useState<string | null>(null)
   const [feishuTesting, setFeishuTesting] = useState(false)
-  const [douyinSetupChecking, setDouyinSetupChecking] = useState(false)
-  const [douyinSetupResult, setDouyinSetupResult] = useState<{ success: boolean; message: string } | null>(null)
-  const [douyinLoginLoading, setDouyinLoginLoading] = useState(false)
   const [feishuTestResult, setFeishuTestResult] = useState<{
     success: boolean
     code?: string
@@ -86,6 +87,7 @@ export default function TabApi({
     chatName?: string
     detail?: string
   } | null>(null)
+  const [guideKey, setGuideKey] = useState<string | null>(null)
 
   // 获取当前供应商配置
   const currentProvider = providers[activeProvider] || ({} as AIProviderConfig)
@@ -231,6 +233,10 @@ export default function TabApi({
                   {t('获取密钥')}
                 </span>
               )}
+              <button className="settings-link-button" onClick={() => setGuideKey('ai-key')}>
+                <BookOpen size={11} />
+                {t('看图文')}
+              </button>
               {currentPreset && (
                 <button
                   onClick={handleResetToDefault}
@@ -338,88 +344,108 @@ export default function TabApi({
         </div>
       )}
 
-      {/* 飞书配置 */}
+      {/* 飞书连接服务（OAuth）：未配置时按钮置灰，高级三字段模式折叠保留 */}
       <div style={{ marginTop: 24 }}>
-        <div className="settings-section-title" style={{ marginBottom: 12 }}>
-          {t('飞书集成')}
-        </div>
-        <div className="settings-grid">
-          <Field
-            label={t('飞书 App ID')}
-            value={form.feishu_app_id}
-            onChange={v => update('feishu_app_id', v)}
-            placeholder="cli_xxxxxxxxxx"
-          />
-          <Field
-            label={t('飞书 App Secret')}
-            value={form.feishu_app_secret}
-            onChange={v => update('feishu_app_secret', v)}
-            secret
-            placeholder={t('输入飞书应用 App Secret')}
-          />
-          <Field
-            label={t('飞书群聊 Chat ID')}
-            value={form.feishu_chat_id}
-            onChange={v => update('feishu_chat_id', v)}
-            placeholder="oc_xxxxxxxxxxxxxxxxxx"
-          />
-        </div>
-        <div className="settings-test-row">
-          <button
-            onClick={async () => {
-              setFeishuTesting(true)
-              setFeishuTestResult(null)
-              try {
-                const result = await window.electronAPI.testFeishuConnection({
-                  appId: form.feishu_app_id,
-                  appSecret: form.feishu_app_secret,
-                  chatId: form.feishu_chat_id,
-                })
-                setFeishuTestResult(result)
-              } catch (e) {
-                setFeishuTestResult({
-                  success: false,
-                  message: t('测试失败') + ': ' + (e as Error).message,
-                })
-              } finally {
-                setFeishuTesting(false)
-              }
-            }}
-            disabled={feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()}
-            className="settings-browse-button"
-            style={{
-              opacity:
-                feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()
-                  ? 0.6
-                  : 1,
-            }}
-          >
-            {feishuTesting ? t('测试中…') : t('测试连接')}
+        <div
+          className="settings-dir-row"
+          style={{ justifyContent: 'space-between', marginBottom: 12 }}
+        >
+          <div className="settings-section-title">{t('飞书集成')}</div>
+          <button className="settings-link-button" onClick={() => setGuideKey('feishu')}>
+            <BookOpen size={11} />
+            {t('连接飞书 · 看图文')}
           </button>
-          {feishuTestResult && (
-            <span
-              className={
-                feishuTestResult.success
-                  ? 'settings-test-result--success'
-                  : 'settings-test-result--error'
-              }
-            >
-              {feishuTestResult.success ? '✓ ' : '✗ '}
-              {formatFeishuResult(feishuTestResult, t)}
-            </span>
-          )}
         </div>
-        <div className="settings-hint">
-          {t('在')}
-          <span
-            onClick={() => window.electronAPI.openExternal('https://open.feishu.cn')}
+
+        <FeishuOAuthCard />
+
+        <details style={{ marginTop: 8 }}>
+          <summary
             className="settings-link-button"
-            style={{ display: 'inline' }}
+            style={{ display: 'inline-block', cursor: 'pointer' }}
           >
-            {t('飞书开放平台')}
-          </span>
-          {t('创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。')}
-        </div>
+            {t('高级模式（自建应用）')}
+          </summary>
+          <div className="settings-grid" style={{ marginTop: 10 }}>
+            <Field
+              label={t('飞书 App ID')}
+              value={form.feishu_app_id}
+              onChange={v => update('feishu_app_id', v)}
+              placeholder="cli_xxxxxxxxxx"
+            />
+            <Field
+              label={t('飞书 App Secret')}
+              value={form.feishu_app_secret}
+              onChange={v => update('feishu_app_secret', v)}
+              secret
+              placeholder={t('输入飞书应用 App Secret')}
+            />
+            <Field
+              label={t('飞书群聊 Chat ID')}
+              value={form.feishu_chat_id}
+              onChange={v => update('feishu_chat_id', v)}
+              placeholder="oc_xxxxxxxxxxxxxxxxxx"
+            />
+          </div>
+          <div className="settings-test-row">
+            <button
+              onClick={async () => {
+                setFeishuTesting(true)
+                setFeishuTestResult(null)
+                try {
+                  const result = await window.electronAPI.testFeishuConnection({
+                    appId: form.feishu_app_id,
+                    appSecret: form.feishu_app_secret,
+                    chatId: form.feishu_chat_id,
+                  })
+                  setFeishuTestResult(result)
+                } catch (e) {
+                  setFeishuTestResult({
+                    success: false,
+                    message: t('测试失败') + ': ' + (e as Error).message,
+                  })
+                } finally {
+                  setFeishuTesting(false)
+                }
+              }}
+              disabled={
+                feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()
+              }
+              className="settings-browse-button"
+              style={{
+                opacity:
+                  feishuTesting || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()
+                    ? 0.6
+                    : 1,
+              }}
+            >
+              {feishuTesting ? t('测试中…') : t('测试连接')}
+            </button>
+            {feishuTestResult && (
+              <span
+                className={
+                  feishuTestResult.success
+                    ? 'settings-test-result--success'
+                    : 'settings-test-result--error'
+                }
+              >
+                {feishuTestResult.success ? '✓ ' : '✗ '}
+                {formatFeishuResult(feishuTestResult, t)}
+              </span>
+            )}
+          </div>
+          <div className="settings-hint">
+            {t('在')}
+            <span
+              onClick={() => window.electronAPI.openExternal('https://open.feishu.cn')}
+              className="settings-link-button"
+              style={{ display: 'inline' }}
+            >
+              {t('飞书开放平台')}
+            </span>
+            {t('创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。')}
+          </div>
+        </details>
       </div>
 
       {/* 通知设置 */}
@@ -436,94 +462,10 @@ export default function TabApi({
         </label>
       </div>
 
-      {/* 抖音配置 */}
-      <div className="settings-section" style={{ marginTop: 24 }}>
-        <div className="settings-section-title">{t('抖音配置')}</div>
-        <div className="settings-field">
-          <div className="settings-field-label">{t('抖音 Cookie')}</div>
-          <textarea
-            value={form.douyin_cookie || ''}
-            onChange={e => update('douyin_cookie', e.target.value)}
-            placeholder={t('点击下方按钮自动获取，或手动粘贴 Cookie')}
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-card)',
-              color: 'var(--text)',
-              fontSize: 12,
-              fontFamily: 'monospace',
-              resize: 'vertical',
-            }}
-          />
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              className="settings-browse-button"
-              disabled={douyinSetupChecking}
-              style={{ opacity: douyinSetupChecking ? 0.6 : 1 }}
-              onClick={async () => {
-                setDouyinSetupChecking(true)
-                setDouyinSetupResult(null)
-                try {
-                  const result = await window.electronAPI.douyinSetup()
-                  setDouyinSetupResult({
-                    success: result.success,
-                    message: result.success ? '环境检查通过！' : result.error || '检查失败',
-                  })
-                } catch (e: unknown) {
-                  setDouyinSetupResult({ success: false, message: e instanceof Error ? e.message : '检查失败' })
-                } finally {
-                  setDouyinSetupChecking(false)
-                }
-              }}
-            >
-              {douyinSetupChecking ? t('检查中…') : t('检查环境')}
-            </button>
-            {douyinSetupResult && (
-              <span className={douyinSetupResult.success ? 'settings-test-result--success' : 'settings-test-result--error'}>
-                {douyinSetupResult.success ? '✓ ' : '✗ '}{t(douyinSetupResult.message)}
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              className="settings-browse-button"
-              disabled={douyinLoginLoading}
-              style={{ opacity: douyinLoginLoading ? 0.6 : 1 }}
-              onClick={async () => {
-                setDouyinLoginLoading(true)
-                try {
-                  const cookie = await window.electronAPI.douyinLogin()
-                  if (cookie) {
-                    update('douyin_cookie', cookie)
-                  }
-                } catch {
-                  // 错误处理在 App.tsx 的 toast 中
-                } finally {
-                  setDouyinLoginLoading(false)
-                }
-              }}
-            >
-              {douyinLoginLoading ? t('获取中…') : t('自动获取 Cookie')}
-            </button>
-            {form.douyin_cookie && (
-              <button
-                className="settings-browse-button"
-                onClick={() => update('douyin_cookie', '')}
-                style={{ opacity: 0.6 }}
-              >
-                {t('清除')}
-              </button>
-            )}
-          </div>
-          <p className="settings-hint" style={{ marginTop: 8 }}>
-            {t('首次使用：① 安装 Python 3.8+ ② 下载 douyin-downloader ③ 点击「检查环境」 ④ 点击「自动获取 Cookie」。')}<br/>
-            {t('下载地址：')}<a href="#" onClick={e => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/jiji262/douyin-downloader') }}>github.com/jiji262/douyin-downloader</a>
-          </p>
-        </div>
-      </div>
+      {/* 抖音：无 Cookie 展示 —— 主进程闭环登录，渲染层只见状态与昵称 */}
+      <DouyinConnectionCard />
+
+      {guideKey && <GuideCarousel guideKey={guideKey} onClose={() => setGuideKey(null)} />}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { loadConfig, loadState } from './config'
 import { exportToNotion, testNotionConnection } from './notion-converter'
+import { resolveNotionExportCredential } from './oauth/notion-oauth'
 import type { ExportResult } from './exporter-types'
 
 /**
@@ -150,16 +151,16 @@ export async function exportNote(params: {
   }
 
   if (target === 'notion') {
-    const config = loadConfig()
-    const notion = config.export?.notion
-    if (!notion?.token?.trim() || !notion?.database_id?.trim()) {
-      return { success: false, error: '未配置 Notion 集成，请在设置中配置 Token 和 Database ID' }
+    // 凭据来源：优先 OAuth（连接服务），回退手动高级模式 token/database_id（§1.5.2 衔接）
+    const cred = resolveNotionExportCredential()
+    if (!cred) {
+      return { success: false, error: '未配置 Notion 集成，请在设置中连接 Notion 或手动填写 Token 和 Database ID' }
     }
     try {
       const content = await fs.promises.readFile(srcPath, 'utf-8')
       const result = await exportToNotion({
-        token: notion.token.trim(),
-        databaseId: notion.database_id.trim(),
+        token: cred.token,
+        databaseId: cred.databaseId,
         markdown: content,
         relativePath: noteLocation.relativePath,
       })

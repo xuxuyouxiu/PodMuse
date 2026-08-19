@@ -3,6 +3,7 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
+import { refreshDouyinStatus } from '../douyin-auth'
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
 /** douyin-downloader 路径 */
@@ -46,6 +47,10 @@ export class DouyinAdapter implements PlatformAdapter {
   }
 
   async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
+    // 处理抖音链接前自动刷新登录状态卡（有 cookie 时重验，失效标 expired）。
+    // cookie 不进下载链路（douyin-downloader 使用自身 config.yml），此处不阻塞、不改下载行为。
+    void refreshDouyinStatus().catch(() => {})
+
     const downloaderPath = getDownloaderPath()
     const scriptPath = path.join(downloaderPath, 'douyin-cli.py')
 
