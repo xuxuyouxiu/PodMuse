@@ -5,6 +5,7 @@
 <h1 align="center">PodMuse</h1>
 <p align="center"><strong>把播客变成你的第二大脑 🧠</strong></p>
 <p align="center">粘贴一条链接，AI 自动转写、提炼、结构化，让每一期节目都沉淀为可复用、可互链的知识资产</p>
+<p align="center">🌐 官网：<a href="https://xuxuya66.top"><strong>xuxuya66.top</strong></a></p>
 
 ---
 
