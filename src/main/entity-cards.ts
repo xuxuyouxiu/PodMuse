@@ -266,7 +266,10 @@ export function filterNonNotablePeople(entities: EntityResult): EntityResult {
  * 用于将正文中这些名字的 [[wiki-link]] 转为纯文本，避免悬挂链接
  */
 export function getNonNotablePeopleNames(entities: EntityResult): string[] {
-  return entities.people.filter(p => !isNotablePerson(p)).map(p => p.name).filter(Boolean)
+  return entities.people
+    .filter(p => !isNotablePerson(p))
+    .map(p => p.name)
+    .filter(Boolean)
 }
 
 export function sanitizeName(name: string): string {
@@ -290,6 +293,26 @@ export function relativePath(fromDir: string, toFile: string): string {
 }
 
 /**
+ * 编码 Markdown 链接目标中会破坏解析的字符（空格 / # / ? / 半角括号）。
+ * 文件名含空格的英文实体（Five Guys、M Stand、Apple Intelligence）若不编码，
+ * 生成的 [名称](../项目/Five Guys.md) 不符合 CommonMark 规范，marked 无法解析成链接，
+ * 会显示成原始文本——这是英文名实体链接异常、中文名正常的根因。
+ * 只编码不安全字符，保留 / 与中文，笔记源码保持可读。
+ */
+export function encodeMarkdownLinkPath(rel: string): string {
+  // 注意：encodeURIComponent 对 ( ) ' ! ~ * 等字符不转义，而 ( ) 会破坏
+  // Markdown 链接目标解析，必须显式映射
+  const MD_UNSAFE: Record<string, string> = {
+    ' ': '%20',
+    '(': '%28',
+    ')': '%29',
+    '#': '%23',
+    '?': '%3F',
+  }
+  return rel.replace(/[ ()#?]/g, c => MD_UNSAFE[c] ?? c)
+}
+
+/**
  * 将 [[wiki-link]] 转换为标准 Markdown 链接 [wiki-link](relative/path.md)
  * @param content 笔记内容
  * @param noteDir 笔记所在目录（用于计算相对路径）
@@ -303,19 +326,32 @@ export function relativePath(fromDir: string, toFile: string): string {
  */
 export function normalizeEntityLinks(md: string, noteDir: string, obsDir: string): string {
   const entityDirs = ['概念', '术语', '人物', '项目']
-  return md.replace(/\[([^\]]+)\]\(((?:\.\.\/)*)(概念|术语|人物|项目)\/([^/)]+\.md)\)/g, (whole, text: string, _dots: string, dir: string, file: string) => {
-    // 文本去目录前缀（可能带别名分隔 |）
-    const cleanText = text.replace(/^(概念|术语|人物|项目)\//, '').split('|').pop() || text
-    // 重算相对路径（obsDir 下 目录/文件名）
-    try {
-      const abs = path.join(obsDir, dir, file)
-      const rel = relativePath(noteDir, abs)
-      return `[${cleanText}](${rel})`
-    } catch {
-      return whole
-    }
-    void entityDirs
-  })
+  return md.replace(
+    /\[([^\]]+)\]\(((?:\.\.\/)*)(概念|术语|人物|项目)\/([^/)]+\.md)\)/g,
+    (whole, text: string, _dots: string, dir: string, file: string) => {
+      // 文本去目录前缀（可能带别名分隔 |）
+      const cleanText =
+        text
+          .replace(/^(概念|术语|人物|项目)\//, '')
+          .split('|')
+          .pop() || text
+      // 重算相对路径（obsDir 下 目录/文件名）；文件名先解码（幂等），再编码不安全字符
+      try {
+        let fileName = file
+        try {
+          fileName = decodeURIComponent(file.replace(/\+/g, '%2B'))
+        } catch {
+          /* 未编码的原始文件名 */
+        }
+        const abs = path.join(obsDir, dir, fileName)
+        const rel = encodeMarkdownLinkPath(relativePath(noteDir, abs))
+        return `[${cleanText}](${rel})`
+      } catch {
+        return whole
+      }
+      void entityDirs
+    },
+  )
 }
 
 export function convertWikiLinks(
@@ -325,10 +361,13 @@ export function convertWikiLinks(
 ): string {
   return content.replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, (_match, name: string) => {
     const trimmed = name.trim()
-    const absPath = entityMap.get(trimmed)
-    if (!absPath) return `[${trimmed}](${trimmed}.md)` // fallback
-    const rel = relativePath(noteDir, absPath)
-    return `[${trimmed}](${rel})`
+    // [[项目/张雪机车]] 这类带目录前缀的写法 → 去掉前缀再查表
+    const lookup = trimmed.replace(/^(概念|术语|人物|项目)\//, '')
+    const absPath = entityMap.get(lookup) || entityMap.get(trimmed)
+    // 未收录的名称降级为纯文本，不生成指向不存在文件的坏链接
+    if (!absPath) return lookup
+    const rel = encodeMarkdownLinkPath(relativePath(noteDir, absPath))
+    return `[${lookup}](${rel})`
   })
 }
 
@@ -549,7 +588,7 @@ export async function writeEntityNotes(
         opinions: (person.opinions || []).map(o => `- ${o}`).join('\n'),
         timeline: person.timeline || '',
         quotes: (person.quotes || []).map(q => `> ${q}`).join('\n'),
-        source: `[${podcastNameNoExt}](${sourceRelPath})`,
+        source: `[${podcastNameNoExt}](${encodeMarkdownLinkPath(sourceRelPath)})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -573,7 +612,7 @@ export async function writeEntityNotes(
         timeline: project.timeline || '',
         links: project.links || '',
         achievements: (project.achievements || []).map(a => `- ${a}`).join('\n'),
-        source: `[${podcastNameNoExt}](${sourceRelPath})`,
+        source: `[${podcastNameNoExt}](${encodeMarkdownLinkPath(sourceRelPath)})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -659,8 +698,10 @@ export async function writeEntityNotes(
         date: today,
         name: concept.name,
         explanation,
-        related: (concept.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
-        source: `[${podcastNameNoExt}](${sourceRelPath})`,
+        related: (concept.related || [])
+          .map(r => `- [${r}](${encodeMarkdownLinkPath(sanitizeName(r))}.md)`)
+          .join('\n'),
+        source: `[${podcastNameNoExt}](${encodeMarkdownLinkPath(sourceRelPath)})`,
       })
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(filePath, content, 'utf-8')
@@ -686,8 +727,10 @@ export async function writeEntityNotes(
           cardType: term.cardType || '',
           contextExplanation: term.contextExplanation || '',
           supplementary: term.supplementary || '',
-          related: (term.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
-          source: `[${podcastNameNoExt}](${sourceRelPath})`,
+          related: (term.related || [])
+            .map(r => `- [${r}](${encodeMarkdownLinkPath(sanitizeName(r))}.md)`)
+            .join('\n'),
+          source: `[${podcastNameNoExt}](${encodeMarkdownLinkPath(sourceRelPath)})`,
         })
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
         fs.writeFileSync(filePath, content, 'utf-8')
@@ -714,8 +757,10 @@ export async function writeEntityNotes(
           date: today,
           name: term.name,
           explanation,
-          related: (term.related || []).map(r => `- [${r}](${sanitizeName(r)}.md)`).join('\n'),
-          source: `[${podcastNameNoExt}](${sourceRelPath})`,
+          related: (term.related || [])
+            .map(r => `- [${r}](${encodeMarkdownLinkPath(sanitizeName(r))}.md)`)
+            .join('\n'),
+          source: `[${podcastNameNoExt}](${encodeMarkdownLinkPath(sourceRelPath)})`,
         })
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
         fs.writeFileSync(filePath, content, 'utf-8')
@@ -748,8 +793,11 @@ export async function writeEntityNotes(
 
 function appendSourceLink(filePath: string, linkName: string, relPath: string): void {
   const content = fs.readFileSync(filePath, 'utf-8')
-  const link = `[${linkName}](${relPath})`
-  if (content.includes(link)) return
+  const encodedPath = encodeMarkdownLinkPath(relPath)
+  const link = `[${linkName}](${encodedPath})`
+  // 兼容旧版未编码链接，避免重复追加
+  const legacy = `[${linkName}](${relPath})`
+  if (content.includes(link) || content.includes(legacy)) return
   fs.appendFileSync(filePath, `\n- ${link}\n`, 'utf-8')
 }
 
@@ -770,7 +818,9 @@ function updateRecentMentions(
   const datePart = podcastDate || ''
   const episodePart = podcastEpisode && podcastEpisode !== '单集' ? ` ${podcastEpisode}` : ''
   const meta = `(${datePart}${episodePart})`.replace(/\(\s*\)/, '').trim()
-  const link = `[${linkName}](${relPath})`
+  const encodedPath = encodeMarkdownLinkPath(relPath)
+  const link = `[${linkName}](${encodedPath})`
+  const legacy = `[${linkName}](${relPath})`
   const newEntry = meta ? `- ${link} ${meta}` : `- ${link}`
 
   const sectionRe = /\n# 近期提及\n([\s\S]*?)(?=\n# |\n---\s*$|$)/
@@ -781,7 +831,7 @@ function updateRecentMentions(
       .trim()
       .split('\n')
       .filter(l => l.startsWith('- '))
-    const filtered = existingLines.filter(l => !l.includes(link))
+    const filtered = existingLines.filter(l => !l.includes(link) && !l.includes(legacy))
     const updated = [newEntry, ...filtered].slice(0, 3)
     const newSection = `\n# 近期提及\n${updated.join('\n')}\n`
     content = content.replace(sectionRe, newSection)
@@ -884,9 +934,7 @@ export function fillMissingEntityCards(
   // 跳过名单（如被过滤的非知名人物）不补卡片
   const skipSet = new Set(skipNames || [])
 
-  const missing = bodyLinks.filter(
-    name => name && !existingNames.has(name) && !skipSet.has(name),
-  )
+  const missing = bodyLinks.filter(name => name && !existingNames.has(name) && !skipSet.has(name))
   if (!missing.length) return { entities, filled: 0 }
 
   // 为缺卡片的链接创建概念卡片（最通用的实体类型）

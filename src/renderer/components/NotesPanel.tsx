@@ -42,7 +42,7 @@ function tabHue(name: string): number {
     h = (h * 31 + name.charCodeAt(i)) % 360
   }
   // 避免过暗/过亮区段，映射到 0-360 视觉舒适区间
-  return (h % 360 + 360) % 360
+  return ((h % 360) + 360) % 360
 }
 
 interface NoteDirGroup {
@@ -93,30 +93,33 @@ export default function NotesPanel() {
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   // 拖动分隔条调整栏宽
-  const startDrag = useCallback((e: React.MouseEvent, side: 'files' | 'chat') => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startWidth = side === 'files' ? filesWidth : chatWidth
-    const onMove = (ev: MouseEvent) => {
-      const delta = side === 'files' ? ev.clientX - startX : startX - ev.clientX
-      const next = Math.round(startWidth + delta)
-      if (side === 'files') {
-        setFilesWidth(Math.max(150, Math.min(420, next)))
-      } else {
-        setChatWidth(Math.max(220, Math.min(520, next)))
+  const startDrag = useCallback(
+    (e: React.MouseEvent, side: 'files' | 'chat') => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startWidth = side === 'files' ? filesWidth : chatWidth
+      const onMove = (ev: MouseEvent) => {
+        const delta = side === 'files' ? ev.clientX - startX : startX - ev.clientX
+        const next = Math.round(startWidth + delta)
+        if (side === 'files') {
+          setFilesWidth(Math.max(150, Math.min(420, next)))
+        } else {
+          setChatWidth(Math.max(220, Math.min(520, next)))
+        }
       }
-    }
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }, [filesWidth, chatWidth])
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    },
+    [filesWidth, chatWidth],
+  )
 
   // 记录当前预览对应的链接，浮层打开期间同一链接不重复触发
   const [previewHref, setPreviewHref] = useState('')
@@ -190,14 +193,22 @@ export default function NotesPanel() {
         .readNote(path)
         .then(res => {
           if (res.success && res.content) {
-            setTabs(prev => prev.map(t => (t.id === id ? { ...t, content: res.content!, loading: false } : t)))
+            setTabs(prev =>
+              prev.map(t => (t.id === id ? { ...t, content: res.content!, loading: false } : t)),
+            )
           } else {
-            setTabs(prev => prev.map(t => (t.id === id ? { ...t, error: res.error || t.name, loading: false } : t)))
+            setTabs(prev =>
+              prev.map(t =>
+                t.id === id ? { ...t, error: res.error || t.name, loading: false } : t,
+              ),
+            )
           }
         })
         .catch(e => {
           setTabs(prev =>
-            prev.map(t => (t.id === id ? { ...t, error: (e as Error).message, loading: false } : t)),
+            prev.map(t =>
+              t.id === id ? { ...t, error: (e as Error).message, loading: false } : t,
+            ),
           )
         })
     },
@@ -303,9 +314,21 @@ export default function NotesPanel() {
   const readFirstExisting = useCallback(
     (
       candidates: string[],
-    ): Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }> => {
+    ): Promise<{
+      success: boolean
+      content?: string
+      filename?: string
+      path?: string
+      error?: string
+    }> => {
       let index = 0
-      const tryNext = (): Promise<{ success: boolean; content?: string; filename?: string; path?: string; error?: string }> => {
+      const tryNext = (): Promise<{
+        success: boolean
+        content?: string
+        filename?: string
+        path?: string
+        error?: string
+      }> => {
         if (index >= candidates.length) {
           return Promise.resolve({ success: false, error: '笔记不存在' })
         }
@@ -368,16 +391,18 @@ export default function NotesPanel() {
     [resolveHrefs, loadPreview, previewHref],
   )
 
-  function clearPreview() {
+  const clearPreview = useCallback(() => {
     setPreviewHref('')
     setPreview(null)
-  }
+  }, [])
 
   const handleLinkLeave = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
     if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
-    leaveTimerRef.current = setTimeout(() => setPreview(null), 300)
-  }, [])
+    // 给鼠标从链接移入浮层留出时间；到期用 clearPreview 同时重置 previewHref，
+    // 否则同一链接第二次悬浮会被 previewHref 短路、浮层不再出现
+    leaveTimerRef.current = setTimeout(() => clearPreview(), 420)
+  }, [clearPreview])
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -387,15 +412,17 @@ export default function NotesPanel() {
           // 当前标签内跳转（Obsidian 普通点击行为）
           setTabs(prev =>
             prev.map(t =>
-              t.id === activeTabId ? { ...t, path: res.path!, name, content: res.content!, loading: false, error: '' } : t,
+              t.id === activeTabId
+                ? { ...t, path: res.path!, name, content: res.content!, loading: false, error: '' }
+                : t,
             ),
           )
           setActiveTabPath(res.path!)
-          setPreview(null)
+          clearPreview()
         }
       })
     },
-    [readFirstExisting, resolveHrefs, activeTabId],
+    [readFirstExisting, resolveHrefs, activeTabId, clearPreview],
   )
 
   const toggleGroup = (dir: string) => {
@@ -446,53 +473,56 @@ export default function NotesPanel() {
           <ChevronsRight size={13} />
         </button>
       ) : (
-      <div className="notes-panel__files" style={{ width: filesWidth }}>
-        <div className="notes-panel__files-title">
-          <FolderOpen size={13} />
-          <span className="notes-panel__files-title-text">{t('笔记库')}</span>
-          <button
-            className="notes-panel__collapse-btn"
-            onClick={() => setFilesCollapsed(true)}
-            title={t('收起文件树')}
-          >
-            <ChevronsLeft size={12} />
-          </button>
+        <div className="notes-panel__files" style={{ width: filesWidth }}>
+          <div className="notes-panel__files-title">
+            <FolderOpen size={13} />
+            <span className="notes-panel__files-title-text">{t('笔记库')}</span>
+            <button
+              className="notes-panel__collapse-btn"
+              onClick={() => setFilesCollapsed(true)}
+              title={t('收起文件树')}
+            >
+              <ChevronsLeft size={12} />
+            </button>
+          </div>
+          <div className="notes-panel__files-scroll">
+            {groups.map(group => {
+              const isCollapsed = collapsed.has(group.dir)
+              const isEntity = ENTITY_DIRS.has(group.dir)
+              const dirMeta = DIR_ICONS[group.dir]
+              const DirIcon = dirMeta?.icon || FolderOpen
+              return (
+                <div key={group.dir} className="notes-panel__group">
+                  <button className="notes-panel__group-btn" onClick={() => toggleGroup(group.dir)}>
+                    {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                    <DirIcon size={13} style={{ color: dirMeta?.color || 'var(--text-muted)' }} />
+                    <span className="notes-panel__group-name">{group.dir}</span>
+                    <span className="notes-panel__group-count">{group.files.length}</span>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="notes-panel__group-files">
+                      {group.files.map(file => (
+                        <button
+                          key={file.path}
+                          className={`notes-panel__file ${activeTab?.path === file.path ? 'is-active' : ''}`}
+                          onClick={() => openNote(file.path, file.name)}
+                          title={file.relPath}
+                        >
+                          <span className="notes-panel__file-indent" />
+                          <FileText
+                            size={11}
+                            className={isEntity ? 'notes-panel__file-entity' : ''}
+                          />
+                          <span className="notes-panel__file-name">{file.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <div className="notes-panel__files-scroll">
-          {groups.map(group => {
-            const isCollapsed = collapsed.has(group.dir)
-            const isEntity = ENTITY_DIRS.has(group.dir)
-            const dirMeta = DIR_ICONS[group.dir]
-            const DirIcon = dirMeta?.icon || FolderOpen
-            return (
-              <div key={group.dir} className="notes-panel__group">
-                <button className="notes-panel__group-btn" onClick={() => toggleGroup(group.dir)}>
-                  {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                  <DirIcon size={13} style={{ color: dirMeta?.color || 'var(--text-muted)' }} />
-                  <span className="notes-panel__group-name">{group.dir}</span>
-                  <span className="notes-panel__group-count">{group.files.length}</span>
-                </button>
-                {!isCollapsed && (
-                  <div className="notes-panel__group-files">
-                    {group.files.map(file => (
-                      <button
-                        key={file.path}
-                        className={`notes-panel__file ${activeTab?.path === file.path ? 'is-active' : ''}`}
-                        onClick={() => openNote(file.path, file.name)}
-                        title={file.relPath}
-                      >
-                        <span className="notes-panel__file-indent" />
-                        <FileText size={11} className={isEntity ? 'notes-panel__file-entity' : ''} />
-                        <span className="notes-panel__file-name">{file.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
       )}
 
       {/* 文件树分隔条（拖动调宽） */}
@@ -580,23 +610,23 @@ export default function NotesPanel() {
           <ChevronsLeft size={13} />
         </button>
       ) : (
-      <div className="notes-panel__chat" style={{ width: chatWidth }}>
-        <div className="notes-panel__chat-header">
-          <span>{t('问答')}</span>
-          <button
-            className="notes-panel__collapse-btn"
-            onClick={() => setChatCollapsed(true)}
-            title={t('收起聊天')}
-          >
-            <ChevronsRight size={12} />
-          </button>
+        <div className="notes-panel__chat" style={{ width: chatWidth }}>
+          <div className="notes-panel__chat-header">
+            <span>{t('问答')}</span>
+            <button
+              className="notes-panel__collapse-btn"
+              onClick={() => setChatCollapsed(true)}
+              title={t('收起聊天')}
+            >
+              <ChevronsRight size={12} />
+            </button>
+          </div>
+          <QAPanel
+            onOpenSource={source => {
+              openNote(source.path, source.title)
+            }}
+          />
         </div>
-        <QAPanel
-          onOpenSource={source => {
-            openNote(source.path, source.title)
-          }}
-        />
-      </div>
       )}
 
       {/* 悬停预览 — portal 到 body，避免被 transform/motion 容器影响定位 */}
@@ -608,7 +638,11 @@ export default function NotesPanel() {
             onMouseEnter={() => {
               if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
             }}
-            onMouseLeave={() => clearPreview()}
+            onMouseLeave={() => {
+              // 只有移出浮层边缘才关闭；250ms 宽限避免在边缘附近轻微移动导致误关
+              if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
+              leaveTimerRef.current = setTimeout(() => clearPreview(), 250)
+            }}
           >
             <div className="notes-preview-pop__head">
               <span className="notes-preview-pop__title">{preview.name || t('加载中...')}</span>
