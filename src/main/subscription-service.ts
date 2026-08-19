@@ -115,7 +115,8 @@ export class SubscriptionService {
     const cleanName = name.trim()
     const rawUrl = url.trim()
     if (!cleanName || !rawUrl) return { success: false, error: '名称和 RSS 地址不能为空' }
-    if (!/^https?:\/\//i.test(rawUrl)) return { success: false, error: 'RSS 地址需以 http(s):// 开头' }
+    if (!/^https?:\/\//i.test(rawUrl))
+      return { success: false, error: 'RSS 地址需以 http(s):// 开头' }
     if (this.subs.length >= 50) return { success: false, error: '订阅数量已达上限（50）' }
     if (this.subs.some(s => s.url === rawUrl)) {
       return { success: false, error: '该 RSS 地址已订阅' }
@@ -156,7 +157,10 @@ export class SubscriptionService {
         return { success: false, error: '订阅源连接超时，请检查网络后重试' }
       }
       if (/403|406/i.test(lastError) && /xiaoyuzhou/i.test(finalUrl)) {
-        return { success: false, error: '小宇宙订阅源暂不可用（RSSHub 实例拒绝访问），请稍后重试或更换服务地址' }
+        return {
+          success: false,
+          error: '小宇宙订阅源暂不可用（RSSHub 实例拒绝访问），请稍后重试或更换服务地址',
+        }
       }
       return { success: false, error: `RSS 解析失败：${lastError.slice(0, 120)}` }
     }
@@ -290,7 +294,7 @@ export class SubscriptionService {
               const queue = this.getBatchQueue()
               if (queue) {
                 queue.addTasks(
-                  fresh.map(ep => ({ source: ep.link, type: 'url' as const })),
+                  fresh.map(ep => ({ source: ep.link, type: 'url' as const, title: ep.title })),
                 )
               }
               for (const ep of fresh) {

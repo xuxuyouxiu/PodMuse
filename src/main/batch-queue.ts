@@ -12,6 +12,7 @@ import {
   completeRecentTask,
   failRecentTask,
   stopRecentTask,
+  reconcileRecentTasksWithBatch,
 } from './recent-task-state'
 import type { FeishuState } from '@shared/types'
 import type {
@@ -52,6 +53,7 @@ interface PersistedQueue {
     failureReason?: string
     addedAt: number
     title?: string | null
+    filename?: string | null
     platform?: string | null
   }>
   status: BatchQueueStatus
@@ -93,6 +95,12 @@ export class BatchQueueService {
     return this.status === 'running' || this.status === 'paused'
   }
 
+  /** 当前是否有任务真正在处理中（供一致性巡检判定进程是否存活，
+   *  避免巡检把批量处理中的任务误判为孤儿并提前标为「已停止」） */
+  get hasActiveProcessing(): boolean {
+    return this.currentAbort !== null && !this.currentAbort.signal.aborted
+  }
+
   // ---- Public API ----
 
   addTasks(items: BatchInput[]): void {
@@ -101,7 +109,9 @@ export class BatchQueueService {
       source: item.source,
       type: item.type,
       status: 'pending' as BatchTaskStatus,
-      title: item.type === 'file' ? basename(item.source, extname(item.source)) : null,
+      // 入队源头已带标题（订阅 RSS/手动入队）时直接使用，否则本地文件用文件名、URL 待处理阶段预取
+      title:
+        item.title ?? (item.type === 'file' ? basename(item.source, extname(item.source)) : null),
       platform: item.type === 'url' ? detectPlatformId(item.source) : null,
       addedAt: Date.now(),
       providerId: item.providerId,
@@ -338,6 +348,14 @@ export class BatchQueueService {
     this.currentAbort = new AbortController()
     const signal = this.currentAbort.signal
 
+    // Derive episodeId for dedup tracking
+    const episodeId =
+      task.type === 'url'
+        ? platformRegistry.findAdapter(task.source)?.adapter.getDedupKey(task.source) || null
+        : null
+    // 无论任务被巡检移到哪个列表，终态回填都按任务身份精确定位
+    const identity = { taskId: task.id, url: task.source, episodeId }
+
     // Reset StepPanel to clear stale checkmarks from previous task
     for (let i = 0; i < STEP_TITLES.length; i++) {
       this.callbacks.sendStep({ step: i + 1, ...STEP_TITLES[i], status: 'pending' })
@@ -357,9 +375,9 @@ export class BatchQueueService {
       let activeProvider = getActiveProviderConfig(config.ai_provider, config.ai_providers)
       // 任务级模型覆盖（历史页重新生成选模型）
       if (task.providerId && task.model) {
-        const p = (config.ai_providers as Record<string, AIProviderConfig | undefined> | undefined)?.[
-          task.providerId
-        ]
+        const p = (
+          config.ai_providers as Record<string, AIProviderConfig | undefined> | undefined
+        )?.[task.providerId]
         if (p?.apiKey) {
           let baseUrl = p.baseUrl
           if (baseUrl && !baseUrl.includes('/v1')) {
@@ -378,12 +396,6 @@ export class BatchQueueService {
       }
 
       const isLocalFile = task.type === 'file'
-
-      // Derive episodeId for dedup tracking
-      const episodeId =
-        task.type === 'url'
-          ? platformRegistry.findAdapter(task.source)?.adapter.getDedupKey(task.source) || null
-          : null
 
       // Register in recent tasks system so it shows in history
       this.callbacks.updateRecentState(state =>
@@ -422,11 +434,14 @@ export class BatchQueueService {
         processedTitle,
       )
 
+      // 终态回填：把处理阶段拿到的真实标题一并写入历史记录，保证两处状态/标题一致
       if (signal.aborted) {
         // Was paused or cleared during processing
         task.status = 'pending'
         task.steps = undefined
-        this.callbacks.updateRecentState(state => stopRecentTask(state))
+        this.callbacks.updateRecentState(state =>
+          stopRecentTask(state, { ...identity, title: task.title ?? null }),
+        )
         this.callbacks.onTaskUpdate(index, { ...task })
         return
       }
@@ -442,11 +457,9 @@ export class BatchQueueService {
         this.consecutiveFailures = 0
         this.callbacks.updateRecentState(state =>
           completeRecentTask(state, {
-            taskId: task.id,
-            url: task.source,
-            episodeId,
+            ...identity,
             filename: result,
-            title: processedTitle.value || null,
+            title: processedTitle.value || task.title || null,
           }),
         )
         this.callbacks.sendLog(`✓ 完成：${task.title || task.source} → ${result}`)
@@ -455,14 +468,18 @@ export class BatchQueueService {
         task.failureReason = '处理返回空结果'
         task.completedAt = Date.now()
         this.consecutiveFailures++
-        this.callbacks.updateRecentState(state => failRecentTask(state))
+        this.callbacks.updateRecentState(state =>
+          failRecentTask(state, '处理返回空结果', { ...identity, title: task.title ?? null }),
+        )
         this.callbacks.sendLog(`✗ 失败：${task.title || task.source}`)
       }
     } catch (err: unknown) {
       if (signal.aborted) {
         task.status = 'pending'
         task.steps = undefined
-        this.callbacks.updateRecentState(state => stopRecentTask(state))
+        this.callbacks.updateRecentState(state =>
+          stopRecentTask(state, { ...identity, title: task.title ?? null }),
+        )
         this.callbacks.onTaskUpdate(index, { ...task })
         return
       }
@@ -472,7 +489,9 @@ export class BatchQueueService {
       task.failureReason = errMsg
       task.completedAt = Date.now()
       this.consecutiveFailures++
-      this.callbacks.updateRecentState(state => failRecentTask(state))
+      this.callbacks.updateRecentState(state =>
+        failRecentTask(state, errMsg, { ...identity, title: task.title ?? null }),
+      )
       this.callbacks.sendLog(`✗ 失败：${task.title || task.source} — ${errMsg}`)
     } finally {
       this.currentAbort = null
@@ -543,6 +562,7 @@ export class BatchQueueService {
           failureReason: t.failureReason,
           addedAt: t.addedAt,
           title: t.title,
+          filename: t.filename ?? null,
           platform: t.platform,
         })),
         status: this.status === 'running' ? 'paused' : this.status, // Running → paused on restart
@@ -582,7 +602,6 @@ export class BatchQueueService {
       this.tasks = data.tasks.map(t => ({
         ...t,
         completedAt: undefined,
-        filename: undefined,
         steps: undefined,
       }))
 
@@ -600,6 +619,10 @@ export class BatchQueueService {
       this.status = data.status === 'running' ? 'idle' : data.status || 'idle'
       this.currentIndex = this.tasks.findIndex(t => t.status === 'pending')
 
+      // 对账历史记录：上次运行中若终态写入被巡检截断（任务被提前标为 stopped，
+      // 完成/失败写入丢失），启动时按队列终态把状态/标题/文件名回填进历史列表
+      this.reconcileHistoryWithQueue()
+
       if (this.tasks.length > 0 && this.currentIndex >= 0) {
         this.callbacks.onQueueStateChange()
       }
@@ -607,6 +630,29 @@ export class BatchQueueService {
       console.error('Failed to load batch queue:', e)
       this.tasks = []
       this.status = 'idle'
+    }
+  }
+
+  /**
+   * 启动时用队列里的终态任务对账历史记录：仅回填 status 与队列不一致的条目。
+   * 队列里非终态（pending/processing 映射为 pending）的任务不触碰——
+   * 那是崩溃残留，交给任务恢复流程处理。
+   */
+  private reconcileHistoryWithQueue(): void {
+    const terminal = this.tasks
+      .filter(t => t.status === 'completed' || t.status === 'failed')
+      .map(t => ({
+        id: t.id,
+        status: t.status as 'completed' | 'failed',
+        title: t.title ?? null,
+        filename: t.filename ?? null,
+        failureReason: t.failureReason,
+      }))
+    if (terminal.length === 0) return
+    try {
+      this.callbacks.updateRecentState(state => reconcileRecentTasksWithBatch(state, terminal))
+    } catch (e) {
+      console.error('Failed to reconcile recent tasks with batch queue:', e)
     }
   }
 

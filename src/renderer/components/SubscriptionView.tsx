@@ -249,11 +249,13 @@ export default function SubscriptionView() {
     const keys = sub.newEpisodes.filter(ep => selected[ep.key]).map(ep => ep.key)
     if (keys.length === 0) return
     const queue = keys
-      .map(k => sub.newEpisodes.find(ep => ep.key === k)?.link)
-      .filter((l): l is string => Boolean(l))
+      .map(k => sub.newEpisodes.find(ep => ep.key === k))
+      .filter((ep): ep is { key: string; title: string; link: string; pubDate?: string } =>
+        Boolean(ep),
+      )
     if (queue.length > 0) {
       window.electronAPI
-        .batchAdd(queue.map(link => ({ source: link, type: 'url' as const })))
+        .batchAdd(queue.map(ep => ({ source: ep.link, type: 'url' as const, title: ep.title })))
         .then(() => window.electronAPI.markSubscriptionSeen(subId, keys))
         .catch(() => {})
     }
@@ -283,11 +285,19 @@ export default function SubscriptionView() {
           {t('订阅')}
         </h2>
         <div className="sub-view__head-actions">
-          <button className="sub-view__tool-btn" onClick={handlePickOpml} title={t('从其他播客 App 导入 OPML')}>
+          <button
+            className="sub-view__tool-btn"
+            onClick={handlePickOpml}
+            title={t('从其他播客 App 导入 OPML')}
+          >
             <Upload size={13} />
             {t('导入 OPML')}
           </button>
-          <button className="sub-view__tool-btn" onClick={() => setHelpOpen(v => !v)} title={t('帮助')}>
+          <button
+            className="sub-view__tool-btn"
+            onClick={() => setHelpOpen(v => !v)}
+            title={t('帮助')}
+          >
             <HelpCircle size={13} />
             {t('帮助')}
           </button>
@@ -305,7 +315,11 @@ export default function SubscriptionView() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSmartInput()}
           />
-          <button className="sub-view__input-btn" onClick={handleSmartInput} disabled={busy || !input.trim()}>
+          <button
+            className="sub-view__input-btn"
+            onClick={handleSmartInput}
+            disabled={busy || !input.trim()}
+          >
             {busy ? <Loader2 size={13} className="note-preview__spin" /> : <Search size={13} />}
           </button>
         </div>
@@ -332,7 +346,9 @@ export default function SubscriptionView() {
       {resolved && !busy && (
         <div className="sub-view__preview">
           <div className="sub-view__preview-info">
-            {resolved.artwork && <img className="sub-view__artwork" src={resolved.artwork} alt="" />}
+            {resolved.artwork && (
+              <img className="sub-view__artwork" src={resolved.artwork} alt="" />
+            )}
             <div>
               <div className="sub-view__preview-title">{resolved.title || t('已识别播客源')}</div>
               {resolved.author && <div className="sub-view__preview-author">{resolved.author}</div>}
@@ -432,7 +448,9 @@ export default function SubscriptionView() {
                             </div>
                           )}
                           <div className="sub-view__rec-info">
-                            <div className="sub-view__rec-title" title={r.name}>{r.name}</div>
+                            <div className="sub-view__rec-title" title={r.name}>
+                              {r.name}
+                            </div>
                             <div className="sub-view__rec-desc">{r.description}</div>
                           </div>
                           <button
@@ -460,7 +478,9 @@ export default function SubscriptionView() {
                               <Rss size={16} />
                             </div>
                           )}
-                          <div className="sub-view__rec-mini-name" title={r.name}>{r.name}</div>
+                          <div className="sub-view__rec-mini-name" title={r.name}>
+                            {r.name}
+                          </div>
                           <button
                             className="sub-view__confirm-btn sub-view__rec-mini-btn"
                             disabled={busy || subscribed}
@@ -497,13 +517,23 @@ export default function SubscriptionView() {
         <div className="sub-view__empty">
           <Rss size={26} />
           <div>{t('还没有订阅')}</div>
-          <div className="sub-view__empty-hint">{t('输入播客名搜索，或直接粘贴播客链接，无需知道 RSS 地址')}</div>
+          <div className="sub-view__empty-hint">
+            {t('输入播客名搜索，或直接粘贴播客链接，无需知道 RSS 地址')}
+          </div>
         </div>
       ) : (
         <div className="sub-view__list">
           <div className="sub-view__list-header">
-            <button className="sub-view__check-all" onClick={() => handleCheck()} disabled={checking}>
-              {checking ? <Loader2 size={12} className="note-preview__spin" /> : <RefreshCw size={12} />}
+            <button
+              className="sub-view__check-all"
+              onClick={() => handleCheck()}
+              disabled={checking}
+            >
+              {checking ? (
+                <Loader2 size={12} className="note-preview__spin" />
+              ) : (
+                <RefreshCw size={12} />
+              )}
               {t('立即检查全部')}
             </button>
           </div>
@@ -512,10 +542,14 @@ export default function SubscriptionView() {
               <div className="sub-card__head">
                 <div className="sub-card__title-wrap">
                   <span className="sub-card__name">{info.sub.name}</span>
-                  <span className={`sub-card__badge ${info.sub.autoProcess ? 'sub-card__badge--auto' : 'sub-card__badge--manual'}`}>
+                  <span
+                    className={`sub-card__badge ${info.sub.autoProcess ? 'sub-card__badge--auto' : 'sub-card__badge--manual'}`}
+                  >
                     {info.sub.autoProcess ? t('自动') : t('手动')}
                   </span>
-                  {!info.sub.enabled && <span className="sub-card__badge sub-card__badge--off">{t('已停用')}</span>}
+                  {!info.sub.enabled && (
+                    <span className="sub-card__badge sub-card__badge--off">{t('已停用')}</span>
+                  )}
                 </div>
                 <div className="sub-card__actions">
                   <button
@@ -537,8 +571,13 @@ export default function SubscriptionView() {
               </div>
 
               <div className="sub-card__meta">
-                <span>{t('上次检查')}: {info.lastCheckAt ? new Date(info.lastCheckAt).toLocaleString() : t('从未')}</span>
-                <span>{t('累计处理')}: {info.sub.processedCount}</span>
+                <span>
+                  {t('上次检查')}:{' '}
+                  {info.lastCheckAt ? new Date(info.lastCheckAt).toLocaleString() : t('从未')}
+                </span>
+                <span>
+                  {t('累计处理')}: {info.sub.processedCount}
+                </span>
               </div>
 
               <div className="sub-card__toggles">
@@ -565,7 +604,10 @@ export default function SubscriptionView() {
                   <div className="sub-card__episodes-title">
                     {t('新节目')} ({info.newEpisodes.length})
                     {!info.sub.autoProcess && (
-                      <button className="sub-card__enqueue-btn" onClick={() => handleEnqueueSelected(info.sub.id)}>
+                      <button
+                        className="sub-card__enqueue-btn"
+                        onClick={() => handleEnqueueSelected(info.sub.id)}
+                      >
                         {t('将选中加入队列')}
                       </button>
                     )}
@@ -576,10 +618,14 @@ export default function SubscriptionView() {
                         <input
                           type="checkbox"
                           checked={!!selected[ep.key]}
-                          onChange={e => setSelected(prev => ({ ...prev, [ep.key]: e.target.checked }))}
+                          onChange={e =>
+                            setSelected(prev => ({ ...prev, [ep.key]: e.target.checked }))
+                          }
                         />
                       )}
-                      <span className="sub-card__episode-title" title={ep.title}>{ep.title}</span>
+                      <span className="sub-card__episode-title" title={ep.title}>
+                        {ep.title}
+                      </span>
                       <a
                         className="sub-card__episode-link"
                         href={ep.link}
@@ -660,7 +706,11 @@ export default function SubscriptionView() {
                 onChange={e => setRsshubBase(e.target.value)}
               />
             </label>
-            <button className="sub-view__confirm-btn" onClick={handleSaveSettings} disabled={savingSettings}>
+            <button
+              className="sub-view__confirm-btn"
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+            >
               {savingSettings ? <Loader2 size={13} className="note-preview__spin" /> : null}
               {t('保存')}
             </button>
@@ -680,7 +730,10 @@ export default function SubscriptionView() {
                     type="checkbox"
                     checked={!!opmlSelected[`${i}-${entry.url}`]}
                     onChange={e =>
-                      setOpmlSelected(prev => ({ ...prev, [`${i}-${entry.url}`]: e.target.checked }))
+                      setOpmlSelected(prev => ({
+                        ...prev,
+                        [`${i}-${entry.url}`]: e.target.checked,
+                      }))
                     }
                   />
                   <span className="sub-view__opml-name">{entry.name}</span>
@@ -691,7 +744,11 @@ export default function SubscriptionView() {
               <button className="sub-view__tool-btn" onClick={() => setOpmlPreview(null)}>
                 {t('取消')}
               </button>
-              <button className="sub-view__confirm-btn" onClick={handleConfirmImport} disabled={importing}>
+              <button
+                className="sub-view__confirm-btn"
+                onClick={handleConfirmImport}
+                disabled={importing}
+              >
                 {importing ? <Loader2 size={13} className="note-preview__spin" /> : null}
                 {t('确认导入')}
               </button>

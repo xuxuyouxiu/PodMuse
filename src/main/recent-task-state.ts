@@ -2,6 +2,72 @@ import type { FeishuState, RecentTaskState } from '../shared/types.ts'
 
 const MAX_RECENT_TASKS = 500
 
+/**
+ * 任务身份标识：按 id / 去重键 / 链接定位任务。
+ * 批处理任务可能被一致性巡检（task-recovery）提前从活跃列表移入历史列表，
+ * 因此终态回填必须能跨两个列表定位，否则完成/失败/停止的写入会静默丢失。
+ */
+export interface TaskIdentity {
+  taskId?: string
+  url?: string
+  episodeId?: string | null
+  /** 回填到历史记录的标题（失败/停止分支也可携带真实标题） */
+  title?: string | null
+}
+
+function matchesIdentity(task: RecentTaskState, identity: TaskIdentity): boolean {
+  if (identity.taskId && task.id === identity.taskId) return true
+  if (identity.episodeId && task.episodeId === identity.episodeId) return true
+  if (identity.url && task.url === identity.url) return true
+  return false
+}
+
+/** 先在活跃列表中查找，找不到再查历史列表（兼容被巡检移走的任务） */
+function findTaskInLists(
+  state: FeishuState,
+  identity?: TaskIdentity,
+): { list: 'active' | 'recent'; task: RecentTaskState } | null {
+  if (identity) {
+    const active = state.activeTasks.find(t => matchesIdentity(t, identity))
+    if (active) return { list: 'active', task: active }
+    const recent = state.recentTasks.find(t => matchesIdentity(t, identity))
+    if (recent) return { list: 'recent', task: recent }
+    return null
+  }
+  const first = state.activeTasks[0]
+  return first ? { list: 'active', task: first } : null
+}
+
+function updateInList(
+  state: FeishuState,
+  list: 'active' | 'recent',
+  taskId: string,
+  patch: Partial<RecentTaskState>,
+  opts: { moveToRecent?: boolean } = {},
+): FeishuState {
+  if (list === 'active') {
+    if (opts.moveToRecent) {
+      const task = state.activeTasks.find(t => t.id === taskId)
+      if (!task) return state
+      return {
+        ...state,
+        activeTasks: state.activeTasks.filter(t => t.id !== taskId),
+        recentTasks: normalizeRecentTasks([{ ...task, ...patch }, ...state.recentTasks]),
+      }
+    }
+    return {
+      ...state,
+      activeTasks: state.activeTasks.map(t => (t.id === taskId ? { ...t, ...patch } : t)),
+    }
+  }
+  return {
+    ...state,
+    recentTasks: normalizeRecentTasks(
+      state.recentTasks.map(t => (t.id === taskId ? { ...t, ...patch } : t)),
+    ),
+  }
+}
+
 export function startRecentTask(
   state: FeishuState,
   input: {
@@ -31,22 +97,36 @@ export function startRecentTask(
   }
 }
 
-export function stopRecentTask(state: FeishuState): FeishuState {
-  // 停止/暂停的任务保留在活跃列表中，不移动到历史列表
-  const activeTask = state.activeTasks[0]
-  if (!activeTask) return state
-  return {
-    ...state,
-    activeTasks: state.activeTasks.map(task =>
-      task.id === activeTask.id
-        ? { ...task, status: 'stopped' as const, updatedAt: Date.now() }
-        : task,
-    ),
-  }
+export function stopRecentTask(state: FeishuState, identity?: TaskIdentity): FeishuState {
+  // 停止/暂停的任务保留在当前列表中，不移动到历史列表
+  const found = findTaskInLists(state, identity)
+  if (!found) return state
+  return updateInList(state, found.list, found.task.id, {
+    status: 'stopped',
+    ...(identity?.title ? { title: identity.title } : {}),
+    updatedAt: Date.now(),
+  })
 }
 
-export function failRecentTask(state: FeishuState, error?: string): FeishuState {
-  return withRecentStatus(state, 'error', error)
+export function failRecentTask(
+  state: FeishuState,
+  error?: string,
+  identity?: TaskIdentity,
+): FeishuState {
+  const found = findTaskInLists(state, identity)
+  if (!found) return state
+  return updateInList(
+    state,
+    found.list,
+    found.task.id,
+    {
+      status: 'error',
+      ...(error ? { error } : {}),
+      ...(identity?.title ? { title: identity.title } : {}),
+      updatedAt: Date.now(),
+    },
+    { moveToRecent: true },
+  )
 }
 
 export function completeRecentTask(
@@ -60,29 +140,32 @@ export function completeRecentTask(
     title?: string | null
   },
 ): FeishuState {
-  const activeTask = findTaskByIdentityInActive(state, input)
-  if (!activeTask) return state
+  const found = findTaskInLists(state, {
+    taskId: input.taskId,
+    url: input.url,
+    episodeId: input.episodeId,
+  })
+  if (!found) return state
 
   const processedUrls =
-    activeTask.episodeId && !state.processedUrls.includes(activeTask.episodeId)
-      ? [...state.processedUrls, activeTask.episodeId]
+    found.task.episodeId && !state.processedUrls.includes(found.task.episodeId)
+      ? [...state.processedUrls, found.task.episodeId]
       : state.processedUrls
 
-  return {
-    ...state,
-    processedUrls,
-    activeTasks: state.activeTasks.filter(task => task.id !== activeTask.id),
-    recentTasks: normalizeRecentTasks([
-      {
-        ...activeTask,
-        status: 'completed',
-        filename: input.filename,
-        ...(input.title ? { title: input.title } : {}),
-        updatedAt: Date.now(),
-      },
-      ...state.recentTasks,
-    ]),
-  }
+  const updated = updateInList(
+    state,
+    found.list,
+    found.task.id,
+    {
+      status: 'completed',
+      filename: input.filename,
+      error: null,
+      ...(input.title ? { title: input.title } : {}),
+      updatedAt: Date.now(),
+    },
+    { moveToRecent: true },
+  )
+  return { ...updated, processedUrls }
 }
 
 export function shouldAutoResumeRecentTask(_state: FeishuState): boolean {
@@ -129,20 +212,57 @@ export function removeRecentTask(state: FeishuState, taskId: string): FeishuStat
   }
 }
 
-function withRecentStatus(
+export interface BatchTaskTerminal {
+  id: string
+  status: 'completed' | 'failed'
+  title?: string | null
+  filename?: string | null
+  failureReason?: string
+}
+
+/**
+ * 历史遗留数据对账：批处理队列中已到终态的任务，若其历史记录条目状态不一致
+ * （例如处理中被一致性巡检提前标为 stopped，随后的完成写入丢失），
+ * 按队列终态回填状态/标题/文件名，并统一归档进历史列表。
+ * 仅修复状态与队列不一致的条目；队列里非终态（pending）的任务不触碰，
+ * 因为它们可能是崩溃残留，交给任务恢复逻辑处理。
+ */
+export function reconcileRecentTasksWithBatch(
   state: FeishuState,
-  status: RecentTaskState['status'],
-  error?: string,
+  terminalTasks: BatchTaskTerminal[],
 ): FeishuState {
-  const activeTask = state.activeTasks[0]
-  if (!activeTask) return state
+  if (terminalTasks.length === 0) return state
+  const byId = new Map(terminalTasks.map(t => [t.id, t]))
+  let changed = false
+
+  const fixTask = (task: RecentTaskState): RecentTaskState => {
+    const terminal = byId.get(task.id)
+    if (!terminal) return task
+    const patch: Partial<RecentTaskState> = {}
+    if (terminal.title) patch.title = terminal.title
+    if (terminal.filename) patch.filename = terminal.filename
+    if (terminal.status === 'failed' && terminal.failureReason) patch.error = terminal.failureReason
+    // 批处理队列的 'failed' 对应历史记录的 'error' 状态
+    const targetStatus = terminal.status === 'failed' ? 'error' : terminal.status
+    if (task.status !== targetStatus) {
+      patch.status = targetStatus
+    }
+    if (Object.keys(patch).length === 0) return task
+    changed = true
+    return { ...task, ...patch }
+  }
+
+  const fixedActive = state.activeTasks.map(fixTask)
+  const fixedRecent = state.recentTasks.map(fixTask)
+  if (!changed) return state
+
+  // 终态（completed/error）条目统一归档进历史列表
+  const archived = fixedActive.filter(t => t.status === 'completed' || t.status === 'error')
+  const remainingActive = fixedActive.filter(t => t.status !== 'completed' && t.status !== 'error')
   return {
     ...state,
-    activeTasks: state.activeTasks.filter(task => task.id !== activeTask.id),
-    recentTasks: normalizeRecentTasks([
-      { ...activeTask, status, ...(error ? { error } : {}), updatedAt: Date.now() },
-      ...state.recentTasks,
-    ]),
+    activeTasks: remainingActive,
+    recentTasks: normalizeRecentTasks([...archived, ...fixedRecent]),
   }
 }
 
@@ -157,22 +277,6 @@ function findRecentTask(state: FeishuState, input: { url: string; episodeId: str
   const matchCondition = (task: RecentTaskState) =>
     (input.episodeId && task.episodeId === input.episodeId) || task.url === input.url
   return state.activeTasks.find(matchCondition) || state.recentTasks.find(matchCondition)
-}
-
-function findTaskByIdentityInActive(
-  state: FeishuState,
-  input: {
-    taskId?: string
-    url?: string
-    episodeId?: string | null
-  },
-) {
-  return state.activeTasks.find(
-    task =>
-      (input.taskId && task.id === input.taskId) ||
-      (input.episodeId && task.episodeId === input.episodeId) ||
-      (input.url && task.url === input.url),
-  ) // No fallback — return undefined if no match found
 }
 
 function createTaskId() {

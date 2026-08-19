@@ -70,7 +70,12 @@ export class PodcastDispatchService {
         lastErrorDetail = step.detail || step.subtitle
       }
       // 当 step 1 完成且有有效标题时，更新任务标题
-      if (step.step === 1 && step.status === 'done' && step.subtitle && step.subtitle !== '未知标题') {
+      if (
+        step.step === 1 &&
+        step.status === 'done' &&
+        step.subtitle &&
+        step.subtitle !== '未知标题'
+      ) {
         this.updateRecentState(state => ({
           ...state,
           activeTasks: state.activeTasks.map(t =>
@@ -106,7 +111,7 @@ export class PodcastDispatchService {
         }
       } else {
         const errorReason = lastErrorDetail || '处理失败，请检查日志'
-        this.updateRecentState(state => failRecentTask(state, errorReason))
+        this.updateRecentState(state => failRecentTask(state, errorReason, { url, episodeId }))
         await this.client.sendMessage(this.chatId, `❌ 处理失败：${errorReason}`)
         if (this.notificationEnabled) {
           sendNotification('PodMuse', `处理失败：${errorReason}`)
@@ -114,7 +119,7 @@ export class PodcastDispatchService {
       }
     } catch (e: unknown) {
       if (signal.aborted) {
-        this.updateRecentState(state => stopRecentTask(state))
+        this.updateRecentState(state => stopRecentTask(state, { url, episodeId }))
         this.logFunc('■ 处理已取消')
         for (let i = 1; i <= 5; i++) {
           this.stepFunc?.({
@@ -127,7 +132,7 @@ export class PodcastDispatchService {
         }
       } else {
         const msg = e instanceof Error ? e.message : String(e)
-        this.updateRecentState(state => failRecentTask(state, msg))
+        this.updateRecentState(state => failRecentTask(state, msg, { url, episodeId }))
         this.logFunc(`处理异常: ${msg}`)
         await this.client.sendMessage(this.chatId, `❌ 处理出错: ${msg}`)
         if (this.notificationEnabled) {

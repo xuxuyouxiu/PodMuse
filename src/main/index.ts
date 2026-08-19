@@ -75,6 +75,9 @@ app.on('second-instance', (_e, argv) => {
 
 function hasActiveProcess(): boolean {
   if (pendingAbort && !pendingAbort.signal.aborted) return true
+  // 批量队列正在处理时同样视为「有活跃进程」——
+  // 否则 30s 一致性巡检会把批量任务误判为孤儿，提前标成「已停止」并截断终态写入
+  if (batchQueueService?.hasActiveProcessing) return true
   if (monitor) {
     try {
       if (monitor.hasActiveProcess()) return true
@@ -253,19 +256,36 @@ function setupIPC() {
     } catch {}
 
     if (!pythonOk) {
-      return { success: false, error: '请先安装 Python 3.8+：https://www.python.org/downloads/\n安装时勾选 Add Python to PATH' }
+      return {
+        success: false,
+        error:
+          '请先安装 Python 3.8+：https://www.python.org/downloads/\n安装时勾选 Add Python to PATH',
+      }
     }
 
     // 检查 douyin-downloader 是否存在
     if (!fs.existsSync(scriptPath)) {
-      return { success: false, error: '请下载抖音下载器并解压到 ' + downloadPath + '\n下载地址: https://github.com/jiji262/douyin-downloader/archive/refs/heads/main.zip' }
+      return {
+        success: false,
+        error:
+          '请下载抖音下载器并解压到 ' +
+          downloadPath +
+          '\n下载地址: https://github.com/jiji262/douyin-downloader/archive/refs/heads/main.zip',
+      }
     }
 
     // 安装依赖
     try {
-      execSync('pip install -r requirements.txt', { cwd: downloadPath, encoding: 'utf-8', timeout: 120000 })
+      execSync('pip install -r requirements.txt', {
+        cwd: downloadPath,
+        encoding: 'utf-8',
+        timeout: 120000,
+      })
     } catch (e: unknown) {
-      return { success: false, error: '安装依赖失败: ' + (e instanceof Error ? e.message : String(e)) }
+      return {
+        success: false,
+        error: '安装依赖失败: ' + (e instanceof Error ? e.message : String(e)),
+      }
     }
 
     return { success: true, path: downloadPath }
@@ -298,8 +318,8 @@ function setupIPC() {
             clearInterval(checkInterval)
             // 收集所有抖音 cookie
             const allCookies = await session.defaultSession.cookies.get({})
-            const douyinCookies = allCookies.filter(c =>
-              (c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'))
+            const douyinCookies = allCookies.filter(
+              c => c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'),
             )
             const cookieStr = douyinCookies.map(c => c.name + '=' + c.value).join('; ')
             loginWin.close()
@@ -464,6 +484,8 @@ function setupIPC() {
         }
       }
       let lastErrorDetail: string | null = null
+      // 处理阶段从平台适配器拿到的真实标题（预取失败时兜底回填历史记录）
+      const processedTitle: { value: string | null } = { value: null }
       try {
         const result = await processPodcast(
           url,
@@ -486,13 +508,20 @@ function setupIPC() {
           signal,
           isLocalFile,
           force || false,
+          processedTitle,
         )
         if (result) {
           if (episodeId) {
             addProcessedId(episodeId)
           }
           updateRecentState(state =>
-            completeRecentTask(state, { taskId: actualTaskId, url, episodeId, filename: result }),
+            completeRecentTask(state, {
+              taskId: actualTaskId,
+              url,
+              episodeId,
+              filename: result,
+              title: processedTitle.value || null,
+            }),
           )
           if (config.notification_enabled !== false) {
             sendNotification('PodMuse', `笔记已生成：${result}`)
@@ -501,7 +530,9 @@ function setupIPC() {
           // 用户取消时 processPodcast 可能返回 null（whisper abort 后 finish(null) 等），
           // 此时应标记为「已停止」而非「失败」，也不发失败通知
           if (signal.aborted) {
-            updateRecentState(state => stopRecentTask(state))
+            updateRecentState(state =>
+              stopRecentTask(state, { taskId: actualTaskId, url, episodeId }),
+            )
             mainWindow?.webContents.send('log', '■ 处理已取消')
             for (let i = 1; i <= 5; i++) {
               const titles = ['解析页面', '下载音频', '语音转文字', '修正专有名词', 'AI 提炼笔记']
@@ -516,7 +547,9 @@ function setupIPC() {
             return { success: false, error: '处理已取消' }
           }
           const errorReason = lastErrorDetail || '处理失败，请检查日志'
-          updateRecentState(state => failRecentTask(state, errorReason))
+          updateRecentState(state =>
+            failRecentTask(state, errorReason, { taskId: actualTaskId, url, episodeId }),
+          )
           if (config.notification_enabled !== false) {
             sendNotification('PodMuse', `处理失败：${errorReason}`)
           }
@@ -527,7 +560,9 @@ function setupIPC() {
         const errName = err instanceof Error ? err.name : ''
         const errMsg = err instanceof Error ? err.message : String(err)
         if (errName === 'AbortError' || signal.aborted) {
-          updateRecentState(state => stopRecentTask(state))
+          updateRecentState(state =>
+            stopRecentTask(state, { taskId: actualTaskId, url, episodeId }),
+          )
           mainWindow?.webContents.send('log', '■ 处理已取消')
           for (let i = 1; i <= 5; i++) {
             const titles = ['解析页面', '下载音频', '语音转文字', '修正专有名词', 'AI 提炼笔记']
@@ -541,7 +576,9 @@ function setupIPC() {
           }
           return { success: false, error: '处理已取消' }
         }
-        updateRecentState(state => failRecentTask(state, errMsg))
+        updateRecentState(state =>
+          failRecentTask(state, errMsg, { taskId: actualTaskId, url, episodeId }),
+        )
         if (config.notification_enabled !== false) {
           sendNotification('PodMuse', `处理出错：${errMsg}`)
         }

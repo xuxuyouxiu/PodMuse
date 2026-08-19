@@ -160,6 +160,8 @@ export type BatchQueueStatus = 'idle' | 'running' | 'paused' | 'completed'
 export interface BatchInput {
   source: string
   type: 'file' | 'url'
+  /** 入队时已确知的任务标题（订阅 RSS 解析/手动入队时携带），避免处理前显示「识别标题中」 */
+  title?: string | null
   /** 模型覆盖（历史页重新生成选模型）：指定 providerId + model 时该任务不用全局配置 */
   providerId?: string
   model?: string
