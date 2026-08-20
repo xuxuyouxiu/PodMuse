@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, clipboard } from 'electron'
 import { join, basename, extname } from 'path'
 import { loadConfig, saveConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
@@ -6,9 +6,16 @@ import { registerCoreIPC } from './ipc'
 import { FeishuMonitor } from './feishu'
 import { processPodcast } from './podcast'
 import { getActiveProviderConfig, normalizeBaseUrl } from './ai-providers'
+import { testAIConnection } from './ai-test'
 import { fetchPodcastTitle } from './podcast'
 import { platformRegistry } from './platforms'
 import { scanLocalModels, checkHardware, autoDetectExePath } from './whisper-model-manager'
+import {
+  startWhisperDownload,
+  cancelWhisperDownload,
+  getWhisperDownloadState,
+  onWhisperDownloadState,
+} from './whisper-downloader'
 import { setPromptDir, exportBuiltInTemplates } from './ai-client'
 import * as fs from 'fs'
 import {
@@ -59,7 +66,7 @@ import {
   setFeishuChat,
   disconnectFeishu,
 } from './oauth/feishu-oauth'
-import type { StepInfo, FeishuStatus } from '@shared/types'
+import type { StepInfo, FeishuStatus, AIProviderId } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let monitor: FeishuMonitor | null = null
@@ -701,6 +708,92 @@ function setupIPC() {
       return { path: null, error: (e as Error).message }
     }
   })
+
+  // Whisper 一键下载（后台执行：invoke 立即返回，进度经 whisper:download-progress 事件推送；
+  // TabWhisper 与首次启动向导共用同一份主进程状态）
+  ipcMain.handle('whisper:download', () => {
+    void startWhisperDownload().catch(() => {})
+    return getWhisperDownloadState()
+  })
+
+  ipcMain.handle('whisper:downloadStatus', () => {
+    return getWhisperDownloadState()
+  })
+
+  ipcMain.handle('whisper:downloadCancel', () => {
+    return cancelWhisperDownload()
+  })
+
+  // 下载状态 → 渲染进程事件（挂载时通过 whisper:downloadStatus 拉取当前状态兜底）
+  onWhisperDownloadState(state => {
+    try {
+      mainWindow?.webContents.send('whisper:download-progress', state)
+    } catch {}
+  })
+
+  // 剪贴板读取：无感配置向导步激活期间由渲染进程按需轮询（clipboard-watcher.ts 先例）；
+  // 主进程不记录剪贴板内容
+  ipcMain.handle('clipboard:readText', () => {
+    try {
+      return clipboard.readText()
+    } catch {
+      return ''
+    }
+  })
+
+  // AI 测试连接：发送 1 token 最小 chat 请求，返回结构化错误码（ai-test.ts）；
+  // detail 只含状态码与脱敏摘要，绝不回传 apiKey / 响应体全文
+  ipcMain.handle(
+    'ai:testConnection',
+    async (
+      _e,
+      params: { baseUrl: string; apiKey: string; model: string; providerId: string },
+    ) => {
+      try {
+        let apiKey = params?.apiKey || ''
+        const baseUrl = params?.baseUrl || ''
+        const model = params?.model || ''
+        const providerId = (params?.providerId || 'deepseek') as AIProviderId
+
+        if (!baseUrl || !apiKey) {
+          return { success: false, code: 'unknown', detail: '请先填写 API 地址和 API Key' }
+        }
+        if (!isSafeUrl(baseUrl)) {
+          return {
+            success: false,
+            code: 'bad_url',
+            detail: 'API 地址必须使用 http:// 或 https:// 协议',
+          }
+        }
+
+        // 脱敏值还原（复用 ai:fetchModels 先例）
+        if (/^\*{4}/.test(apiKey)) {
+          const config = loadConfig()
+          const realKey = config.ai_providers
+            ? Object.values(config.ai_providers).find(
+                p => p.apiKey && maskSecret(p.apiKey) === apiKey,
+              )?.apiKey
+            : undefined
+          if (realKey) {
+            apiKey = realKey
+          } else if (config.api_key && maskSecret(config.api_key) === apiKey) {
+            apiKey = config.api_key
+          } else {
+            return {
+              success: false,
+              code: 'unknown',
+              detail: 'API Key 是脱敏值，无法获取真实密钥。请在设置中重新输入 API Key',
+            }
+          }
+        }
+
+        return await testAIConnection({ baseUrl, apiKey, model, providerId })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '测试连接失败'
+        return { success: false, code: 'unknown', detail: msg }
+      }
+    },
+  )
 
   ipcMain.handle(
     'ai:fetchModels',

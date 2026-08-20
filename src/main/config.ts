@@ -91,6 +91,9 @@ const DEFAULTS: PodcastConfig = {
   youtube_mirror_base: '',
   clipboard_watch_enabled: true,
 
+  // 首次启动向导（version 1；completed=false 表示未完成，弹窗判定见 renderer 侧 onboarding-logic）
+  onboarding: { version: 1, completed: false, lastStep: 1 },
+
   // OAuth 连接服务默认空壳（平台注册就绪前为「未配置」，入口优雅降级为 oauth_not_configured）
   notion_oauth: { clientId: '', clientSecret: '' },
   feishu_oauth: { appId: '', appSecret: '' },
@@ -186,6 +189,83 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
   return toSave
 }
 
+// ============================================================
+// P1 safeStorage 敏感凭据加密（docs/配置体系优化落地实现方案.md §2.3 第 3 步 / P1）
+// ============================================================
+
+/**
+ * 敏感凭据加密字段清单：
+ * - douyin_cookie：抖音登录 Cookie
+ * - feishu_oauth.userAccessToken / refreshToken：飞书 OAuth 用户级 token
+ * - notion_oauth.accessToken / clientSecret：Notion OAuth token
+ * app 级字段 api_key / feishu_app_secret 按现状明文存储，暂不纳入本次加密。
+ *
+ * 磁盘格式：字段值 = 'enc:v1:' + base64(safeStorage.encryptString(明文))。
+ * 带前缀的值在 loadConfig 时自动解回明文供业务使用；旧明文值不带前缀、
+ * 原样可用（向后兼容，不做强制迁移，下次 saveConfig 时自动转加密）。
+ * safeStorage.isEncryptionAvailable() 为 false 时加密回退为明文写入（与现状一致）；
+ * 读取时遇到带前缀的值但加密不可用/解密失败则清空（无法恢复，避免密文流入业务）。
+ */
+const ENC_SECRET_PREFIX = 'enc:v1:'
+
+/** OAuth 嵌套对象的加密目标字段（feishu_oauth.appSecret 为 app 级配置，保持明文） */
+const SECRET_OAUTH_FIELDS = [
+  { obj: 'feishu_oauth', fields: ['userAccessToken', 'refreshToken'] },
+  { obj: 'notion_oauth', fields: ['accessToken', 'clientSecret'] },
+] as const
+
+function tryEncryptSecret(value: string): string {
+  if (!value || value.startsWith(ENC_SECRET_PREFIX)) return value
+  if (!safeStorage.isEncryptionAvailable()) return value // 不可用时回退明文
+  try {
+    return ENC_SECRET_PREFIX + safeStorage.encryptString(value).toString('base64')
+  } catch {
+    return value // 加密失败回退明文，保证配置仍可保存
+  }
+}
+
+function tryDecryptSecret(value: string): string {
+  if (!value || !value.startsWith(ENC_SECRET_PREFIX)) return value // 旧明文原样可用
+  if (!safeStorage.isEncryptionAvailable()) return '' // 无法解密：清空而非把密文带进业务
+  try {
+    return safeStorage.decryptString(Buffer.from(value.slice(ENC_SECRET_PREFIX.length), 'base64'))
+  } catch {
+    return ''
+  }
+}
+
+function mapSecretFields<T extends PodcastConfig>(
+  config: T,
+  fn: (value: string) => string,
+): T {
+  const result = { ...config, douyin_cookie: fn(config.douyin_cookie || '') } as unknown as Record<
+    string,
+    unknown
+  >
+  for (const { obj, fields } of SECRET_OAUTH_FIELDS) {
+    const source = (config as unknown as Record<string, unknown>)[obj]
+    if (source && typeof source === 'object') {
+      const mapped = { ...(source as Record<string, unknown>) }
+      for (const field of fields) {
+        const v = mapped[field]
+        if (typeof v === 'string') mapped[field] = fn(v)
+      }
+      result[obj] = mapped
+    }
+  }
+  return result as unknown as T
+}
+
+/** 保存前加密敏感凭据（不修改入参对象） */
+export function encryptSecretFields<T extends PodcastConfig>(config: T): T {
+  return mapSecretFields(config, tryEncryptSecret)
+}
+
+/** 加载后解密敏感凭据（不修改入参对象） */
+export function decryptSecretFields<T extends PodcastConfig>(config: T): T {
+  return mapSecretFields(config, tryDecryptSecret)
+}
+
 /** 清理旧版 example config 遗留的占位值（以"你的"开头的中文提示） */
 export function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
   const result = { ...config }
@@ -219,7 +299,7 @@ export function loadConfig(): PodcastConfig {
       const data = JSON.parse(fs.readFileSync(userPath, 'utf-8'))
       const merged = { ...DEFAULTS, ...data }
       const cleaned = stripPlaceholderValues(merged)
-      configCache = migrateEncryptedFields(cleaned)
+      configCache = decryptSecretFields(migrateEncryptedFields(cleaned))
       return configCache
     }
   } catch {}
@@ -234,18 +314,20 @@ export function loadConfig(): PodcastConfig {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(userPath, JSON.stringify(shipped, null, 2), 'utf-8')
     } catch {}
-    return migrateEncryptedFields({ ...DEFAULTS, ...shipped })
+    return decryptSecretFields(migrateEncryptedFields({ ...DEFAULTS, ...shipped }))
   }
 
   return { ...DEFAULTS }
 }
 
 /**
- * 保存配置到磁盘，凭据以明文存储
- * 配置文件位于用户数据目录，已有操作系统权限保护
+ * 保存配置到磁盘。
+ * 普通字段明文存储；敏感凭据（douyin_cookie / OAuth token）在
+ * safeStorage 可用时加密落盘，不可用时回退明文（与历史行为一致）。
  */
 function prepareConfigForSave(config: PodcastConfig): Record<string, unknown> {
-  return cleanConfigForSave(config)
+  const cleaned = cleanConfigForSave(config) as unknown as PodcastConfig
+  return encryptSecretFields(cleaned) as unknown as Record<string, unknown>
 }
 
 export function saveConfig(config: PodcastConfig) {

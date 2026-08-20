@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PodcastConfig, AIProviderId, AIProviderConfig } from '@shared/types'
+import { PodcastConfig, AIProviderId, AIProviderConfig, AITestCode, AITestResult } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
@@ -25,6 +25,26 @@ function formatFeishuResult(
       return t('测试失败') + ': ' + (result.detail || '')
     default:
       return result.message || ''
+  }
+}
+
+// AI 测试连接错误码 → 中文人话文案（detail 由主进程返回，只含状态码与脱敏摘要）
+function formatAITestCode(code: AITestCode, t: (key: string) => string): string {
+  switch (code) {
+    case 'ok':
+      return t('连接成功')
+    case 'invalid_key':
+      return t('API Key 无效或已过期')
+    case 'no_permission_or_balance':
+      return t('无权限或余额不足')
+    case 'bad_url':
+      return t('API 地址错误（检查地址是否需 /v1）')
+    case 'rate_limited':
+      return t('请求被限流，请稍后重试')
+    case 'network':
+      return t('网络连接失败或超时')
+    default:
+      return t('连接失败，原因未知')
   }
 }
 
@@ -79,6 +99,8 @@ export default function TabApi({
   const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string }>>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsStatus, setFetchModelsStatus] = useState<string | null>(null)
+  const [aiTesting, setAiTesting] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState<AITestResult | null>(null)
   const [feishuTesting, setFeishuTesting] = useState(false)
   const [feishuTestResult, setFeishuTestResult] = useState<{
     success: boolean
@@ -100,6 +122,7 @@ export default function TabApi({
     setShowProviderDetail(true)
     setFetchedModels([])
     setFetchModelsStatus(null)
+    setAiTestResult(null)
   }
 
   // 更新供应商配置
@@ -111,6 +134,8 @@ export default function TabApi({
     newProviders[activeProvider] = { ...newProviders[activeProvider], [key]: value }
     setProviders(newProviders)
     update('ai_providers', newProviders)
+    // key / 地址变化后旧测试结果失效
+    if (key === 'apiKey' || key === 'baseUrl') setAiTestResult(null)
   }
 
   // 选择模型
@@ -125,6 +150,35 @@ export default function TabApi({
     updateProviderConfig('model', currentPreset.defaultModel)
     setFetchedModels([])
     setFetchModelsStatus(null)
+    setAiTestResult(null)
+  }
+
+  // 测试连接：发 1 token 最小请求验证 Key 与地址
+  async function handleTestConnection() {
+    const apiKey = currentProvider.apiKey
+    const baseUrl = currentProvider.baseUrl || currentPreset?.baseUrl || ''
+    if (!apiKey) {
+      setAiTestResult({ success: false, code: 'unknown', detail: '' })
+      return
+    }
+
+    setAiTesting(true)
+    setAiTestResult(null)
+
+    try {
+      const result = await window.electronAPI.testAIConnection({
+        baseUrl,
+        apiKey,
+        model: currentProvider.model || '',
+        providerId: activeProvider,
+      })
+      setAiTestResult(result)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setAiTestResult({ success: false, code: 'unknown', detail: msg })
+    } finally {
+      setAiTesting(false)
+    }
   }
 
   // 从API加载模型列表
@@ -311,6 +365,22 @@ export default function TabApi({
                   )}
                 </div>
                 <button
+                  onClick={handleTestConnection}
+                  disabled={aiTesting || !currentProvider.apiKey}
+                  className="settings-browse-button"
+                  style={{
+                    whiteSpace: 'nowrap',
+                    opacity: !currentProvider.apiKey ? 0.5 : 1,
+                  }}
+                  title={
+                    !currentProvider.apiKey
+                      ? t('请先填写 API Key')
+                      : t('测试连接（发送 1 token 最小请求）')
+                  }
+                >
+                  {aiTesting ? t('测试中…') : t('测试连接')}
+                </button>
+                <button
                   onClick={handleFetchModels}
                   disabled={fetchingModels || !currentProvider.apiKey}
                   className="settings-browse-button"
@@ -334,6 +404,19 @@ export default function TabApi({
                   }
                 >
                   {t(fetchModelsStatus)}
+                </div>
+              )}
+              {aiTestResult && (
+                <div
+                  className={
+                    aiTestResult.success
+                      ? 'settings-test-result--success'
+                      : 'settings-test-result--error'
+                  }
+                >
+                  {aiTestResult.success
+                    ? '✓ ' + t('连接成功') + '（' + t('模型') + ' ' + (currentProvider.model || '—') + '）'
+                    : '✗ ' + formatAITestCode(aiTestResult.code, t) + (aiTestResult.detail ? '：' + aiTestResult.detail : '')}
                 </div>
               )}
               <div className="settings-hint">

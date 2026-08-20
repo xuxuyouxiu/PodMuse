@@ -114,7 +114,7 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
       {
         image: 'public/onboarding/whisper/1.png',
         caption:
-          '点击「自动检测引擎」一键定位已安装的 faster-whisper-xxl；若未安装，点上方「GitHub 下载」获取 WhisperStandalone.exe。默认模型 large-v3-turbo（约 6GB）首次使用时自动下载。',
+          '点击「自动检测引擎」定位已安装的引擎；若未安装，点「一键安装 Faster-Whisper-XXL」（约 1.4GB）或「GitHub 下载」手动安装。默认模型 large-v3-turbo（约 6GB）首次使用自动下载。',
       },
     ],
   },

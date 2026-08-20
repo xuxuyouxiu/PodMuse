@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.50.0] - 2026-08-20
+
+### 新增
+- **Whisper 一键下载**：设置页新增「一键安装 Faster-Whisper-XXL」——自动从 GitHub 官方 tag 选版下载（1.36GB .7z，直连失败自动回退 ghfast/gh-proxy/mirror.ghproxy 镜像）、Windows 自带 bsdtar 解压、自动写回引擎路径；主进程状态机支持后台进度/取消，重进设置页可续看进度；**默认模型 large-v3-turbo**
+- **首次启动配置向导（OnboardingWizard）**：AI Key（剪贴板自动填充 + 测试连接成功自动前进）→ 笔记目录（一键默认目录/选择文件夹）→ Whisper（检测/一键下载/跳过）→ 完成页待办卡片（飞书/抖音/Notion 直达设置）；进度持久化续接、「稍后配置」与「不再提醒」；老用户核心已配齐不打扰；每步「不会？看图文」
+- **剪贴板无感填充**：新增 clipboard:readText IPC 与 useClipboardFill hook（向导步激活时 1s 轮询、命中即填即测，日志只记命中类型）
+- **AI 测试连接**：TabApi 与向导内置「测试连接」按钮（最小 1 token 请求，错误码结构化映射：key 无效/无权限或余额/地址错误/限流/网络，detail 脱敏）
+- **一键默认目录**：目录区「一键使用默认目录」自动创建 文档/PodMuse笔记 与 下载/PodMuse音频（仅空字段写回）
+- **safeStorage 敏感凭据加密**：douyin_cookie 与飞书/Notion OAuth token 加密落盘（enc:v1 格式，自动解回、旧明文兼容、不可用时回退明文）
+- i18n 补齐 44 个英文键；设置页新增「打开在线教程」
+
+### 修复
+- 向导「去设置」跳转时先关闭向导遮罩，避免盖住设置弹层
+
+### 测试
+- 本批新增 78 例：whisper-downloader 12（含真实 GitHub 资产冒烟与 bsdtar 解压往返）、ai-test 错误码映射、onboarding 状态机 25、config 加密 15、剪贴板匹配等
+- 全量 426 测试通过
+
 ## [1.49.0] - 2026-08-20
 
 ### 新增

@@ -8,13 +8,16 @@ import {
   Settings,
   Layers,
   Download,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { TabApi, TabTranscribe, TabWhisper, TabTools, TabPlatforms, TabExport } from './settings'
 import { useI18n, type TranslationKey } from '../i18n'
+import { GUIDE_ONLINE_URL } from '@shared/constants'
 
-type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
+/** 设置页 tab 标识（OnboardingWizard 完成页待办卡片「去设置」需要直达对应 tab） */
+export type TabKey = 'api' | 'transcribe' | 'whisper' | 'platforms' | 'tools' | 'export'
 
 const TABS: { key: TabKey; icon: LucideIcon; label: TranslationKey }[] = [
   { key: 'api', icon: Link, label: '接口与通知' },
@@ -29,9 +32,12 @@ interface Props {
   config: PodcastConfig
   onSave: (config: PodcastConfig) => void
   onClose: () => void
+  onToast: (message: string, type?: 'success' | 'error') => void
+  /** 初始定位的 tab（首次启动向导完成页「去设置」直达） */
+  initialTab?: TabKey
 }
 
-export default function SettingsDialog({ config, onSave, onClose }: Props) {
+export default function SettingsDialog({ config, onSave, onClose, onToast, initialTab }: Props) {
   const { t } = useI18n()
   // 确保 ai_providers 存在，如果不存在则初始化
   const initialConfig = {
@@ -45,7 +51,7 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
   }
 
   const [form, setForm] = useState<PodcastConfig>(initialConfig)
-  const [activeTab, setActiveTab] = useState<TabKey>('api')
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab || 'api')
   const [models, setModels] = useState<Array<{
     id: string
     label: string
@@ -284,6 +290,17 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               <Settings size={16} />
               {t('设置')}
             </div>
+            {/* 在线教程入口（GUIDE_ONLINE_URL 为空时隐藏） */}
+            {GUIDE_ONLINE_URL && (
+              <button
+                className="settings-link-button"
+                onClick={() => void window.electronAPI.openExternal(GUIDE_ONLINE_URL)}
+                style={{ marginTop: 10, fontSize: 12 }}
+              >
+                <BookOpen size={13} />
+                {t('打开在线教程')}
+              </button>
+            )}
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
@@ -336,7 +353,12 @@ export default function SettingsDialog({ config, onSave, onClose }: Props) {
               <TabApi form={form} update={update} validationErrors={validationErrors} />
             )}
             {activeTab === 'transcribe' && (
-              <TabTranscribe form={form} update={update} onBrowse={handleBrowse} />
+              <TabTranscribe
+                form={form}
+                update={update}
+                onBrowse={handleBrowse}
+                onToast={onToast}
+              />
             )}
             {activeTab === 'whisper' && (
               <TabWhisper

@@ -135,6 +135,16 @@ export interface ExportConfig {
   notion: NotionConfig
 }
 
+// 首次启动向导状态（docs/无感配置方案.md §3.1：每步进展持久化，崩溃/重启后续接）
+export interface OnboardingState {
+  version: number
+  completed: boolean
+  /** 下次启动从该步继续（1 AI Key / 2 笔记目录 / 3 Whisper / 4 完成页） */
+  lastStep: number
+  /** 用户勾选「下次不再提醒」后不再弹向导 */
+  neverShowAgain?: boolean
+}
+
 export interface PodcastConfig {
   // AI 供应商配置（新增）
   ai_provider: AIProviderId
@@ -176,6 +186,9 @@ export interface PodcastConfig {
 
   // 剪贴板链接检测（浏览器剪藏）
   clipboard_watch_enabled?: boolean
+
+  // 首次启动向导（缺失/未完成时的弹窗判定见 src/renderer/data/onboarding-logic.ts）
+  onboarding?: OnboardingState
 }
 
 export interface Subscription {
@@ -186,6 +199,50 @@ export interface Subscription {
   enabled: boolean
   createdAt: number
   processedCount: number
+}
+
+/** Whisper 一键下载状态（whisper-downloader.ts 维护，主进程→渲染进程事件同步） */
+export type WhisperDownloadStatus =
+  | 'idle'
+  | 'checking'
+  | 'downloading'
+  | 'extracting'
+  | 'installed'
+  | 'error'
+  | 'cancelled'
+
+export interface WhisperDownloadState {
+  status: WhisperDownloadStatus
+  /** 0-100 */
+  progress: number
+  /** 人类可读的阶段消息（含下载百分比） */
+  message: string
+  /** 安装完成后的 faster-whisper-xxl.exe 路径 */
+  exePath?: string
+  error?: string
+}
+
+/** ai:testConnection 错误码（detail 只含状态码与脱敏摘要，绝不携带 apiKey/响应体全文） */
+export type AITestCode =
+  | 'ok'
+  | 'invalid_key'
+  | 'no_permission_or_balance'
+  | 'bad_url'
+  | 'rate_limited'
+  | 'network'
+  | 'unknown'
+
+export interface AITestResult {
+  success: boolean
+  code: AITestCode
+  detail: string
+}
+
+export interface AITestParams {
+  baseUrl: string
+  apiKey: string
+  model: string
+  providerId: AIProviderId
 }
 
 export interface FeishuState {

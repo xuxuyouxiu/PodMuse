@@ -112,7 +112,7 @@ export default function GuideCarousel({ guideKey, onClose }: Props) {
           <span className="guide-carousel__title">{t(guide.title)}</span>
           <div className="guide-carousel__header-side">
             <span className="guide-carousel__indicator">
-              {t('第')} {stepNo}/{total} {t('步')}
+              {t('步骤')} {stepNo}/{total}
             </span>
             <button className="guide-carousel__close" onClick={onClose} aria-label={t('关闭')}>
               <X size={16} />
@@ -128,7 +128,7 @@ export default function GuideCarousel({ guideKey, onClose }: Props) {
                 key={i}
                 className={`guide-carousel__dot${i === stepIndex ? ' is-active' : ''}`}
                 onClick={() => goTo(i)}
-                aria-label={t('第') + (i + 1) + t('步')}
+                aria-label={t('步骤') + ' ' + (i + 1)}
               />
             ))}
           </div>

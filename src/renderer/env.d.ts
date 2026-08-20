@@ -9,6 +9,8 @@ import type {
   BatchQueueSnapshot,
   BatchCompletionSummary,
   BatchInput,
+  WhisperDownloadState,
+  AITestResult,
 } from '../shared/types'
 
 interface NoteSearchResult {
@@ -373,10 +375,27 @@ declare global {
       openExternal: (url: string) => Promise<boolean>
       selectDir: () => Promise<string | null>
       selectFile: () => Promise<string | null>
+      /** 一键创建默认目录（文档/PodMuse笔记、下载/PodMuse音频），空字段写回配置 */
+      createDefaultDirs: () => Promise<{
+        obsidian_dir: string
+        audio_dir: string
+        error?: string
+      }>
       scanWhisperModels: () => Promise<WhisperModelInfo[]>
       checkWhisperHardware: (modelId: string) => Promise<HardwareCheckResult>
       autoDetectWhisper: () => Promise<{ path: string | null; error?: string }>
+      // Whisper 一键下载（后台下载，进度走 onWhisperDownloadProgress）
+      downloadWhisper: () => Promise<WhisperDownloadState>
+      getWhisperDownloadStatus: () => Promise<WhisperDownloadState>
+      cancelWhisperDownload: () => Promise<boolean>
+      onWhisperDownloadProgress: (callback: (state: WhisperDownloadState) => void) => () => void
       fetchAIModels: (baseUrl: string, apiKey: string) => Promise<AIModelListResult>
+      testAIConnection: (params: {
+        baseUrl: string
+        apiKey: string
+        model: string
+        providerId: string
+      }) => Promise<AITestResult>
       detectYtDlp: () => Promise<YtDlpStatus>
       getBacklinkIndex: () => Promise<BacklinkEntry[]>
       getTagIndex: () => Promise<TagEntry[]>
@@ -399,6 +418,8 @@ declare global {
       batchStart: () => Promise<BatchQueueSnapshot>
       /** 关闭剪贴板检测浮窗（transparent 窗口内 window.close 不可靠） */
       closeToastWindow: () => void
+      /** 读取剪贴板文本（无感配置向导轮询用；主进程不记录内容） */
+      readClipboardText: () => Promise<string>
       batchPause: () => Promise<BatchQueueSnapshot>
       batchResume: () => Promise<BatchQueueSnapshot>
       // 处理历史

@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
 import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath, isPathWithinBase } from '../security'
 import { detectYtDlp } from '../platforms/yt-dlp'
+import { createDefaultDirs } from '../default-dirs'
 import { buildBacklinkIndex, buildTagIndex } from '../backlinks'
 import type { PodcastConfig } from '@shared/types'
 
@@ -259,6 +260,12 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
     } catch {}
     return true
+  })
+
+  // 一键创建默认目录：文档/PodMuse笔记 + 下载/PodMuse音频；
+  // 仅当配置对应字段为空时写回（已有自定义目录不覆盖）
+  ipcMain.handle('app:createDefaultDirs', () => {
+    return createDefaultDirs()
   })
 
   ipcMain.handle('platform:detectYtDlp', () => {

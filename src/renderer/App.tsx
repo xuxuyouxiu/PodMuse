@@ -19,7 +19,9 @@ import StepPanel from './components/StepPanel'
 import ControlBar from './components/ControlBar'
 import ActiveTasksPanel from './components/ActiveTasksPanel'
 import RecentTasksPanel from './components/RecentTasksPanel'
-import SettingsDialog from './components/SettingsDialog'
+import SettingsDialog, { type TabKey } from './components/SettingsDialog'
+import OnboardingWizard from './components/OnboardingWizard'
+import { shouldShowWizard } from './data/onboarding-logic'
 import ConfirmDialog from './components/ConfirmDialog'
 import AboutDialog from './components/AboutDialog'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
@@ -71,6 +73,8 @@ export default function App() {
   const [processing, setProcessing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<TabKey | null>(null)
+  const [wizardOpen, setWizardOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [lastUrl, setLastUrl] = useState<string | null>(null)
   const [activeTasks, setActiveTasks] = useState<RecentTaskState[]>([])
@@ -143,7 +147,11 @@ export default function App() {
   useEffect(() => {
     window.electronAPI
       .getConfig()
-      .then(setConfig)
+      .then(cfg => {
+        setConfig(cfg)
+        // 首次启动向导：completed 缺失/未完成且核心未配齐才弹（docs/无感配置方案.md §3.2）
+        if (cfg && shouldShowWizard(cfg)) setWizardOpen(true)
+      })
       .catch(e => {
         console.error('加载配置失败:', e)
         showToast(t('加载配置失败'), 'error')
@@ -398,6 +406,14 @@ export default function App() {
         })
     }
   }, [t])
+
+  // 打开设置：可选定位到指定 tab（首次启动向导完成页待办卡片「去设置」直达）
+  const openSettings = useCallback((tab: TabKey | null) => {
+    // 从向导「去设置」跳转时先关向导遮罩（向导 z-index 高于设置弹层，评审 B1）
+    setWizardOpen(false)
+    setSettingsTab(tab)
+    setSettingsOpen(true)
+  }, [])
 
   const toggleTheme = useCallback(() => {
     setTheme(current => {
@@ -829,7 +845,20 @@ export default function App() {
         <SettingsDialog
           config={config}
           onSave={handleSaveConfig}
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => {
+            setSettingsOpen(false)
+            setSettingsTab(null)
+          }}
+          onToast={showToast}
+          initialTab={settingsTab || undefined}
+        />
+      )}
+      {wizardOpen && config && (
+        <OnboardingWizard
+          config={config}
+          onConfigSaved={c => setConfig(c)}
+          onClose={() => setWizardOpen(false)}
+          onOpenSettingsTab={openSettings}
         />
       )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}

@@ -147,11 +147,29 @@ try {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     selectDir: () => ipcRenderer.invoke('dialog:selectDir'),
     selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
+    createDefaultDirs: () => ipcRenderer.invoke('app:createDefaultDirs'),
     scanWhisperModels: () => ipcRenderer.invoke('whisper:scanModels'),
     checkWhisperHardware: (modelId: string) => ipcRenderer.invoke('whisper:checkHardware', modelId),
     autoDetectWhisper: () => ipcRenderer.invoke('whisper:autoDetect'),
+    // Whisper 一键下载（后台下载，进度走 onWhisperDownloadProgress）
+    downloadWhisper: () => ipcRenderer.invoke('whisper:download'),
+    getWhisperDownloadStatus: () => ipcRenderer.invoke('whisper:downloadStatus'),
+    cancelWhisperDownload: () => ipcRenderer.invoke('whisper:downloadCancel'),
+    onWhisperDownloadProgress: (callback: (state: unknown) => void) => {
+      const handler = (_e: IpcRendererEvent, state: unknown) => callback(state)
+      ipcRenderer.on('whisper:download-progress', handler)
+      return () => {
+        ipcRenderer.removeListener('whisper:download-progress', handler)
+      }
+    },
     fetchAIModels: (baseUrl: string, apiKey: string) =>
       ipcRenderer.invoke('ai:fetchModels', { baseUrl, apiKey }),
+    testAIConnection: (params: {
+      baseUrl: string
+      apiKey: string
+      model: string
+      providerId: string
+    }) => ipcRenderer.invoke('ai:testConnection', params),
     detectYtDlp: () => ipcRenderer.invoke('platform:detectYtDlp'),
     getBacklinkIndex: () => ipcRenderer.invoke('backlinks:index'),
     getTagIndex: () => ipcRenderer.invoke('tags:getIndex'),
@@ -172,6 +190,7 @@ try {
     batchAdd: (items: unknown[]) => ipcRenderer.invoke('batch:add', items),
     batchStart: () => ipcRenderer.invoke('batch:start'),
     closeToastWindow: () => ipcRenderer.send('toast:close'),
+    readClipboardText: () => ipcRenderer.invoke('clipboard:readText'),
     batchPause: () => ipcRenderer.invoke('batch:pause'),
     batchResume: () => ipcRenderer.invoke('batch:resume'),
     batchSkip: (index: number) => ipcRenderer.invoke('batch:skip', index),
