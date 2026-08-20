@@ -76,9 +76,7 @@ export function buildCookieString(
   cookies: Array<{ name: string; value: string; domain?: string }>,
 ): string {
   return cookies
-    .filter(
-      c => c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'),
-    )
+    .filter(c => isDouyinCookieDomain(c.domain))
     .map(c => c.name + '=' + c.value)
     .join('; ')
 }
@@ -95,6 +93,35 @@ export function isDouyinHost(url: string): boolean {
     return false
   }
 }
+
+/** 是否为抖音域 cookie（domain 后缀匹配，含子域；避免 Electron cookies.get domain 过滤语义风险） */
+export function isDouyinCookieDomain(domain: string | undefined): boolean {
+  if (!domain) return false
+  return domain.includes('douyin.com') || domain.includes('iesdouyin.com')
+}
+
+/**
+ * 应用商店/下载引导类域名：不应交给用户浏览器打开（会反复弹谷歌商店等）。
+ * 登录窗弹窗规则里静默拦截，避免干扰登录流程。
+ */
+export function isBlockedExternalHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return (
+      host === 'play.google.com' ||
+      host === 'apps.apple.com' ||
+      host === 'app.adjust.com' ||
+      host.endsWith('.play.google.com') ||
+      host.endsWith('.apps.apple.com') ||
+      host.endsWith('.app.adjust.com')
+    )
+  } catch {
+    return false
+  }
+}
+
+/** 外部链接打开的最小间隔（毫秒）：防止页面反复 window.open 广告/下载链接导致浏览器被反复拉起 */
+export const EXTERNAL_OPEN_COOLDOWN_MS = 3000
 
 /**
  * 用 fetch 带 Cookie 头请求抖音轻量接口验证登录态。
@@ -264,45 +291,54 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
 
     loginWin.loadURL('https://www.douyin.com/')
 
-    // 弹出窗口规则（分三类）：
+    // 弹出窗口规则（分四类）：
     // ① 抖音域内的 http/https 弹窗（登录页/扫码页本身用 window.open 打开）→ 允许在应用内打开，
     //    必须与登录窗共享内嵌会话，否则登录发生在外部浏览器、应用永远拿不到 cookie；
-    // ② 其它 http/https 链接 → 交给用户默认浏览器打开；
-    // ③ bytedance:// 等自定义协议 → 系统无处理程序，静默拦截（否则 Windows 反复弹协议选择框）。
+    // ② 应用商店/下载引导类域名（play.google.com 等）→ 静默拦截，不打扰登录流程；
+    // ③ 其它 http/https 链接 → 交给用户默认浏览器打开，但带最小间隔限流（页面反复 window.open 时不会反复拉起浏览器）；
+    // ④ bytedance:// 等自定义协议 → 系统无处理程序，静默拦截（否则 Windows 反复弹协议选择框）。
+    let lastExternalOpen = 0
     loginWin.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https?:\/\//i.test(url)) {
         if (isDouyinHost(url)) {
           return { action: 'allow' }
         }
-        try {
-          shell.openExternal(url)
-        } catch {}
+        if (isBlockedExternalHost(url)) {
+          return { action: 'deny' }
+        }
+        const now = Date.now()
+        if (now - lastExternalOpen >= EXTERNAL_OPEN_COOLDOWN_MS) {
+          lastExternalOpen = now
+          try {
+            shell.openExternal(url)
+          } catch {}
+        }
       }
       return { action: 'deny' }
     })
 
+    // 登录窗主框架禁止导航离开抖音域（防止被广告/商店页劫持，登录流程中断）
+    loginWin.webContents.on('will-navigate', (e, url) => {
+      if (!isDouyinHost(url)) e.preventDefault()
+    })
+
     // 每 3 秒检查一次真实登录会话 cookie（sessionid/sessionid_ss/uid_tt/sid_ucp）。
-    // sid_guard 是匿名访客 cookie，出现 ≠ 已登录，绝不能作为登录依据——
-    // 否则窗口会在用户扫码前被误关、抓到游客 cookie，随后校验必然失败。
-    // 命中标记后先等会话 cookie 落定，再抓取整串 cookie 并调用校验接口确认：
-    // 校验通过才算登录成功；校验失败（游客态/未落定）继续轮询，窗口保持打开等用户完成登录。
+    // 关键设计（v1.50.5）：「关窗」与「接口校验」解耦——
+    // 登录标记只有真实登录后才会出现（sid_guard 等游客 cookie 永远不含），
+    // 因此命中标记并等 cookie 落定后直接关窗返回；校验交给 connectDouyin/后台 refreshDouyinStatus，
+    // 校验接口的任何响应形状问题都不再阻塞窗口关闭与配置保存。
+    // 全量抓取 + 后缀过滤（不用 cookies.get domain 过滤，避免子域 cookie 漏检）。
     const checkInterval = setInterval(async () => {
       try {
-        const cookies = await session.defaultSession.cookies.get({ domain: '.douyin.com' })
-        const hasLogin = cookies.some(c => isLoginSessionCookie(c.name))
+        const allCookies = await session.defaultSession.cookies.get({})
+        const douyinCookies = allCookies.filter(c => isDouyinCookieDomain(c.domain))
+        const hasLogin = douyinCookies.some(c => isLoginSessionCookie(c.name))
         if (!hasLogin) return
         // 等会话 cookie 落定（登录跳转后部分 cookie 稍后才写入）
         await new Promise(r => setTimeout(r, LOGIN_SETTLE_MS))
         if (settled) return
-        const allCookies = await session.defaultSession.cookies.get({})
         const cookieStr = buildCookieString(allCookies)
-        if (!cookieStr) return
-        const verify = await verifyDouyinCookie(cookieStr)
-        if (verify.ok || verify.reason === 'unreachable') {
-          // 校验通过→完成；网络不可达→也先完成（外层按 unverified 保存，稍后自动重验）
-          finish(cookieStr)
-        }
-        // 校验失败：cookie 可能未落定或标记过期，继续下一轮轮询，不关窗
+        if (cookieStr) finish(cookieStr)
       } catch {
         // 轮询失败（如窗口已销毁）静默忽略，等待下一次轮询或 closed 事件
       }
@@ -347,30 +383,31 @@ export async function connectDouyin(parent?: BrowserWindow | null): Promise<Douy
 
   if (!cookieStr) return { success: false, cancelled: true }
 
+  // 登录标记出现即视为登录成功：先保存（unverified），再尽力即时校验升级为 connected。
+  // 校验失败（含接口形状变化等）绝不再阻塞/报错——由后台 refreshDouyinStatus 自动重验自愈。
+  const current = loadConfig()
+  saveConfig({
+    ...current,
+    douyin_cookie: cookieStr,
+    douyin_login: { status: 'unverified' },
+  })
+
   const verify = await verifyDouyinCookie(cookieStr)
 
   if (verify.ok) {
-    const current = loadConfig()
     saveConfig({
-      ...current,
-      douyin_cookie: cookieStr,
+      ...loadConfig(),
       douyin_login: { status: 'connected', nickname: verify.nickname, verifiedAt: Date.now() },
     })
     return { success: true, nickname: verify.nickname }
   }
 
   if (verify.reason === 'unreachable') {
-    const current = loadConfig()
-    saveConfig({
-      ...current,
-      douyin_cookie: cookieStr,
-      douyin_login: { status: 'unverified' },
-    })
     return { success: true, warning: '网络不可达，已保存登录状态，稍后自动重新校验' }
   }
 
-  // 校验失败：不保存，提示重新登录
-  return { success: false, error: '登录态校验失败，请重新登录' }
+  // invalid：保持 unverified 不标 expired（避免校验误判立刻让用户看到「已失效」）
+  return { success: true }
 }
 
 /** 读取当前抖音登录状态（纯配置读取，不做网络请求；绝不包含 cookie） */

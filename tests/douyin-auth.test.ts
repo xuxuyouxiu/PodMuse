@@ -93,6 +93,8 @@ import {
   isLoginSessionCookie,
   isIgnorableLoadError,
   isDouyinHost,
+  isDouyinCookieDomain,
+  isBlockedExternalHost,
   buildCookieString,
 } from '../src/main/douyin-auth'
 import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
@@ -459,7 +461,7 @@ describe('disconnectDouyin', () => {
 // connectDouyin（登录窗迁移后的行为）
 // ============================================================
 
-describe('isLoginSessionCookie / isIgnorableLoadError / buildCookieString', () => {
+describe('isLoginSessionCookie / isIgnorableLoadError / buildCookieString / 域名工具', () => {
   it('仅真实登录会话 cookie 算登录标记，sid_guard 匿名 cookie 不算', () => {
     expect(isLoginSessionCookie('sid_guard')).toBe(false)
     expect(isLoginSessionCookie('sessionid')).toBe(true)
@@ -476,14 +478,32 @@ describe('isLoginSessionCookie / isIgnorableLoadError / buildCookieString', () =
     expect(isIgnorableLoadError(0)).toBe(false)
   })
 
-  it('buildCookieString：只拼 douyin 域 cookie，按 name=value 以 ; 连接', () => {
+  it('buildCookieString：只拼 douyin 域 cookie（含子域），按 name=value 以 ; 连接', () => {
     const out = buildCookieString([
       { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
       { name: 'sessionid', value: 'ss', domain: 'www.douyin.com' },
+      { name: 'sessionid_ss', value: 's2', domain: 'sso.douyin.com' },
       { name: 'od', value: 'x', domain: '.iesdouyin.com' },
       { name: 'other', value: 'y', domain: 'example.com' },
     ])
-    expect(out).toBe('sid_guard=sg; sessionid=ss; od=x')
+    expect(out).toBe('sid_guard=sg; sessionid=ss; sessionid_ss=s2; od=x')
+  })
+
+  it('isDouyinCookieDomain：douyin/iesdouyin 及其子域均为真，其它域为假', () => {
+    expect(isDouyinCookieDomain('.douyin.com')).toBe(true)
+    expect(isDouyinCookieDomain('sso.douyin.com')).toBe(true)
+    expect(isDouyinCookieDomain('www.douyin.com')).toBe(true)
+    expect(isDouyinCookieDomain('.iesdouyin.com')).toBe(true)
+    expect(isDouyinCookieDomain('example.com')).toBe(false)
+    expect(isDouyinCookieDomain(undefined)).toBe(false)
+  })
+
+  it('isBlockedExternalHost：应用商店/下载引导域名拦截，普通外链放行', () => {
+    expect(isBlockedExternalHost('https://play.google.com/store/apps/details?id=x')).toBe(true)
+    expect(isBlockedExternalHost('https://apps.apple.com/app/id123')).toBe(true)
+    expect(isBlockedExternalHost('https://app.adjust.com/abc')).toBe(true)
+    expect(isBlockedExternalHost('https://www.example.com/page')).toBe(false)
+    expect(isBlockedExternalHost('bytedance://x')).toBe(false)
   })
 })
 
@@ -536,9 +556,15 @@ describe('connectDouyin', () => {
     await vi.advanceTimersByTimeAsync(5000)
     const result = await promise
     expect(result).toEqual({ success: true, nickname: '播客爱好者' })
+    // 两段式保存：先 unverified（含 cookie），再校验升级 connected
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
+        douyin_login: { status: 'unverified' },
+      }),
+    )
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
         douyin_login: expect.objectContaining({ status: 'connected', nickname: '播客爱好者' }),
       }),
     )
@@ -568,22 +594,26 @@ describe('connectDouyin', () => {
 
     expect(result).toEqual({ success: true, nickname: '播客爱好者' })
     expect(result).not.toHaveProperty('cookie')
+    // 两段式保存：先 unverified（含 cookie），再校验通过升级 connected
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
+        douyin_login: { status: 'unverified' },
+      }),
+    )
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
         douyin_login: expect.objectContaining({ status: 'connected', nickname: '播客爱好者' }),
       }),
     )
   })
 
-  it('出现登录标记但校验持续失败（游客态/未落定）→ 窗口保持打开，用户关闭 → cancelled', async () => {
+  it('登录标记出现但校验未通过 → 窗口仍关闭、保存 unverified、返回成功（不误报失败）', async () => {
     vi.useFakeTimers()
-    mockCookiesGet.mockImplementation(async (filter: unknown) => {
-      const f = filter as { domain?: string } | undefined
-      if (f?.domain === '.douyin.com')
-        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
-      return [{ name: 'sid_guard', value: 'sg', domain: '.douyin.com' }]
-    })
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+      { name: 'sessionid', value: 'ss', domain: 'sso.douyin.com' },
+    ])
     mockLoadConfig.mockReturnValue(baseConfig())
     vi.stubGlobal(
       'fetch',
@@ -591,15 +621,19 @@ describe('connectDouyin', () => {
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(8000)
-    // 校验失败不会关窗、不会保存
-    expect(MockBrowserWindow.instances[0].destroyed).toBe(false)
-    expect(mockSaveConfig).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(5000)
 
-    MockBrowserWindow.instances[0].close()
+    // 窗口已关闭（标记即完成），不再依赖接口校验
+    expect(MockBrowserWindow.instances[0].destroyed).toBe(true)
     const result = await promise
-    expect(result).toEqual({ success: false, cancelled: true })
-    expect(mockSaveConfig).not.toHaveBeenCalled()
+    expect(result.success).toBe(true)
+    expect(result.error).toBeUndefined()
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        douyin_cookie: 'sid_guard=sg; sessionid=ss',
+        douyin_login: { status: 'unverified' },
+      }),
+    )
   })
 
   it('登录成功但网络不可达 → 保存 cookie 标 unverified，返回 warning', async () => {
@@ -706,6 +740,56 @@ describe('connectDouyin', () => {
       'other',
     )
     MockBrowserWindow.instances[0].close()
+    await promise
+  })
+
+  it('will-navigate：主框架禁止离开抖音域（防广告/商店页劫持登录流程）', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
+    const win = MockBrowserWindow.instances[0]
+    const navHandler = win.handlers['wc:will-navigate'][0]
+    const ev = { preventDefault: vi.fn() }
+    navHandler(ev, 'https://play.google.com/store/apps/details?id=x')
+    expect(ev.preventDefault).toHaveBeenCalled()
+    const ev2 = { preventDefault: vi.fn() }
+    navHandler(ev2, 'https://www.douyin.com/?recommend=1')
+    expect(ev2.preventDefault).not.toHaveBeenCalled()
+    win.close()
+    await promise
+  })
+
+  it('外链限流：同窗口短时间多次 window.open 只打开一次用户浏览器', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
+    const win = MockBrowserWindow.instances[0]
+    win.openHandler!({ url: 'https://www.example.com/a' })
+    win.openHandler!({ url: 'https://www.example.com/b' })
+    win.openHandler!({ url: 'https://www.example.com/c' })
+    expect(mockOpenExternal).toHaveBeenCalledTimes(1)
+    win.close()
+    await promise
+  })
+
+  it('应用商店域名弹窗（谷歌商店等）静默拦截，不打开浏览器', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
+    const win = MockBrowserWindow.instances[0]
+    const result = win.openHandler!({ url: 'https://play.google.com/store/apps/details?id=com.ss.android.ugc.aweme' })
+    expect(result).toEqual({ action: 'deny' })
+    expect(mockOpenExternal).not.toHaveBeenCalled()
+    win.close()
     await promise
   })
 

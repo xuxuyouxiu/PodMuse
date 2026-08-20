@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.50.5] - 2026-08-20
+
+### 修复
+- **登录前反复弹出谷歌商店**：登录窗弹窗规则新增应用商店/下载引导域名黑名单（play.google.com / apps.apple.com / app.adjust.com）静默拦截；外部链接增加 3 秒最小间隔限流，页面反复 window.open 不再反复拉起浏览器；登录窗主框架禁止导航离开抖音域（防广告/商店页劫持登录流程）
+- **登录成功但窗口不关闭、配置不保存**：「关窗」与「接口校验」解耦——登录标记（sessionid 等，仅真实登录后出现）命中即关窗并保存（先标 unverified，随后自动校验升级为已连接+昵称）；轮询改为全量抓取 cookie + 域名后缀过滤，避免子域 cookie（sso.douyin.com 等）漏检；校验接口的任何响应形状问题都不再阻塞登录完成，失效态由后台自动重验自愈
+
+### 测试
+- douyin-auth 新增/更新 8 例：域名工具（isDouyinCookieDomain / isBlockedExternalHost）、will-navigate 防劫持、外链限流、商店域名拦截、标记即关窗两段式保存
+- 全量 462 测试通过
+
 ## [1.50.4] - 2026-08-20
 
 ### 修复
