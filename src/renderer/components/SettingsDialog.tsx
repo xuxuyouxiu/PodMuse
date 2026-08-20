@@ -221,81 +221,26 @@ export default function SettingsDialog({ config, onSave, onClose, onToast, initi
   }
 
   return (
-    <div
-      onClick={handleClose}
-      className="settings-dialog-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'var(--overlay-bg)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        animation: 'fadeIn 0.2s',
-      }}
-    >
+    <div onClick={handleClose} className="settings-dialog-overlay">
       <div
         onClick={e => e.stopPropagation()}
         className="settings-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={t('设置')}
-        style={{
-          width: 720,
-          maxWidth: 'calc(100vw - 32px)',
-          height: 520,
-          maxHeight: '85vh',
-          background: 'var(--bg-elevated)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow-lg)',
-          display: 'flex',
-          animation: 'modalSlide 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflow: 'hidden',
-        }}
       >
         {/* 左侧导航 */}
-        <div
-          style={{
-            width: 180,
-            minWidth: 140,
-            flexShrink: 0,
-            background: 'var(--bg-card)',
-            borderRight: '1px solid var(--border)',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '16px 0',
-            overflowY: 'auto',
-          }}
-        >
-          <div
-            style={{
-              padding: '0 16px 16px',
-              borderBottom: '1px solid var(--border)',
-              marginBottom: 8,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
+        <div className="settings-dialog__sidebar">
+          <div className="settings-dialog__sidebar-header">
+            <div className="settings-dialog__sidebar-title">
               <Settings size={16} />
               {t('设置')}
             </div>
             {/* 在线教程入口（GUIDE_ONLINE_URL 为空时隐藏） */}
             {GUIDE_ONLINE_URL && (
               <button
-                className="settings-link-button"
+                className="settings-link-button st-mt-10"
                 onClick={() => void window.electronAPI.openExternal(GUIDE_ONLINE_URL)}
-                style={{ marginTop: 10, fontSize: 12 }}
               >
                 <BookOpen size={13} />
                 {t('打开在线教程')}
@@ -303,26 +248,12 @@ export default function SettingsDialog({ config, onSave, onClose, onToast, initi
             )}
           </div>
 
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
+          <nav className="settings-dialog__nav">
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: activeTab === tab.key ? 'var(--accent)' : 'transparent',
-                  color: activeTab === tab.key ? '#fff' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: activeTab === tab.key ? 600 : 400,
-                  transition: 'all 0.15s',
-                  textAlign: 'left',
-                }}
+                className={`settings-dialog__nav-btn ${activeTab === tab.key ? 'is-active' : ''}`}
               >
                 <tab.icon size={16} />
                 {t(tab.label)}
@@ -332,23 +263,9 @@ export default function SettingsDialog({ config, onSave, onClose, onToast, initi
         </div>
 
         {/* 右侧内容 */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="settings-dialog__main">
           {/* 内容区域 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
-              padding: '20px 24px',
-            }}
-          >
+          <div className="settings-dialog__content">
             {activeTab === 'api' && (
               <TabApi form={form} update={update} validationErrors={validationErrors} />
             )}
@@ -387,71 +304,22 @@ export default function SettingsDialog({ config, onSave, onClose, onToast, initi
           </div>
 
           {/* 底部操作栏 */}
-          <div
-            style={{
-              padding: '12px 24px',
-              borderTop: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-card)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {isDirty && (
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• {t('未保存的更改')}</span>
-              )}
-              {saveSuccess && (
-                <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ {t('保存成功')}</span>
-              )}
+          <div className="settings-dialog__footer">
+            <div className="settings-dialog__footer-status">
+              {isDirty && <span className="st-muted">• {t('未保存的更改')}</span>}
+              {saveSuccess && <span className="st-success">✓ {t('保存成功')}</span>}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="settings-dialog__footer-actions">
               <button onClick={handleClose} className="tailbar-button">
                 {t('取消')}
               </button>
-              <button
-                onClick={handleSave}
-                className="settings-save-button"
-                disabled={!isDirty}
-                style={{ opacity: isDirty ? 1 : 0.6 }}
-              >
+              <button onClick={handleSave} className="settings-save-button" disabled={!isDirty}>
                 {t('保存')}
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        @keyframes modalSlide { from { opacity:0; transform: translateY(20px) scale(0.96); } to { opacity:1; transform: translateY(0) scale(1); } }
-        .settings-checkbox {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: var(--text-secondary);
-          cursor: pointer;
-        }
-        .settings-checkbox input {
-          width: 16px;
-          height: 16px;
-        }
-        .settings-link-button {
-          background: none;
-          border: none;
-          color: var(--accent);
-          cursor: pointer;
-          font-size: 12px;
-          padding: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .settings-link-button:hover {
-          text-decoration: underline;
-        }
-      `}</style>
 
       {/* 关闭确认对话框 */}
       {showCloseConfirm && (

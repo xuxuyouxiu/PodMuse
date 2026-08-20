@@ -62,3 +62,6 @@ resources/douyin/douyin-cli.exe
 # docs 产品流程文档（本地保留，不上传）
 docs/*
 !docs/screenshots/
+
+# CodeGraph 工具缓存
+.code-graph.json

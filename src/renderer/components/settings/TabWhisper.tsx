@@ -146,8 +146,7 @@ export default function TabWhisper({
             <select
               value={form.whisper_model}
               onChange={e => onModelChange(e.target.value)}
-              className="settings-input"
-              style={{ flex: 1, outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
+              className="settings-input st-model-select"
             >
               {(models ?? []).map(m => (
                 <option key={m.id} value={m.id}>
@@ -168,41 +167,23 @@ export default function TabWhisper({
             <button
               onClick={onScanModels}
               disabled={scanningModels}
-              className="settings-browse-button"
-              style={{ whiteSpace: 'nowrap' }}
+              className="settings-browse-button st-nowrap"
             >
               {scanningModels ? '…' : t('刷新')}
             </button>
           </div>
           {models && models.length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-light)',
-                }}
-              >
+            <div className="st-row st-mt-8">
+              <span className="st-badge">
                 {t('已下载')} {models.filter(m => m.downloaded).length}/{models.length}
               </span>
               {(() => {
                 const selected = models.find(m => m.id === form.whisper_model)
                 if (!selected) return null
                 return selected.downloaded ? (
-                  <span style={{ fontSize: 11, color: 'var(--success)' }}>✓ {t('当前模型已就绪')}</span>
+                  <span className="st-success">✓ {t('当前模型已就绪')}</span>
                 ) : (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--text-muted)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                    }}
-                  >
+                  <span className="st-inline-flex st-muted">
                     <ArrowDown size={11} />
                     {t('首次使用将自动下载')} ~{selected.ramMinGB}GB
                   </span>
@@ -211,16 +192,14 @@ export default function TabWhisper({
             </div>
           )}
           {modelScanStatus && (
-            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-              {t(modelScanStatus)}
-            </div>
+            <div className="st-mt-6 st-muted">{t(modelScanStatus)}</div>
           )}
         </div>
 
         <div className="settings-field">
           <div className="settings-field-label">
             {t('Whisper 可执行文件路径')}
-            <span style={{ color: 'var(--error)', marginLeft: 4 }}>*</span>
+            <span className="st-required-mark">*</span>
           </div>
           <DirField
             label=""
@@ -252,75 +231,33 @@ export default function TabWhisper({
 
           {/* 一键安装 Faster-Whisper-XXL（后台下载，与首次启动向导共用主进程下载状态） */}
           {!form.whisper_exe_path && dlState?.status !== 'installed' && (
-            <div
-              style={{
-                marginTop: 10,
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-light)',
-              }}
-            >
+            <div className="st-box">
               {downloadActive ? (
                 <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{statusLabel}</span>
+                  <div className="st-between st-mb-6">
+                    <span className="st-secondary">{statusLabel}</span>
                     <button
                       onClick={handleCancelDownload}
-                      className="settings-link-button"
-                      style={{ fontSize: 11 }}
+                      className="settings-link-button st-muted"
                     >
                       {t('取消下载')}
                     </button>
                   </div>
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 999,
-                      background: 'var(--bg)',
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div className="st-progress-track">
                     <div
-                      style={{
-                        height: '100%',
-                        width: (dlState ? dlState.progress : 0) + '%',
-                        borderRadius: 999,
-                        background: 'var(--accent)',
-                        transition: 'width 0.3s',
-                      }}
+                      className="st-progress-bar"
+                      style={{ width: `${dlState ? dlState.progress : 0}%` }}
                     />
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-                    {dlState?.message}
-                  </div>
+                  <div className="st-mt-6 st-muted">{dlState?.message}</div>
                 </>
               ) : dlState?.status === 'error' ? (
                 <>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--error)',
-                      marginBottom: 8,
-                      lineHeight: 1.5,
-                      wordBreak: 'break-all',
-                    }}
-                  >
-                    <AlertCircle
-                      size={12}
-                      style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
-                    />
+                  <div className="st-error-text">
+                    <AlertCircle size={12} className="st-icon-inline" />
                     {dlState.message}
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="st-actions">
                     <button onClick={handleInstall} className="settings-browse-button">
                       <RotateCcw size={12} />
                       {t('重试')}
@@ -335,13 +272,12 @@ export default function TabWhisper({
                 <>
                   <button
                     onClick={handleInstall}
-                    className="settings-primary-button"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    className="settings-primary-button st-btn-inline"
                   >
                     <Download size={14} />
                     {t('一键安装 Faster-Whisper-XXL')}
                   </button>
-                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+                  <div className="st-mt-6 st-muted">
                     {t('自动下载安装并完成配置（约 1.4 GB），可后台进行，不影响其他功能')}
                   </div>
                 </>
@@ -350,30 +286,23 @@ export default function TabWhisper({
           )}
 
           {dlState?.status === 'installed' && dlState.exePath && form.whisper_exe_path === dlState.exePath && (
-            <span
-              className="settings-test-result--success"
-              style={{ marginTop: 8, display: 'inline-flex' }}
-            >
+            <span className="settings-test-result--success st-inline-flex st-mt-8">
               <CheckCircle2 size={12} />
               {t('已安装并自动配置')}
             </span>
           )}
 
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+          <div className="st-mt-4 st-muted">
             {t('Whisper 引擎是本地语音转文字的必需组件，可从 GitHub 下载')}
-            <span
-              onClick={handleOpenReleases}
-              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer', marginLeft: 4 }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span onClick={handleOpenReleases} className="st-link st-ml-4">
+              <span className="st-icon-text">
                 <ExternalLink size={11} />
                 {t('GitHub 下载')}
               </span>
             </span>
             <button
               onClick={() => setGuideKey('whisper')}
-              className="settings-link-button"
-              style={{ marginLeft: 8 }}
+              className="settings-link-button st-ml-8"
             >
               <BookOpen size={11} />
               {t('安装说明')}
@@ -383,14 +312,11 @@ export default function TabWhisper({
 
         <div className="settings-field">
           <div className="settings-field-label">{t('下载模型')}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div className="st-desc">
             {t('Faster-Whisper-XXL 首次运行时会自动下载所选模型到本地缓存目录。')}
             <br />
-            <span
-              onClick={handleOpenReleases}
-              style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span onClick={handleOpenReleases} className="st-link">
+              <span className="st-icon-text">
                 <ExternalLink size={12} />
                 {t('GitHub 下载 faster-whisper-xxl 模型')}
               </span>
@@ -400,28 +326,11 @@ export default function TabWhisper({
       </div>
 
       {hardwareWarn && hardwareWarn.warning && (
-        <div
-          style={{
-            marginTop: 8,
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 12,
-            lineHeight: 1.5,
-            background: hardwareWarn.pass ? 'rgba(255,193,7,0.1)' : 'rgba(244,67,54,0.1)',
-            border: '1px solid ' + (hardwareWarn.pass ? 'rgba(255,193,7,0.3)' : 'rgba(244,67,54,0.3)'),
-            color: hardwareWarn.pass ? 'var(--text-secondary)' : 'var(--error)',
-          }}
-        >
+        <div className={`st-hw-box ${hardwareWarn.pass ? 'st-hw-box--warn' : 'st-hw-box--fail'}`}>
           {hardwareWarn.pass ? (
-            <AlertTriangle
-              size={13}
-              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
-            />
+            <AlertTriangle size={13} className="st-icon-inline" />
           ) : (
-            <AlertCircle
-              size={13}
-              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}
-            />
+            <AlertCircle size={13} className="st-icon-inline" />
           )}
           {t(hardwareWarn.warning)}
         </div>

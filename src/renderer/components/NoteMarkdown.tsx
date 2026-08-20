@@ -29,12 +29,12 @@ export function convertWikiLinksToMd(md: string): string {
   })
 }
 
-/** 链接类型颜色（与知识关联面板 TYPE_META 对应） */
+/** 链接类型颜色（与知识关联面板 TYPE_META 对应，统一走 --entity-* token） */
 export const LINK_TYPE_COLORS: Record<string, string> = {
-  people: '#a855f7', // 人物-紫
-  projects: '#22c55e', // 项目-绿
-  concepts: '#eab308', // 概念-黄
-  terms: '#9ca3af', // 术语-灰
+  people: 'var(--entity-people)', // 人物-紫
+  projects: 'var(--entity-projects)', // 项目-绿
+  concepts: 'var(--entity-concepts)', // 概念-黄
+  terms: 'var(--entity-terms)', // 术语-灰
 }
 
 interface Props {

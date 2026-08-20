@@ -592,7 +592,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         <div className="history-view__stat">
           <div className="history-view__stat-head">
             <span className="history-view__stat-label">{t('总任务')}</span>
-            <span className="history-view__stat-icon history-view__stat-icon--violet"><ListChecks size={14} /></span>
+            <span className="history-view__stat-icon history-view__stat-icon--accent"><ListChecks size={14} /></span>
           </div>
           <div className="history-view__stat-value">{stats.total}</div>
           <div className="history-view__stat-sub">{t('全部历史任务')}</div>
@@ -608,7 +608,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         <div className="history-view__stat">
           <div className="history-view__stat-head">
             <span className="history-view__stat-label">{t('处理失败')}</span>
-            <span className="history-view__stat-icon history-view__stat-icon--red"><AlertCircle size={14} /></span>
+            <span className="history-view__stat-icon history-view__stat-icon--error"><AlertCircle size={14} /></span>
           </div>
           <div className="history-view__stat-value history-view__stat-value--fail">{stats.failed}</div>
           <div className="history-view__stat-sub">{t('可重新生成')}</div>
@@ -616,7 +616,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         <div className="history-view__stat">
           <div className="history-view__stat-head">
             <span className="history-view__stat-label">{t('已生成笔记')}</span>
-            <span className="history-view__stat-icon history-view__stat-icon--blue"><FileText size={14} /></span>
+            <span className="history-view__stat-icon history-view__stat-icon--accent"><FileText size={14} /></span>
           </div>
           <div className="history-view__stat-value">{stats.withNote}</div>
           <div className="history-view__stat-sub">{t('有笔记可查看')}</div>
@@ -624,7 +624,7 @@ export default function HistoryView({ obsidianDir, onGoWorkspace }: Props) {
         <div className="history-view__stat">
           <div className="history-view__stat-head">
             <span className="history-view__stat-label">{t('本周新增')}</span>
-            <span className="history-view__stat-icon history-view__stat-icon--orange"><TrendingUp size={14} /></span>
+            <span className="history-view__stat-icon history-view__stat-icon--accent"><TrendingUp size={14} /></span>
           </div>
           <div className="history-view__stat-value">{stats.weekNew}</div>
           <div className="history-view__stat-sub">{t('最近 7 天')}</div>

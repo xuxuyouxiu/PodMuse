@@ -109,15 +109,7 @@ export default function TabPlatforms() {
   function getStatusBadge(row: PlatformRow) {
     if (row.depType === 'coming') {
       return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 12,
-            color: 'var(--text-muted)',
-          }}
-        >
+        <span className="st-status st-status--muted">
           <Clock size={13} /> {t('敬请期待')}
         </span>
       )
@@ -125,85 +117,32 @@ export default function TabPlatforms() {
 
     if (row.depType === 'yt-dlp') {
       if (!ytDlp) {
-        return <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('检测中...')}</span>
+        return <span className="st-status st-status--muted">{t('检测中...')}</span>
       }
       if (ytDlp.available && !ytDlp.outdated) {
         return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              color: 'var(--success)',
-            }}
-          >
+          <span className="st-status st-status--success">
             <Check size={13} /> {t('可用')}
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                marginLeft: 4,
-                fontFamily: 'Consolas, monospace',
-                fontSize: 11,
-              }}
-            >
-              yt-dlp {ytDlp.version}
-            </span>
+            <span className="st-version">yt-dlp {ytDlp.version}</span>
           </span>
         )
       }
       if (ytDlp.available && ytDlp.outdated) {
         return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              color: 'var(--warning, #e6a817)',
-            }}
-          >
+          <span className="st-status st-status--warning">
             <AlertTriangle size={13} /> {t('版本过旧')}
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                marginLeft: 4,
-                fontFamily: 'Consolas, monospace',
-                fontSize: 11,
-              }}
-            >
-              {ytDlp.version}
-            </span>
+            <span className="st-version">{ytDlp.version}</span>
           </span>
         )
       }
       return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            color: 'var(--error)',
-          }}
-        >
+        <span className="st-status st-status--error">
           <AlertTriangle size={13} /> {t('需安装 yt-dlp')}
           <button
             onClick={() =>
               window.electronAPI.openExternal('https://github.com/yt-dlp/yt-dlp/releases/latest')
             }
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent)',
-              cursor: 'pointer',
-              fontSize: 12,
-              padding: 0,
-              textDecoration: 'underline',
-            }}
+            className="st-link-underline"
           >
             {t('安装指南')} <ExternalLink size={11} />
           </button>
@@ -213,15 +152,7 @@ export default function TabPlatforms() {
 
     // depType === 'ready'
     return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          fontSize: 12,
-          color: 'var(--success)',
-        }}
-      >
+      <span className="st-status st-status--success">
         <Check size={13} /> {t('可用')}
       </span>
     )
@@ -231,89 +162,37 @@ export default function TabPlatforms() {
     <div>
       <TabHeader title={t('支持平台')} subtitle={t('查看各平台的支持状态和外部依赖')} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="st-stack">
         {PLATFORMS.map(row => {
           const Icon = row.icon
           return (
-            <div
-              key={row.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <Icon size={16} style={{ color: 'var(--accent)', opacity: 0.8, flexShrink: 0 }} />
+            <div key={row.id} className="st-platform-row">
+              <div className="st-platform-main">
+                <Icon size={16} className="st-platform-icon" />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {t(row.name)}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--text-muted)',
-                      fontFamily: 'Consolas, monospace',
-                    }}
-                  >
-                    {t(row.urlExample)}
-                  </div>
+                  <div className="st-platform-name">{t(row.name)}</div>
+                  <div className="st-platform-url">{t(row.urlExample)}</div>
                 </div>
               </div>
-              <div style={{ flexShrink: 0, marginLeft: 12 }}>{getStatusBadge(row)}</div>
+              <div className="st-no-shrink st-ml-12">{getStatusBadge(row)}</div>
             </div>
           )
         })}
       </div>
 
       {/* 即将支持 */}
-      <div style={{ marginTop: 20 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            marginBottom: 8,
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}
-        >
-          {t('即将支持')}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="st-mt-20">
+        <div className="st-section-label">{t('即将支持')}</div>
+        <div className="st-stack">
           {COMING_SOON.map(p => {
             const Icon = p.icon
             return (
-              <div
-                key={p.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  opacity: 0.6,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Icon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t(p.name)}</div>
+              <div key={p.name} className="st-platform-row st-platform-row--dim">
+                <div className="st-platform-main">
+                  <Icon size={16} className="st-platform-icon--muted" />
+                  <div className="st-platform-name st-platform-name--muted">{t(p.name)}</div>
                 </div>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 12,
-                    color: 'var(--text-muted)',
-                  }}
-                >
+                <span className="st-status st-status--muted">
                   <Clock size={13} /> {t('敬请期待')}
                 </span>
               </div>
@@ -323,24 +202,8 @@ export default function TabPlatforms() {
       </div>
 
       {/* 重新检测按钮 */}
-      <div style={{ marginTop: 16 }}>
-        <button
-          onClick={recheckYtDlp}
-          disabled={checking}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border)',
-            background: 'var(--bg-card)',
-            color: 'var(--text-secondary)',
-            cursor: checking ? 'default' : 'pointer',
-            fontSize: 12,
-            opacity: checking ? 0.6 : 1,
-          }}
-        >
+      <div className="st-mt-16">
+        <button onClick={recheckYtDlp} disabled={checking} className="st-ghost-btn">
           {checking ? t('检测中...') : t('重新检测 yt-dlp')}
         </button>
       </div>

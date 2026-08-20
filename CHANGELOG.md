@@ -5,6 +5,28 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.0] - 2026-08-20
+
+### 改进
+- **统一类目色 / 实体色设计令牌**：在 `globals.css` 新增 `--cat-tech/news/psych/life`（4 类目色）与 `--entity-people/projects/concepts/terms`（4 实体色）token，浅/深色主题全覆盖；BacklinkPanel、SearchPanel、NoteMarkdown、QAPanel 不再各自维护色表——抽取共享 `src/renderer/lib/category-colors.ts`，同一「科技商业」在关系图谱页与搜索页颜色一致，消除品牌色硬伤
+- **补齐缺失令牌并修复失效渲染**：定义 `--text-tertiary` / `--text-tertiary-rgb`（5 处引用此前静默 fallback 成灰）、`--bg-hover` / `--border-subtle` / `--accent-light`（SearchPanel/ExportMenu 此前 hover 态透明）、`--mark-bg`（关键词高亮走主题）；清理 `var(--warning, #eab308)`、`var(--bg)`、`var(--bg-primary)`、`var(--radius)`、`var(--danger)` 等失效引用与硬编码兜底
+- **字号系统收敛**：将 `--fs-*` token 扩展为 10/11/12/13/14/15/18/20/24/64px 规整刻度；`globals.css` 与迁出的组件 CSS 中 262 处裸写 `font-size: XXpx` 全部改走 token，消除 9.5/10.5/11.5/12.5/13.5/16.5 等 0.5 步进值与孤儿字号
+- **设置页行内样式收敛为 class**：新增 `st-` 前缀工具类与 `settings-dialog__*` BEM 布局类，TabWhisper / TabPlatforms / SettingsDialog 三处共 70+ 处 inline style 改走 class，设置页导航、状态徽标、进度条、硬件提示统一走设计系统
+- **统计卡去多色**：历史页 5 张统计卡 icon 由紫/绿/红/蓝/橙 5 色改为「accent 主色 + 成功/失败语义色」，KPI 视觉不再为差异化而差异化
+- **关系图谱画布渐变在浅色主题下可见**：画布背景改走 `--graph-canvas-bg` / `--graph-canvas-shadow`，浅色主题下不再与底色融为一体
+- **知识图谱 dim 强度调整**：节点悬停时非连接节点 dim 从 0.15 提到 0.4、过渡缩到 0.18s，不再像「图谱坏掉」
+- **无障碍降级**：补充 `@media (prefers-reduced-motion: reduce)` 全局动画/过渡降级
+
+### 重构
+- **内联 `<style>` 块迁出**：BacklinkPanel（700+ 行）、SearchPanel（70+ 行）的内联 CSS 迁出到 `src/renderer/styles/backlink-panel.css` / `search-panel.css`，App.tsx 的 `@keyframes toastIn` 迁入 globals.css；SettingsDialog 重复的 fadeIn/modalSlide keyframes 删除、settings-checkbox/link-button 并入全局样式——便于 Vite 提取、缓存与 HMR，避免 React 严格模式 hydration mismatch
+- **代码依赖分析**：用 CodeGraph 工具生成项目结构/调用依赖概览，作为本次优化的结构基线
+
+### 修复
+- **TabWhisper 下载进度条底色**：进度条 `background: var(--bg)` 引用了未定义 token 导致底色透明，改走 `--bg-surface`
+
+### 测试
+- 全量 462 测试通过；typecheck 0 错误；lint 0 错误（仅 2 条既存无关 warning）
+
 ## [1.50.5] - 2026-08-20
 
 ### 修复

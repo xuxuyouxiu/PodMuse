@@ -924,9 +924,6 @@ export default function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
       />
-      <style>{`
-        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-      `}</style>
     </>
   )
 }
