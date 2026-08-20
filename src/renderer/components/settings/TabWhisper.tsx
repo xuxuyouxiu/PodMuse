@@ -342,7 +342,7 @@ export default function TabWhisper({
                     {t('一键安装 Faster-Whisper-XXL')}
                   </button>
                   <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-                    {t('自动下载安装并完成配置（约 1.4GB），可后台进行，不影响其他功能')}
+                    {t('自动下载安装并完成配置（约 1.4 GB），可后台进行，不影响其他功能')}
                   </div>
                 </>
               )}

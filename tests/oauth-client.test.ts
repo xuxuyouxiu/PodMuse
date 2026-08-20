@@ -1097,3 +1097,55 @@ describe('restoreProtectedFields（OAuth 凭据 renderer 不可写）', () => {
     expect(out.douyin_cookie).toBe('sid_guard=real')
   })
 })
+
+// ============================================================
+// restoreProtectedFields（export.notion.token：config:get 已清空，空值还原防误清空）
+// ============================================================
+
+describe('restoreProtectedFields（export.notion.token 防护）', () => {
+  const withToken = {
+    export: { logseq_dir: '', notion: { token: 'manual-real', database_id: 'db-1' } },
+  } as unknown as PodcastConfig
+
+  const exportNotionToken = (out: Record<string, unknown>): string => {
+    const exp = out.export as { notion?: { token?: string } } | undefined
+    return exp?.notion?.token ?? ''
+  }
+
+  it('renderer 传回空 token（未修改）→ 还原主进程值，防止保存时误清空', () => {
+    const out = restoreProtectedFields(
+      { export: { logseq_dir: '', notion: { token: '', database_id: 'db-1' } } },
+      withToken,
+    )
+    expect(exportNotionToken(out)).toBe('manual-real')
+    // database_id 等其他 export 字段原样保留
+    expect((out.export as { notion: { database_id: string } }).notion.database_id).toBe('db-1')
+  })
+
+  it('renderer 传入新 token（手动高级模式唯一写入通道）→ 原样保留', () => {
+    const out = restoreProtectedFields(
+      { export: { logseq_dir: '', notion: { token: 'manual-new', database_id: 'db-2' } } },
+      withToken,
+    )
+    expect(exportNotionToken(out)).toBe('manual-new')
+  })
+
+  it('主进程无 token 且 renderer 传空 → 保持空（不凭空写入）', () => {
+    const empty = {
+      export: { logseq_dir: '', notion: { token: '', database_id: 'db-1' } },
+    } as unknown as PodcastConfig
+    const out = restoreProtectedFields(
+      { export: { notion: { token: '', database_id: 'db-1' } } },
+      empty,
+    )
+    expect(exportNotionToken(out)).toBe('')
+  })
+
+  it('主进程无 export 且 renderer 未传 export → 不崩溃', () => {
+    const out = restoreProtectedFields({ api_key: 'sk-1' }, {
+      douyin_cookie: '',
+    } as PodcastConfig)
+    expect(out.api_key).toBe('sk-1')
+    expect('export' in out).toBe(false)
+  })
+})

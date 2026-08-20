@@ -3,7 +3,8 @@
  * 范式对齐 yt-dlp autoDownloadYtDlp（platforms/yt-dlp.ts），并做三处扩展：
  * 1. 发布源固定为 Purfview/whisper-standalone-win 的 Faster-Whisper-XXL tag
  *    （/releases/latest 指向无资产的 Pro 版，不能照抄 latest 接口）
- * 2. 资产是 .7z 压缩包（约 1.3GB），用 Windows 自带 bsdtar 解压，失败回退 7z
+ * 2. 资产是 .7z 压缩包（约 1.4 GB），用 Windows 自带 bsdtar 解压，失败回退 7z；
+ *    下载采用流式写盘 + 背压控制（磁盘写入慢时暂停读取），避免大文件堆积内存
  * 3. 下载失败按国内镜像前缀逐个重试（ghfast.top / gh-proxy.com / mirror.ghproxy.com），
  *    全部失败时错误信息引导用户打开 GitHub 下载页手动安装
  */
@@ -183,7 +184,7 @@ async function downloadInternal(signal: AbortSignal): Promise<void> {
     setState({ status: 'extracting', message: '正在解压安装…' })
     await extractArchive(archivePath, installDir, signal)
 
-    // 解压成功即删除压缩包，避免 1.3GB 残留
+    // 解压成功即删除压缩包，避免约 1.4 GB 残留
     try {
       fs.unlinkSync(archivePath)
     } catch {}
@@ -276,31 +277,59 @@ async function downloadBinary(
   const writer = fs.createWriteStream(tmpPath)
   const reader = resp.body.getReader()
   let downloaded = 0
+  let writerError: Error | null = null
+  // 持久监听写流错误：背压等待 drain 期间写流出错时，靠它终止等待并让本轮失败
+  writer.on('error', (err: Error) => {
+    writerError = err
+  })
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (signal?.aborted) {
-      writer.close()
-      try {
-        fs.unlinkSync(tmpPath)
-      } catch {}
-      throw new Error('已取消')
-    }
-    writer.write(value)
-    downloaded += value.length
-    if (totalSize > 0) {
-      const pct = Math.min(99, Math.round((downloaded / totalSize) * 100))
-      onProgress?.(
-        pct,
-        `下载中 ${pct}% (${(downloaded / 1048576).toFixed(1)}/${(totalSize / 1048576).toFixed(1)} MB)`,
-      )
-    }
+  /** 写入一个分块；写缓冲区满时等待 drain（背压：磁盘慢于网络时暂停读取，防止大文件在内存堆积） */
+  const writeChunk = async (chunk: Uint8Array): Promise<void> => {
+    if (writerError) throw writerError
+    if (writer.write(chunk)) return
+    await new Promise<void>((resolve, reject) => {
+      writer.once('drain', resolve)
+      writer.once('error', reject)
+    })
   }
 
-  await new Promise<void>((resolve, reject) => {
-    writer.end((err?: Error) => (err ? reject(err) : resolve()))
-  })
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (signal?.aborted) {
+        try {
+          await reader.cancel()
+        } catch {}
+        throw new Error('已取消')
+      }
+      await writeChunk(value)
+      downloaded += value.length
+      if (totalSize > 0) {
+        const pct = Math.min(99, Math.round((downloaded / totalSize) * 100))
+        onProgress?.(
+          pct,
+          `下载中 ${pct}% (${(downloaded / 1048576).toFixed(1)}/${(totalSize / 1048576).toFixed(1)} MB)`,
+        )
+      }
+    }
+    await new Promise<void>((resolve, reject) => {
+      if (writerError) {
+        reject(writerError)
+        return
+      }
+      writer.once('error', reject)
+      writer.once('finish', resolve)
+      writer.end()
+    })
+  } catch (e) {
+    // 失败/取消：销毁写流并删除 .downloading 临时文件，防止残留半成品
+    writer.destroy()
+    try {
+      fs.unlinkSync(tmpPath)
+    } catch {}
+    throw e
+  }
 
   if (signal?.aborted) {
     try {

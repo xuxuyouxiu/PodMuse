@@ -1,4 +1,5 @@
 import { useI18n } from '../../i18n'
+import { ClipboardPaste } from 'lucide-react'
 
 export function TabHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -46,6 +47,8 @@ export function Field({
   error,
   required,
   placeholder,
+  onPaste,
+  pasteTitle,
 }: {
   label: string
   value: string
@@ -54,26 +57,48 @@ export function Field({
   error?: string
   required?: boolean
   placeholder?: string
+  /** 提供后在该字段旁渲染「粘贴」按钮（读剪贴板填入本字段，Secret 等无特征化字段的兜底） */
+  onPaste?: () => void
+  /** 粘贴按钮悬浮提示（i18n key） */
+  pasteTitle?: string
 }) {
   const { t } = useI18n()
+  const input = (
+    <input
+      type={secret ? 'password' : 'text'}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="settings-input"
+      placeholder={placeholder}
+      style={{
+        outline: 'none',
+        fontFamily: 'Consolas, monospace',
+        borderColor: error ? 'var(--error)' : undefined,
+      }}
+    />
+  )
   return (
     <div className="settings-field">
       <div className="settings-field-label">
         {label}
         {required && <span style={{ color: 'var(--error)', marginLeft: 4 }}>*</span>}
       </div>
-      <input
-        type={secret ? 'password' : 'text'}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="settings-input"
-        placeholder={placeholder}
-        style={{
-          outline: 'none',
-          fontFamily: 'Consolas, monospace',
-          borderColor: error ? 'var(--error)' : undefined,
-        }}
-      />
+      {onPaste ? (
+        <div className="settings-dir-row">
+          <div style={{ flex: 1 }}>{input}</div>
+          <button
+            onClick={onPaste}
+            className="settings-browse-button"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            title={pasteTitle ? t(pasteTitle) : undefined}
+          >
+            <ClipboardPaste size={12} style={{ marginRight: 4, verticalAlign: '-2px' }} />
+            {t('粘贴')}
+          </button>
+        </div>
+      ) : (
+        input
+      )}
       {error && <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 4 }}>{t(error)}</div>}
     </div>
   )

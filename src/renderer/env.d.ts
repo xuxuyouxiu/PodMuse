@@ -317,6 +317,8 @@ declare global {
       douyinSetup: () => Promise<{ success: boolean; error?: string; path?: string }>
       // Notion / 飞书 OAuth 连接服务
       notionOAuthStatus: () => Promise<NotionOAuthStatusInfo>
+      // Notion 手动高级模式配置状态（token 不回显，只读是否已配置）
+      getNotionExportStatus: () => Promise<{ configured: boolean }>
       notionOAuthStart: () => Promise<OAuthActionResult & { port?: number }>
       notionOAuthDatabases: () => Promise<OAuthActionResult & { databases?: NotionDatabaseInfo[] }>
       notionOAuthSelectDb: (databaseId: string) => Promise<OAuthActionResult>

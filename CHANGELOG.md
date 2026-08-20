@@ -5,6 +5,22 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.50.1] - 2026-08-20
+
+### 修复
+- **Whisper 下载内存背压**：下载改为流式写盘（write 背压 + drain 等待 + 分块错误监听），1.4GB 压缩包不再整包堆积内存，取消时正确清理临时文件
+- 文案统一：安装包体积口径统一为「约 1.4 GB」，默认目录文案统一为「PodMuse笔记」
+- 首次启动向导文档口径与实现对齐：每次启动提醒直到完成核心配置或勾选「下次不再提醒」（docs/无感配置方案.md）
+
+### 新增
+- **敏感凭据加密扩列**：export.notion.token 与 feishu_oauth.appSecret 纳入 safeStorage 加密（enc:v1 格式、旧明文兼容、不可用回退、不可解密清空）；loadSafeConfig 清空 export.notion.token，新增 notion:exportStatus IPC，设置页显示「已配置不回显」
+- **设置页逐字段剪贴板填充**：飞书高级三字段（App ID/Secret/Chat ID）与 Notion 高级两字段（token/database id）支持「粘贴」按钮与自动识别（cli_/oc_/secret_/32 位 hex，带边界防截取，只填空字段不覆盖）
+- AI「测试连接」成功后自动加载模型列表（带供应商切换守卫与禁用态）
+- 图文指南（GuideCarousel）支持英文展示（manifest 双语 titleEn/captionEn）
+
+### 测试
+- 本批新增 21 例（extractFieldValue 11、ai-model-loader 4、加密扩列分支、manifest 英文断言），全量 447 测试通过
+
 ## [1.50.0] - 2026-08-20
 
 ### 新增

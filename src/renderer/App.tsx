@@ -64,6 +64,8 @@ export default function App() {
     return saved === 'light' ? 'light' : 'dark'
   })
   const [config, setConfig] = useState<PodcastConfig | null>(null)
+  // Notion 手动模式是否已配置（token 不回显，状态经 notion:exportStatus IPC 读取）
+  const [notionExportConfigured, setNotionExportConfigured] = useState(false)
   const [feishuStatus, setFeishuStatus] = useState<FeishuStatus>({
     connected: false,
     monitoring: false,
@@ -156,6 +158,10 @@ export default function App() {
         console.error('加载配置失败:', e)
         showToast(t('加载配置失败'), 'error')
       })
+    window.electronAPI
+      .getNotionExportStatus()
+      .then(s => setNotionExportConfigured(s.configured))
+      .catch(() => {})
     window.electronAPI
       .getTasks()
       .then(({ activeTasks: aTasks, recentTasks: rTasks }) => {
@@ -386,6 +392,11 @@ export default function App() {
   const handleSaveConfig = useCallback(async (c: PodcastConfig) => {
     await window.electronAPI.saveConfig(c)
     setConfig(c)
+    // 保存后刷新 Notion 手动模式配置状态（token 不回显，配置状态走 IPC）
+    window.electronAPI
+      .getNotionExportStatus()
+      .then(s => setNotionExportConfigured(s.configured))
+      .catch(() => {})
     showToast(t('保存成功'))
     // 保存后自动重启飞书监听器，使用新凭据重新连接
     if (c.feishu_app_id && c.feishu_app_secret) {
@@ -736,12 +747,7 @@ export default function App() {
                         onReplay={handleReprocess}
                         onDelete={handleTaskDelete}
                         logseqDir={config?.export?.logseq_dir || ''}
-                        notionConfigured={
-                          !!(
-                            config?.export?.notion?.token?.trim() &&
-                            config?.export?.notion?.database_id?.trim()
-                          )
-                        }
+                        notionConfigured={notionExportConfigured}
                         onToast={showToast}
                       />
                     )}

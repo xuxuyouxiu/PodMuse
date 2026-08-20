@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PodcastConfig, AIProviderId, AIProviderConfig, AITestCode, AITestResult } from '@shared/types'
 import { AI_PROVIDER_PRESETS } from '@shared/ai-provider-presets'
 import { TabHeader, Field } from './FieldComponents'
@@ -6,6 +6,13 @@ import { useI18n } from '../../i18n'
 import GuideCarousel from '../GuideCarousel'
 import DouyinConnectionCard from './DouyinConnectionCard'
 import FeishuOAuthCard from './FeishuOAuthCard'
+import { useClipboardFill } from '../../hooks/useClipboardFill'
+import { loadAIModels } from '../../data/ai-model-loader'
+import {
+  extractFieldValue,
+  FEISHU_APP_ID_PATTERN,
+  FEISHU_CHAT_ID_PATTERN,
+} from '../../data/clipboard-field-patterns'
 
 // 飞书测试连接结果 → 多语言显示
 function formatFeishuResult(
@@ -110,6 +117,13 @@ export default function TabApi({
     detail?: string
   } | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
+  const [feishuAdvancedOpen, setFeishuAdvancedOpen] = useState(false)
+
+  // 模型加载期间的供应商切换守卫：加载完成时若已切换供应商，丢弃过期结果
+  const activeProviderRef = useRef<AIProviderId>(activeProvider)
+  useEffect(() => {
+    activeProviderRef.current = activeProvider
+  }, [activeProvider])
 
   // 获取当前供应商配置
   const currentProvider = providers[activeProvider] || ({} as AIProviderConfig)
@@ -173,6 +187,8 @@ export default function TabApi({
         providerId: activeProvider,
       })
       setAiTestResult(result)
+      // 测试连接成功后自动加载模型列表（评审遗留：成功即加载，无需再点「加载模型」）
+      if (result.success) void runLoadModels()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       setAiTestResult({ success: false, code: 'unknown', detail: msg })
@@ -181,10 +197,11 @@ export default function TabApi({
     }
   }
 
-  // 从API加载模型列表
-  async function handleFetchModels() {
+  // 拉取模型列表（手动「加载模型」按钮与「测试连接成功自动加载」共用）
+  async function runLoadModels() {
+    const pid = activeProvider
     const apiKey = currentProvider.apiKey
-    const baseUrl = currentProvider.baseUrl || currentPreset?.baseUrl
+    const baseUrl = currentProvider.baseUrl || currentPreset?.baseUrl || ''
 
     if (!apiKey) {
       setFetchModelsStatus('请先填写 API Key')
@@ -196,22 +213,56 @@ export default function TabApi({
     setFetchedModels([])
 
     try {
-      const result = await window.electronAPI.fetchAIModels(baseUrl || '', apiKey)
-      if (result.success && result.models.length > 0) {
-        setFetchedModels(result.models)
-        setFetchModelsStatus(t('已加载') + ' ' + result.models.length + ' ' + t('个模型'))
+      const out = await loadAIModels({
+        fetchModels: (u, k) => window.electronAPI.fetchAIModels(u, k),
+        baseUrl,
+        apiKey,
+        currentModel: currentProvider.model,
+      })
+      if (pid !== activeProviderRef.current) return // 期间切换了供应商，丢弃过期结果
+      if (out.ok) {
+        setFetchedModels(out.models)
+        setFetchModelsStatus(t('已加载') + ' ' + out.models.length + ' ' + t('个模型'))
         // 如果当前没有选择模型，自动选择第一个
-        if (!currentProvider.model && result.models.length > 0) {
-          updateProviderConfig('model', result.models[0].id)
-        }
+        if (out.autoSelectId) updateProviderConfig('model', out.autoSelectId)
+      } else if (out.thrownError) {
+        setFetchModelsStatus(t('加载失败') + ': ' + out.thrownError)
       } else {
-        setFetchModelsStatus(result.error || '未找到可用模型')
+        setFetchModelsStatus(out.error || t('未找到可用模型'))
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setFetchModelsStatus(t('加载失败') + ': ' + msg)
     } finally {
       setFetchingModels(false)
+    }
+  }
+
+  // 飞书高级模式：剪贴板无感填充（cli_ → App ID，oc_ → Chat ID；Secret 无特征化，走「粘贴」按钮）。
+  // 只填仍为空的字段，已填内容不覆盖（替换请用「粘贴」按钮）；未展开高级模式不轮询。
+  useClipboardFill({
+    active: feishuAdvancedOpen && !form.feishu_app_id.trim(),
+    patterns: [FEISHU_APP_ID_PATTERN],
+    onFill: value => update('feishu_app_id', value),
+  })
+
+  useClipboardFill({
+    active: feishuAdvancedOpen && !form.feishu_chat_id.trim(),
+    patterns: [FEISHU_CHAT_ID_PATTERN],
+    onFill: value => update('feishu_chat_id', value),
+  })
+
+  // 「粘贴」兜底：读剪贴板填入指定字段（可识别值优先提取，否则原样填入）
+  async function pasteFeishuField(field: 'appId' | 'appSecret' | 'chatId') {
+    try {
+      const text = await window.electronAPI.readClipboardText()
+      const trimmed = text.trim()
+      if (!trimmed) return
+      let value = trimmed
+      if (field === 'appId') value = extractFieldValue(trimmed, 'feishu-app-id') ?? trimmed
+      if (field === 'chatId') value = extractFieldValue(trimmed, 'feishu-chat-id') ?? trimmed
+      if (field === 'appId') update('feishu_app_id', value)
+      else if (field === 'appSecret') update('feishu_app_secret', value)
+      else update('feishu_chat_id', value)
+    } catch (e) {
+      console.warn('[clipfill] paste failed:', (e as Error)?.message) // 绝不记录剪贴板内容
     }
   }
 
@@ -381,7 +432,7 @@ export default function TabApi({
                   {aiTesting ? t('测试中…') : t('测试连接')}
                 </button>
                 <button
-                  onClick={handleFetchModels}
+                  onClick={() => void runLoadModels()}
                   disabled={fetchingModels || !currentProvider.apiKey}
                   className="settings-browse-button"
                   style={{
@@ -442,7 +493,11 @@ export default function TabApi({
 
         <FeishuOAuthCard />
 
-        <details style={{ marginTop: 8 }}>
+        <details
+          open={feishuAdvancedOpen}
+          onToggle={e => setFeishuAdvancedOpen(e.currentTarget.open)}
+          style={{ marginTop: 8 }}
+        >
           <summary
             className="settings-link-button"
             style={{ display: 'inline-block', cursor: 'pointer' }}
@@ -455,6 +510,8 @@ export default function TabApi({
               value={form.feishu_app_id}
               onChange={v => update('feishu_app_id', v)}
               placeholder="cli_xxxxxxxxxx"
+              onPaste={() => void pasteFeishuField('appId')}
+              pasteTitle="在飞书复制对应值后点粘贴"
             />
             <Field
               label={t('飞书 App Secret')}
@@ -462,13 +519,21 @@ export default function TabApi({
               onChange={v => update('feishu_app_secret', v)}
               secret
               placeholder={t('输入飞书应用 App Secret')}
+              onPaste={() => void pasteFeishuField('appSecret')}
+              pasteTitle="在飞书复制对应值后点粘贴"
             />
             <Field
               label={t('飞书群聊 Chat ID')}
               value={form.feishu_chat_id}
               onChange={v => update('feishu_chat_id', v)}
               placeholder="oc_xxxxxxxxxxxxxxxxxx"
+              onPaste={() => void pasteFeishuField('chatId')}
+              pasteTitle="在飞书复制对应值后点粘贴"
             />
+          </div>
+          <div className="settings-hint" style={{ marginTop: 8 }}>
+            {t('在飞书复制对应值后点粘贴')}；
+            {t('复制 App ID（cli_）或 Chat ID（oc_）后会自动识别填入')}
           </div>
           <div className="settings-test-row">
             <button

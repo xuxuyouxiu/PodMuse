@@ -34,6 +34,16 @@ describe('onboarding manifest 完整性', () => {
     }
   })
 
+  it('每组 title/每步 caption 均提供英文（titleEn / captionEn 非空，en 语言下展示）', () => {
+    for (const guide of GUIDE_MANIFESTS) {
+      expect(guide.titleEn?.trim(), guide.key + ' titleEn 非空').not.toBe('')
+      guide.steps.forEach((step, i) => {
+        const label = guide.key + ' 第 ' + (i + 1) + ' 步'
+        expect(step.captionEn?.trim(), label + ' captionEn 非空').not.toBe('')
+      })
+    }
+  })
+
   it('image 若存在，路径以 public/onboarding/<key>/ 开头且为 .png', () => {
     for (const guide of GUIDE_MANIFESTS) {
       guide.steps.forEach((step, i) => {

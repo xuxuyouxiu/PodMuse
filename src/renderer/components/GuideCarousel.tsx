@@ -16,7 +16,7 @@ interface Props {
  * 截图缺失或加载失败时优雅降级为占位卡（大号步骤序号 + 文案），离线仍可读。
  */
 export default function GuideCarousel({ guideKey, onClose }: Props) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const guide = resolveGuide(guideKey)
 
   const [stepIndex, setStepIndex] = useState(0)
@@ -99,6 +99,9 @@ export default function GuideCarousel({ guideKey, onClose }: Props) {
   const step = steps[stepIndex]
   const stepNo = stepIndex + 1
   const showImage = Boolean(step.image) && !imgFailed
+  // en 语言下展示英文标题/步骤说明（manifest 的 titleEn / captionEn），缺省回退中文
+  const title = lang === 'en' && guide.titleEn ? guide.titleEn : t(guide.title)
+  const caption = lang === 'en' && step.captionEn ? step.captionEn : t(step.caption)
 
   return createPortal(
     <div
@@ -109,7 +112,7 @@ export default function GuideCarousel({ guideKey, onClose }: Props) {
     >
       <div className="guide-carousel">
         <div className="guide-carousel__header">
-          <span className="guide-carousel__title">{t(guide.title)}</span>
+          <span className="guide-carousel__title">{title}</span>
           <div className="guide-carousel__header-side">
             <span className="guide-carousel__indicator">
               {t('步骤')} {stepNo}/{total}
@@ -138,19 +141,19 @@ export default function GuideCarousel({ guideKey, onClose }: Props) {
             <img
               className="guide-carousel__image"
               src={toAssetSrc(step.image!)}
-              alt={step.caption}
+              alt={caption}
               onError={() => setImgFailed(true)}
             />
           ) : (
             <div className="guide-carousel__placeholder">
               <span className="guide-carousel__placeholder-number">{stepNo}</span>
-              <span className="guide-carousel__placeholder-caption">{t(step.caption)}</span>
+              <span className="guide-carousel__placeholder-caption">{caption}</span>
             </div>
           )}
           {showImage && (
             <div className="guide-carousel__caption">
               <span className="guide-carousel__caption-number">{stepNo}.</span>
-              {t(step.caption)}
+              {caption}
             </div>
           )}
         </div>

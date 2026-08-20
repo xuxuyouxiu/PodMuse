@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PodcastConfig } from '@shared/types'
 import { TabHeader, DirField, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
 import { BookOpen } from 'lucide-react'
 import GuideCarousel from '../GuideCarousel'
 import NotionOAuthCard from './NotionOAuthCard'
+import { useClipboardFill } from '../../hooks/useClipboardFill'
+import {
+  extractFieldValue,
+  NOTION_DB_ID_PATTERN,
+  NOTION_TOKEN_PATTERN,
+} from '../../data/clipboard-field-patterns'
 
 interface Props {
   form: PodcastConfig
@@ -25,6 +31,22 @@ export default function TabExport({ form, update }: Props) {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
+  const [notionAdvancedOpen, setNotionAdvancedOpen] = useState(false)
+  // Token 明文不回显（主进程加密存储），配置状态经 notion:exportStatus IPC 读取
+  const [notionTokenConfigured, setNotionTokenConfigured] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    window.electronAPI
+      .getNotionExportStatus()
+      .then(s => {
+        if (!cancelled) setNotionTokenConfigured(s.configured)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function updateLogseqDir(dir: string) {
     update('export', { ...exportConfig, logseq_dir: dir })
@@ -65,6 +87,36 @@ export default function TabExport({ form, update }: Props) {
     }
   }
 
+  // Notion 高级模式：剪贴板无感填充（secret_ → token，32 位 hex → database ID）。
+  // 只填仍为空的字段，已填内容不覆盖（替换请用「粘贴」按钮）；未展开高级模式不轮询。
+  useClipboardFill({
+    active: notionAdvancedOpen && !notion.token.trim(),
+    patterns: [NOTION_TOKEN_PATTERN],
+    onFill: value => updateNotionField('token', value),
+  })
+
+  useClipboardFill({
+    active: notionAdvancedOpen && !notion.database_id.trim(),
+    patterns: [NOTION_DB_ID_PATTERN],
+    onFill: value => updateNotionField('database_id', value),
+  })
+
+  // 「粘贴」兜底：读剪贴板填入指定字段（可识别值优先提取，否则原样填入）
+  async function pasteNotionField(field: 'token' | 'database_id') {
+    try {
+      const text = await window.electronAPI.readClipboardText()
+      const trimmed = text.trim()
+      if (!trimmed) return
+      let value = trimmed
+      if (field === 'token') value = extractFieldValue(trimmed, 'notion-token') ?? trimmed
+      if (field === 'database_id')
+        value = extractFieldValue(trimmed, 'notion-database-id') ?? trimmed
+      updateNotionField(field, value)
+    } catch (e) {
+      console.warn('[clipfill] paste failed:', (e as Error)?.message) // 绝不记录剪贴板内容
+    }
+  }
+
   return (
     <div>
       <TabHeader title={t('导出')} subtitle={t('配置笔记导出到其他平台（Markdown / Logseq / Notion）')} />
@@ -99,7 +151,11 @@ export default function TabExport({ form, update }: Props) {
         </div>
         <NotionOAuthCard />
 
-        <details style={{ marginTop: 8 }}>
+        <details
+          open={notionAdvancedOpen}
+          onToggle={e => setNotionAdvancedOpen(e.currentTarget.open)}
+          style={{ marginTop: 8 }}
+        >
           <summary
             className="settings-link-button"
             style={{ display: 'inline-block', cursor: 'pointer' }}
@@ -113,13 +169,28 @@ export default function TabExport({ form, update }: Props) {
               onChange={v => updateNotionField('token', v)}
               secret
               placeholder="secret_xxxxxxxxxxxxxxxxxxx"
+              onPaste={() => void pasteNotionField('token')}
+              pasteTitle="在 Notion 复制对应值后点粘贴"
             />
+            {notionTokenConfigured && (
+              <div className="settings-hint" style={{ marginTop: 6 }}>
+                {t(
+                  '✓ 已配置 Notion Token（出于安全不回显；输入新 Token 可替换，留空保存保留原值）',
+                )}
+              </div>
+            )}
             <Field
               label="Database ID"
               value={notion.database_id}
               onChange={v => updateNotionField('database_id', v)}
               placeholder={`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx ${t('或')} database URL`}
+              onPaste={() => void pasteNotionField('database_id')}
+              pasteTitle="在 Notion 复制对应值后点粘贴"
             />
+          </div>
+          <div className="settings-hint" style={{ marginTop: 8 }}>
+            {t('在 Notion 复制对应值后点粘贴')}；
+            {t('复制 token（secret_）或 database ID 后会自动识别填入')}
           </div>
           <div className="settings-test-row">
             <button

@@ -155,6 +155,24 @@ export function restoreProtectedFields(
     delete out.feishu_oauth
   }
 
+  // export.notion.token：config:get 前已清空（renderer 不接触明文），
+  // 传回空值 = 未修改 → 还原主进程现有值防误清空；非空视为用户新输入的手动 Token。
+  const currentExportNotion = (
+    currentAny.export as { notion?: Record<string, unknown> } | undefined
+  )?.notion
+  const incomingExport = out.export as Record<string, unknown> | undefined
+  if (incomingExport && typeof incomingExport === 'object') {
+    const notionIn = incomingExport.notion as Record<string, unknown> | undefined
+    if (notionIn && typeof notionIn === 'object') {
+      const incomingToken = typeof notionIn.token === 'string' ? notionIn.token : ''
+      const currentToken =
+        typeof currentExportNotion?.token === 'string' ? currentExportNotion.token : ''
+      if (!incomingToken && currentToken) {
+        out.export = { ...incomingExport, notion: { ...notionIn, token: currentToken } }
+      }
+    }
+  }
+
   return out
 }
 
@@ -168,6 +186,17 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       return loadSafeConfig()
     } catch {
       return null
+    }
+  })
+
+  // Notion 手动高级模式配置状态（token 明文已从 config:get 移除，renderer 只读布尔状态）
+  ipcMain.handle('notion:exportStatus', () => {
+    try {
+      const cfg = loadConfig()
+      const n = cfg.export?.notion
+      return { configured: !!(n?.token?.trim() && n?.database_id?.trim()) }
+    } catch {
+      return { configured: false }
     }
   })
 

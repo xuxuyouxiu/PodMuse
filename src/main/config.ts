@@ -196,8 +196,9 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
 /**
  * 敏感凭据加密字段清单：
  * - douyin_cookie：抖音登录 Cookie
- * - feishu_oauth.userAccessToken / refreshToken：飞书 OAuth 用户级 token
+ * - feishu_oauth.appSecret / userAccessToken / refreshToken：飞书 OAuth 凭据
  * - notion_oauth.accessToken / clientSecret：Notion OAuth token
+ * - export.notion.token：Notion 手动高级模式 Integration Token
  * app 级字段 api_key / feishu_app_secret 按现状明文存储，暂不纳入本次加密。
  *
  * 磁盘格式：字段值 = 'enc:v1:' + base64(safeStorage.encryptString(明文))。
@@ -208,11 +209,19 @@ function cleanConfigForSave(config: PodcastConfig): Record<string, unknown> {
  */
 const ENC_SECRET_PREFIX = 'enc:v1:'
 
-/** OAuth 嵌套对象的加密目标字段（feishu_oauth.appSecret 为 app 级配置，保持明文） */
-const SECRET_OAUTH_FIELDS = [
-  { obj: 'feishu_oauth', fields: ['userAccessToken', 'refreshToken'] },
+/** 敏感凭据加密目标：一级嵌套对象字段，或 nested 指定的二级嵌套对象字段 */
+interface SecretFieldSpec {
+  obj: string
+  /** 二级嵌套对象名（如 export 下的 notion），一级嵌套时省略 */
+  nested?: string
+  fields: string[]
+}
+
+const SECRET_FIELD_SPECS: SecretFieldSpec[] = [
+  { obj: 'feishu_oauth', fields: ['appSecret', 'userAccessToken', 'refreshToken'] },
   { obj: 'notion_oauth', fields: ['accessToken', 'clientSecret'] },
-] as const
+  { obj: 'export', nested: 'notion', fields: ['token'] },
+]
 
 function tryEncryptSecret(value: string): string {
   if (!value || value.startsWith(ENC_SECRET_PREFIX)) return value
@@ -242,15 +251,27 @@ function mapSecretFields<T extends PodcastConfig>(
     string,
     unknown
   >
-  for (const { obj, fields } of SECRET_OAUTH_FIELDS) {
-    const source = (config as unknown as Record<string, unknown>)[obj]
-    if (source && typeof source === 'object') {
+  for (const spec of SECRET_FIELD_SPECS) {
+    const source = (config as unknown as Record<string, unknown>)[spec.obj]
+    // export/notion 等旧配置可能整体缺失（undefined），防御性跳过
+    if (!source || typeof source !== 'object') continue
+    if (spec.nested) {
+      // 二级嵌套（export.notion.token）：内层对象缺失时同样跳过
+      const inner = (source as Record<string, unknown>)[spec.nested]
+      if (!inner || typeof inner !== 'object') continue
+      const mappedInner = { ...(inner as Record<string, unknown>) }
+      for (const field of spec.fields) {
+        const v = mappedInner[field]
+        if (typeof v === 'string') mappedInner[field] = fn(v)
+      }
+      result[spec.obj] = { ...(source as Record<string, unknown>), [spec.nested]: mappedInner }
+    } else {
       const mapped = { ...(source as Record<string, unknown>) }
-      for (const field of fields) {
+      for (const field of spec.fields) {
         const v = mapped[field]
         if (typeof v === 'string') mapped[field] = fn(v)
       }
-      result[obj] = mapped
+      result[spec.obj] = mapped
     }
   }
   return result as unknown as T
@@ -358,8 +379,9 @@ export function maskSecret(value: string): string {
  * 例外：douyin_cookie 必须置空 —— 渲染层（UI/DOM/state）永不接触明文 cookie，
  * 登录状态改由 douyin:status IPC 下发（docs/配置体系优化落地实现方案.md §2.3 第 3 步）。
  * 同理，notion_oauth / feishu_oauth 的 token 类字段（accessToken/userAccessToken/refreshToken/
- * clientSecret/appSecret/expiresAt）在 config:get 前清空，连接状态由 notion:oauthStatus /
- * feishu:oauthStatus IPC 下发（docs/配置体系优化落地实现方案.md §1.5）。
+ * clientSecret/appSecret/expiresAt）与 export.notion.token 在 config:get 前清空，连接状态由
+ * notion:oauthStatus / feishu:oauthStatus IPC 下发，Notion 手动模式配置状态由
+ * notion:exportStatus IPC 下发（docs/配置体系优化落地实现方案.md §1.5）。
  */
 export function loadSafeConfig(): PodcastConfig {
   const safe = { ...loadConfig() }
@@ -379,6 +401,13 @@ export function loadSafeConfig(): PodcastConfig {
       userAccessToken: undefined,
       refreshToken: undefined,
       expiresAt: undefined,
+    }
+  }
+  // export.notion.token 同样不下发渲染层（config:save 侧按空值还原主进程值）
+  if (safe.export?.notion) {
+    safe.export = {
+      ...safe.export,
+      notion: { ...safe.export.notion, token: '' },
     }
   }
   return safe
