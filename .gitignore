@@ -65,3 +65,6 @@ docs/*
 
 # CodeGraph 工具缓存
 .code-graph.json
+
+# 本地智能体基础设施
+.workbuddy/
