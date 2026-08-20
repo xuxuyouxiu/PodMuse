@@ -218,11 +218,15 @@ function createWindow() {
     console.error(`Page load failed: ${code} - ${desc}`)
   })
 
-  // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）
+  // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）。
+  // 只放行 http/https：自定义协议（bytedance:// 等）系统无处理程序，
+  // 交给 shell.openExternal 会反复弹 Windows「需要使用新应用以打开此链接」对话框。
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      shell.openExternal(url)
-    } catch {}
+    if (/^https?:\/\//i.test(url)) {
+      try {
+        shell.openExternal(url)
+      } catch {}
+    }
     return { action: 'deny' }
   })
 

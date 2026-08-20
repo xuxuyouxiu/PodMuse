@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.50.3] - 2026-08-20
+
+### 修复
+- **弹出链接不再触发 Windows「需要使用新应用以打开此 bytedance 链接」弹窗**：window.open 拦截改为只放行 http/https 链接走用户默认浏览器；`bytedance://` 等自定义协议系统无处理程序，一律静默拦截（此前交给 shell.openExternal 会反复弹系统协议选择框）
+
+### 说明
+- 抖音登录窗本身是应用内模态窗口（黑框）：这是「无 Cookie 展示」方案的一部分——Electron 内嵌会话负责捕获登录 cookie，主进程闭环校验；「弹出链接走用户浏览器」规则针对的是页面里的 window.open 链接
+
 ## [1.50.2] - 2026-08-20
 
 ### 修复

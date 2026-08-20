@@ -234,11 +234,15 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
 
     loginWin.loadURL('https://www.douyin.com/')
 
-    // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）
+    // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）。
+    // 但只放行 http/https：bytedance:// 等自定义协议系统没有处理程序，
+    // 交给 shell.openExternal 会反复弹 Windows「需要使用新应用以打开此链接」对话框。
     loginWin.webContents.setWindowOpenHandler(({ url }) => {
-      try {
-        shell.openExternal(url)
-      } catch {}
+      if (/^https?:\/\//i.test(url)) {
+        try {
+          shell.openExternal(url)
+        } catch {}
+      }
       return { action: 'deny' }
     })
 

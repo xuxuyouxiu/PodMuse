@@ -630,15 +630,28 @@ describe('connectDouyin', () => {
     )
   })
 
-  it('弹出链接走用户默认浏览器（setWindowOpenHandler deny + openExternal）', async () => {
+  it('弹出链接走用户默认浏览器：http/https 放行 openExternal，一律 deny', async () => {
     mockCookiesGet.mockImplementation(async () => [])
     mockLoadConfig.mockReturnValue(baseConfig())
     const promise = connectDouyin(null)
     await Promise.resolve()
     const win = MockBrowserWindow.instances[0]
-    const result = win.openHandler!({ url: 'https://www.douyin.com/help' })
-    expect(result).toEqual({ action: 'deny' })
+    const httpResult = win.openHandler!({ url: 'https://www.douyin.com/help' })
+    expect(httpResult).toEqual({ action: 'deny' })
     expect(mockOpenExternal).toHaveBeenCalledWith('https://www.douyin.com/help')
+    win.close()
+    await promise
+  })
+
+  it('自定义协议（bytedance:// 等）静默拦截：不弹 Windows 协议选择框', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await Promise.resolve()
+    const win = MockBrowserWindow.instances[0]
+    const result = win.openHandler!({ url: 'bytedance://open?app=aweme' })
+    expect(result).toEqual({ action: 'deny' })
+    expect(mockOpenExternal).not.toHaveBeenCalled()
     win.close()
     await promise
   })
