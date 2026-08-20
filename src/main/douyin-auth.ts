@@ -86,6 +86,16 @@ export function buildCookieString(
 /** 登录成功后等待会话 cookie 落定的时间（毫秒） */
 const LOGIN_SETTLE_MS = 1200
 
+/** 是否为抖音域（含子域）——登录/扫码弹窗放行在应用内打开的前提 */
+export function isDouyinHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host === 'douyin.com' || host.endsWith('.douyin.com')
+  } catch {
+    return false
+  }
+}
+
 /**
  * 用 fetch 带 Cookie 头请求抖音轻量接口验证登录态。
  * 判定（实测 2026-08：无 cookie 时 passport/web/account/info 返回 HTTP 200 +
@@ -193,11 +203,31 @@ function extractNickname(json: unknown): string | undefined {
 }
 
 /**
+ * 清掉内嵌会话里的旧抖音 cookie：每次「连接抖音」都从干净的扫码页开始，
+ * 避免登录窗直接显示上次登录的账号（用户以为是没登出）。
+ */
+async function clearDouyinSessionCookies(): Promise<void> {
+  try {
+    const all = await session.defaultSession.cookies.get({})
+    for (const c of all) {
+      if (!c.domain || !(c.domain.includes('douyin.com') || c.domain.includes('iesdouyin.com')))
+        continue
+      try {
+        const url = 'https://' + c.domain.replace(/^\./, '') + (c.path || '/')
+        await session.defaultSession.cookies.remove(url, c.name)
+      } catch {}
+    }
+  } catch {}
+}
+
+/**
  * 弹登录窗并轮询捕获 cookie（迁移自 index.ts 原 douyin:login）。
  * cookie 串只在本函数内拼接，绝不离开主进程。
  * 返回空串表示用户关闭窗口（cancelled）；抛错表示页面加载失败或登录超时。
  */
 async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<string> {
+  // 先清旧会话 cookie，再开窗（保证扫码页是全新的）
+  await clearDouyinSessionCookies()
   return new Promise<string>((resolve, reject) => {
     let settled = false
 
@@ -234,11 +264,16 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
 
     loginWin.loadURL('https://www.douyin.com/')
 
-    // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）。
-    // 但只放行 http/https：bytedance:// 等自定义协议系统没有处理程序，
-    // 交给 shell.openExternal 会反复弹 Windows「需要使用新应用以打开此链接」对话框。
+    // 弹出窗口规则（分三类）：
+    // ① 抖音域内的 http/https 弹窗（登录页/扫码页本身用 window.open 打开）→ 允许在应用内打开，
+    //    必须与登录窗共享内嵌会话，否则登录发生在外部浏览器、应用永远拿不到 cookie；
+    // ② 其它 http/https 链接 → 交给用户默认浏览器打开；
+    // ③ bytedance:// 等自定义协议 → 系统无处理程序，静默拦截（否则 Windows 反复弹协议选择框）。
     loginWin.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https?:\/\//i.test(url)) {
+        if (isDouyinHost(url)) {
+          return { action: 'allow' }
+        }
         try {
           shell.openExternal(url)
         } catch {}

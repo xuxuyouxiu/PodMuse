@@ -11,7 +11,7 @@ import type { PodcastConfig } from '@shared/types'
 // Mock setup — hoisted so factories can reference these
 // ============================================================
 
-const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockOpenExternal, MockBrowserWindow } = vi.hoisted(() => {
+const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockCookiesRemove, mockOpenExternal, MockBrowserWindow } = vi.hoisted(() => {
   /** 极简 BrowserWindow 假件：记录实例、支持 on('closed') 与 close() 联动 */
   class MockBrowserWindow {
     static instances: MockBrowserWindow[] = []
@@ -47,6 +47,7 @@ const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockOpenExternal, MockBr
     mockLoadConfig: vi.fn(),
     mockSaveConfig: vi.fn(),
     mockCookiesGet: vi.fn(),
+    mockCookiesRemove: vi.fn(),
     mockOpenExternal: vi.fn(),
     MockBrowserWindow,
   }
@@ -54,7 +55,7 @@ const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockOpenExternal, MockBr
 
 vi.mock('electron', () => ({
   BrowserWindow: MockBrowserWindow,
-  session: { defaultSession: { cookies: { get: mockCookiesGet } } },
+  session: { defaultSession: { cookies: { get: mockCookiesGet, remove: mockCookiesRemove } } },
   app: { getPath: vi.fn() },
   dialog: { showOpenDialog: vi.fn() },
   ipcMain: { handle: vi.fn() },
@@ -91,6 +92,7 @@ import {
   connectDouyin,
   isLoginSessionCookie,
   isIgnorableLoadError,
+  isDouyinHost,
   buildCookieString,
 } from '../src/main/douyin-auth'
 import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
@@ -132,6 +134,7 @@ beforeEach(() => {
   mockLoadConfig.mockReset()
   mockSaveConfig.mockReset()
   mockCookiesGet.mockReset()
+  mockCookiesRemove.mockReset()
   mockOpenExternal.mockReset()
 })
 
@@ -490,7 +493,9 @@ describe('connectDouyin', () => {
     mockLoadConfig.mockReturnValue(baseConfig())
 
     const promise = connectDouyin(null)
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
     expect(MockBrowserWindow.instances.length).toBe(1)
     MockBrowserWindow.instances[0].close()
 
@@ -630,15 +635,39 @@ describe('connectDouyin', () => {
     )
   })
 
-  it('弹出链接走用户默认浏览器：http/https 放行 openExternal，一律 deny', async () => {
+  it('isDouyinHost：只认 douyin.com 及其子域', () => {
+    expect(isDouyinHost('https://www.douyin.com/passport/login/')).toBe(true)
+    expect(isDouyinHost('https://sso.douyin.com/')).toBe(true)
+    expect(isDouyinHost('https://example.com/x')).toBe(false)
+    expect(isDouyinHost('bytedance://open')).toBe(false)
+  })
+
+  it('弹出链接：抖音域内 http/https 允许在应用内打开（登录页必须共享内嵌会话）', async () => {
     mockCookiesGet.mockImplementation(async () => [])
     mockLoadConfig.mockReturnValue(baseConfig())
     const promise = connectDouyin(null)
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
     const win = MockBrowserWindow.instances[0]
-    const httpResult = win.openHandler!({ url: 'https://www.douyin.com/help' })
-    expect(httpResult).toEqual({ action: 'deny' })
-    expect(mockOpenExternal).toHaveBeenCalledWith('https://www.douyin.com/help')
+    const result = win.openHandler!({ url: 'https://www.douyin.com/passport/login/' })
+    expect(result).toEqual({ action: 'allow' })
+    expect(mockOpenExternal).not.toHaveBeenCalled()
+    win.close()
+    await promise
+  })
+
+  it('弹出链接：非抖音域 http/https 走用户默认浏览器', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
+    const win = MockBrowserWindow.instances[0]
+    const result = win.openHandler!({ url: 'https://www.example.com/help' })
+    expect(result).toEqual({ action: 'deny' })
+    expect(mockOpenExternal).toHaveBeenCalledWith('https://www.example.com/help')
     win.close()
     await promise
   })
@@ -647,7 +676,9 @@ describe('connectDouyin', () => {
     mockCookiesGet.mockImplementation(async () => [])
     mockLoadConfig.mockReturnValue(baseConfig())
     const promise = connectDouyin(null)
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
     const win = MockBrowserWindow.instances[0]
     const result = win.openHandler!({ url: 'bytedance://open?app=aweme' })
     expect(result).toEqual({ action: 'deny' })
@@ -656,12 +687,36 @@ describe('connectDouyin', () => {
     await promise
   })
 
+  it('连接前清掉内嵌会话的旧抖音 cookie（避免显示上次登录账号）', async () => {
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sessionid', value: 'old', domain: '.douyin.com' },
+      { name: 'other', value: 'x', domain: 'example.com' },
+    ])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
+    expect(mockCookiesRemove).toHaveBeenCalledWith(
+      'https://douyin.com/',
+      'sessionid',
+    )
+    expect(mockCookiesRemove).not.toHaveBeenCalledWith(
+      'https://example.com/',
+      'other',
+    )
+    MockBrowserWindow.instances[0].close()
+    await promise
+  })
+
   it('did-fail-load：-3 重定向中断不误关登录窗，真实错误才失败', async () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async () => [])
     mockLoadConfig.mockReturnValue(baseConfig())
     const promise = connectDouyin(null)
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(MockBrowserWindow.instances.length).toBe(1)
+    })
     const win = MockBrowserWindow.instances[0]
     const failHandler = win.handlers['wc:did-fail-load'][0]
     // ERR_ABORTED(-3)：重定向中断，忽略，窗口保持打开
