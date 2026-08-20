@@ -11,14 +11,18 @@ import type { PodcastConfig } from '@shared/types'
 // Mock setup — hoisted so factories can reference these
 // ============================================================
 
-const { mockLoadConfig, mockSaveConfig, mockCookiesGet, MockBrowserWindow } = vi.hoisted(() => {
+const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockOpenExternal, MockBrowserWindow } = vi.hoisted(() => {
   /** 极简 BrowserWindow 假件：记录实例、支持 on('closed') 与 close() 联动 */
   class MockBrowserWindow {
     static instances: MockBrowserWindow[] = []
     handlers: Record<string, ((...args: unknown[]) => void)[]> = {}
+    openHandler: ((details: { url: string }) => { action: string }) | null = null
     webContents = {
       on: (ev: string, fn: (...args: unknown[]) => void) => {
         this.handlers['wc:' + ev] = [fn]
+      },
+      setWindowOpenHandler: (fn: (details: { url: string }) => { action: string }) => {
+        this.openHandler = fn
       },
     }
     destroyed = false
@@ -43,6 +47,7 @@ const { mockLoadConfig, mockSaveConfig, mockCookiesGet, MockBrowserWindow } = vi
     mockLoadConfig: vi.fn(),
     mockSaveConfig: vi.fn(),
     mockCookiesGet: vi.fn(),
+    mockOpenExternal: vi.fn(),
     MockBrowserWindow,
   }
 })
@@ -53,7 +58,7 @@ vi.mock('electron', () => ({
   app: { getPath: vi.fn() },
   dialog: { showOpenDialog: vi.fn() },
   ipcMain: { handle: vi.fn() },
-  shell: { openPath: vi.fn(), openExternal: vi.fn(), showItemInFolder: vi.fn() },
+  shell: { openPath: vi.fn(), openExternal: mockOpenExternal, showItemInFolder: vi.fn() },
 }))
 
 vi.mock('../src/main/config', () => ({
@@ -84,6 +89,9 @@ import {
   refreshDouyinStatus,
   disconnectDouyin,
   connectDouyin,
+  isLoginSessionCookie,
+  isIgnorableLoadError,
+  buildCookieString,
 } from '../src/main/douyin-auth'
 import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
 
@@ -124,6 +132,7 @@ beforeEach(() => {
   mockLoadConfig.mockReset()
   mockSaveConfig.mockReset()
   mockCookiesGet.mockReset()
+  mockOpenExternal.mockReset()
 })
 
 afterEach(() => {
@@ -447,6 +456,34 @@ describe('disconnectDouyin', () => {
 // connectDouyin（登录窗迁移后的行为）
 // ============================================================
 
+describe('isLoginSessionCookie / isIgnorableLoadError / buildCookieString', () => {
+  it('仅真实登录会话 cookie 算登录标记，sid_guard 匿名 cookie 不算', () => {
+    expect(isLoginSessionCookie('sid_guard')).toBe(false)
+    expect(isLoginSessionCookie('sessionid')).toBe(true)
+    expect(isLoginSessionCookie('sessionid_ss')).toBe(true)
+    expect(isLoginSessionCookie('uid_tt')).toBe(true)
+    expect(isLoginSessionCookie('sid_ucp')).toBe(true)
+    expect(isLoginSessionCookie('passport_csrf_token')).toBe(false)
+  })
+
+  it('isIgnorableLoadError：-3（ERR_ABORTED 重定向中断）忽略，真实错误不忽略', () => {
+    expect(isIgnorableLoadError(-3)).toBe(true)
+    expect(isIgnorableLoadError(-105)).toBe(false)
+    expect(isIgnorableLoadError(-106)).toBe(false)
+    expect(isIgnorableLoadError(0)).toBe(false)
+  })
+
+  it('buildCookieString：只拼 douyin 域 cookie，按 name=value 以 ; 连接', () => {
+    const out = buildCookieString([
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+      { name: 'sessionid', value: 'ss', domain: 'www.douyin.com' },
+      { name: 'od', value: 'x', domain: '.iesdouyin.com' },
+      { name: 'other', value: 'y', domain: 'example.com' },
+    ])
+    expect(out).toBe('sid_guard=sg; sessionid=ss; od=x')
+  })
+})
+
 describe('connectDouyin', () => {
   it('用户关闭登录窗 → cancelled，不保存任何配置', async () => {
     mockCookiesGet.mockImplementation(async () => [])
@@ -462,11 +499,52 @@ describe('connectDouyin', () => {
     expect(mockSaveConfig).not.toHaveBeenCalled()
   })
 
-  it('登录成功 + 校验 ok → 保存 connected，返回不含 cookie', async () => {
+  it('仅出现匿名 sid_guard 时（用户未登录）窗口保持打开，不关闭不保存', async () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async (filter: unknown) => {
       const f = filter as { domain?: string } | undefined
       if (f?.domain === '.douyin.com') return [{ name: 'sid_guard', value: 'sg' }]
+      return [{ name: 'sid_guard', value: 'sg', domain: '.douyin.com' }]
+    })
+    mockLoadConfig.mockReturnValue(baseConfig())
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(200, PASSPORT_OK_BODY)),
+    )
+
+    const promise = connectDouyin(null)
+    // 多轮轮询后窗口仍未关闭（无 sessionid 标记 → 不捕获不校验）
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(MockBrowserWindow.instances[0].destroyed).toBe(false)
+    expect(mockSaveConfig).not.toHaveBeenCalled()
+
+    // 用户完成扫码：sessionid 出现 → 捕获并校验通过 → 完成
+    mockCookiesGet.mockImplementation(async (filter: unknown) => {
+      const f = filter as { domain?: string } | undefined
+      if (f?.domain === '.douyin.com')
+        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
+      return [
+        { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+        { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
+      ]
+    })
+    await vi.advanceTimersByTimeAsync(5000)
+    const result = await promise
+    expect(result).toEqual({ success: true, nickname: '播客爱好者' })
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        douyin_cookie: 'sid_guard=sg; sessionid=ss',
+        douyin_login: expect.objectContaining({ status: 'connected', nickname: '播客爱好者' }),
+      }),
+    )
+  })
+
+  it('登录成功 + 校验 ok → 保存 connected，返回不含 cookie', async () => {
+    vi.useFakeTimers()
+    mockCookiesGet.mockImplementation(async (filter: unknown) => {
+      const f = filter as { domain?: string } | undefined
+      if (f?.domain === '.douyin.com')
+        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
       return [
         { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
         { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
@@ -479,7 +557,8 @@ describe('connectDouyin', () => {
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(3100)
+    // 3s 轮询 + 1.2s cookie 落定等待 + 校验
+    await vi.advanceTimersByTimeAsync(5000)
     const result = await promise
 
     expect(result).toEqual({ success: true, nickname: '播客爱好者' })
@@ -492,25 +571,29 @@ describe('connectDouyin', () => {
     )
   })
 
-  it('登录成功但校验失效 → 不保存 cookie，返回可读错误', async () => {
+  it('出现登录标记但校验持续失败（游客态/未落定）→ 窗口保持打开，用户关闭 → cancelled', async () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async (filter: unknown) => {
       const f = filter as { domain?: string } | undefined
-      if (f?.domain === '.douyin.com') return [{ name: 'sid_guard', value: 'sg' }]
+      if (f?.domain === '.douyin.com')
+        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
       return [{ name: 'sid_guard', value: 'sg', domain: '.douyin.com' }]
     })
-    mockLoadConfig.mockReturnValue(baseConfig({ douyin_cookie: 'sid_guard=old-good' }))
+    mockLoadConfig.mockReturnValue(baseConfig())
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse(200, PASSPORT_LOGGED_OUT_BODY)),
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(3100)
-    const result = await promise
+    await vi.advanceTimersByTimeAsync(8000)
+    // 校验失败不会关窗、不会保存
+    expect(MockBrowserWindow.instances[0].destroyed).toBe(false)
+    expect(mockSaveConfig).not.toHaveBeenCalled()
 
-    expect(result.success).toBe(false)
-    expect(result.error).toContain('校验失败')
+    MockBrowserWindow.instances[0].close()
+    const result = await promise
+    expect(result).toEqual({ success: false, cancelled: true })
     expect(mockSaveConfig).not.toHaveBeenCalled()
   })
 
@@ -518,8 +601,12 @@ describe('connectDouyin', () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async (filter: unknown) => {
       const f = filter as { domain?: string } | undefined
-      if (f?.domain === '.douyin.com') return [{ name: 'sid_guard', value: 'sg' }]
-      return [{ name: 'sid_guard', value: 'sg', domain: '.douyin.com' }]
+      if (f?.domain === '.douyin.com')
+        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
+      return [
+        { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+        { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
+      ]
     })
     mockLoadConfig.mockReturnValue(baseConfig())
     vi.stubGlobal(
@@ -530,16 +617,49 @@ describe('connectDouyin', () => {
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(3100)
+    await vi.advanceTimersByTimeAsync(5000)
     const result = await promise
 
     expect(result.success).toBe(true)
     expect(result.warning).toContain('网络不可达')
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
-        douyin_cookie: 'sid_guard=sg',
+        douyin_cookie: 'sid_guard=sg; sessionid=ss',
         douyin_login: { status: 'unverified' },
       }),
     )
+  })
+
+  it('弹出链接走用户默认浏览器（setWindowOpenHandler deny + openExternal）', async () => {
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await Promise.resolve()
+    const win = MockBrowserWindow.instances[0]
+    const result = win.openHandler!({ url: 'https://www.douyin.com/help' })
+    expect(result).toEqual({ action: 'deny' })
+    expect(mockOpenExternal).toHaveBeenCalledWith('https://www.douyin.com/help')
+    win.close()
+    await promise
+  })
+
+  it('did-fail-load：-3 重定向中断不误关登录窗，真实错误才失败', async () => {
+    vi.useFakeTimers()
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig())
+    const promise = connectDouyin(null)
+    await Promise.resolve()
+    const win = MockBrowserWindow.instances[0]
+    const failHandler = win.handlers['wc:did-fail-load'][0]
+    // ERR_ABORTED(-3)：重定向中断，忽略，窗口保持打开
+    failHandler({}, -3, 'ERR_ABORTED', 'https://www.douyin.com/', true)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(win.destroyed).toBe(false)
+    // 真实主框架错误：关闭窗口并返回可读错误
+    failHandler({}, -106, 'ERR_CERT_DATE_INVALID', 'https://www.douyin.com/', true)
+    await expect(promise).resolves.toEqual({
+      success: false,
+      error: expect.stringContaining('页面加载失败'),
+    })
   })
 })

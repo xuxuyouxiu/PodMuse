@@ -7,7 +7,7 @@
  *   校验接口的响应体与 cookie 一律不写日志，只记录分类结果（ok / invalid / unreachable）。
  */
 
-import { BrowserWindow, session } from 'electron'
+import { BrowserWindow, session, shell } from 'electron'
 import { loadConfig, saveConfig } from './config'
 import type { DouyinLoginState, DouyinLoginStatus } from '@shared/types'
 
@@ -50,6 +50,41 @@ const VERIFY_TIMEOUT_MS = 8000
 const LOGIN_WINDOW_TIMEOUT_MS = 5 * 60 * 1000
 
 const NICKNAME_MAX_LEN = 64
+
+/**
+ * 登录标记 cookie：只有真实登录后才会出现的会话 cookie。
+ * 注意：sid_guard 是匿名访客 cookie（打开首页即生成），**不能**作为登录依据——
+ * 否则窗口会在用户扫码前被误关、抓到游客 cookie，随后校验必然失败。
+ */
+const LOGIN_SESSION_COOKIES = ['sessionid', 'sessionid_ss', 'uid_tt', 'sid_ucp']
+
+/** 是否为真实登录会话 cookie（sid_guard 等匿名 cookie 一律不算） */
+export function isLoginSessionCookie(name: string): boolean {
+  return LOGIN_SESSION_COOKIES.includes(name)
+}
+
+/**
+ * 页面加载失败错误码是否需要忽略（继续等待登录）。
+ * ERR_ABORTED(-3)：导航被中断/重定向时常见，不是真实加载失败，忽略以免误关登录窗。
+ */
+export function isIgnorableLoadError(errorCode: number): boolean {
+  return errorCode === -3
+}
+
+/** 把 Electron cookie 列表拼成 Cookie 请求头字符串（仅 douyin 域） */
+export function buildCookieString(
+  cookies: Array<{ name: string; value: string; domain?: string }>,
+): string {
+  return cookies
+    .filter(
+      c => c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'),
+    )
+    .map(c => c.name + '=' + c.value)
+    .join('; ')
+}
+
+/** 登录成功后等待会话 cookie 落定的时间（毫秒） */
+const LOGIN_SETTLE_MS = 1200
 
 /**
  * 用 fetch 带 Cookie 头请求抖音轻量接口验证登录态。
@@ -199,19 +234,36 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
 
     loginWin.loadURL('https://www.douyin.com/')
 
-    // 每 3 秒检查一次登录 cookie（sid_guard / sessionid 出现即认为登录成功）
+    // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）
+    loginWin.webContents.setWindowOpenHandler(({ url }) => {
+      try {
+        shell.openExternal(url)
+      } catch {}
+      return { action: 'deny' }
+    })
+
+    // 每 3 秒检查一次真实登录会话 cookie（sessionid/sessionid_ss/uid_tt/sid_ucp）。
+    // sid_guard 是匿名访客 cookie，出现 ≠ 已登录，绝不能作为登录依据——
+    // 否则窗口会在用户扫码前被误关、抓到游客 cookie，随后校验必然失败。
+    // 命中标记后先等会话 cookie 落定，再抓取整串 cookie 并调用校验接口确认：
+    // 校验通过才算登录成功；校验失败（游客态/未落定）继续轮询，窗口保持打开等用户完成登录。
     const checkInterval = setInterval(async () => {
       try {
         const cookies = await session.defaultSession.cookies.get({ domain: '.douyin.com' })
-        const hasLogin = cookies.some(c => c.name === 'sid_guard' || c.name === 'sessionid')
-        if (hasLogin) {
-          const allCookies = await session.defaultSession.cookies.get({})
-          const douyinCookies = allCookies.filter(
-            c => c.domain?.includes('douyin.com') || c.domain?.includes('iesdouyin.com'),
-          )
-          const cookieStr = douyinCookies.map(c => c.name + '=' + c.value).join('; ')
+        const hasLogin = cookies.some(c => isLoginSessionCookie(c.name))
+        if (!hasLogin) return
+        // 等会话 cookie 落定（登录跳转后部分 cookie 稍后才写入）
+        await new Promise(r => setTimeout(r, LOGIN_SETTLE_MS))
+        if (settled) return
+        const allCookies = await session.defaultSession.cookies.get({})
+        const cookieStr = buildCookieString(allCookies)
+        if (!cookieStr) return
+        const verify = await verifyDouyinCookie(cookieStr)
+        if (verify.ok || verify.reason === 'unreachable') {
+          // 校验通过→完成；网络不可达→也先完成（外层按 unverified 保存，稍后自动重验）
           finish(cookieStr)
         }
+        // 校验失败：cookie 可能未落定或标记过期，继续下一轮轮询，不关窗
       } catch {
         // 轮询失败（如窗口已销毁）静默忽略，等待下一次轮询或 closed 事件
       }
@@ -233,8 +285,8 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
     })
 
     loginWin.webContents.on('did-fail-load', (_e, code, desc, _validatedUrl, isMainFrame) => {
-      // 只响应主框架失败；子资源（图片/脚本）失败不应误关登录窗
-      if (isMainFrame) {
+      // 只响应主框架的真实加载失败；重定向中断（-3）等可忽略错误不误关登录窗
+      if (isMainFrame && !isIgnorableLoadError(code)) {
         fail(new Error('页面加载失败: ' + desc))
       }
     })

@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.50.2] - 2026-08-20
+
+### 修复
+- **抖音登录窗未登录即被关闭**：轮询误把 `sid_guard`（抖音匿名访客 cookie，打开首页即生成）当作登录标记，导致用户在扫码前窗口就被关闭、抓到游客 cookie、随后校验报「登录态校验失败」——现在只认真实登录会话 cookie（sessionid/sessionid_ss/uid_tt/sid_ucp），命中后等待会话落定（1.2s）再抓取整串 cookie，并**调用校验接口确认通过才算登录成功**；校验失败时窗口保持打开继续轮询，不再误关
+- **抖音弹出链接未走用户浏览器**：登录窗与主窗口均新增 `setWindowOpenHandler`（deny + `shell.openExternal`），应用内所有 `window.open` 链接统一交给用户默认浏览器打开
+- **抖音登录窗被重定向误关**：`did-fail-load` 忽略 ERR_ABORTED(-3)（页面重定向/导航中断时触发），只响应主框架的真实加载失败
+
+### 测试
+- douyin-auth 新增 6 例：登录标记判定（sid_guard 排除）、忽略错误码判定、cookie 串拼接、匿名态窗口保持打开直至真实登录、弹出链接 deny+openExternal、-3 不误关
+- 全量 453 测试通过
+
 ## [1.50.1] - 2026-08-20
 
 ### 修复

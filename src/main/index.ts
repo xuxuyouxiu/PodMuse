@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, clipboard, shell } from 'electron'
 import { join, basename, extname } from 'path'
 import { loadConfig, saveConfig, saveState, loadState, maskSecret } from './config'
 import { isSafeUrl } from './security'
@@ -216,6 +216,14 @@ function createWindow() {
 
   mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
     console.error(`Page load failed: ${code} - ${desc}`)
+  })
+
+  // 规则：应用内所有 window.open 弹出链接一律交给用户默认浏览器打开（不在应用内弹窗）
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      shell.openExternal(url)
+    } catch {}
+    return { action: 'deny' }
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
