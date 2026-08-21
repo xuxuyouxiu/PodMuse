@@ -9157,12 +9157,12 @@ a:focus-visible {
   cursor: default;
 }
 
-/* 无障碍：偏好减少动效时缩短动画 */
+/* 无障碍：偏好减少动效时关闭旋转/过渡动画 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

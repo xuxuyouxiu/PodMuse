@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.8] - 2026-08-21
+
+### 修复
+- **加载图标旋转过快**：`prefers-reduced-motion: reduce` 下不再用 `0.01ms` 加速旋转动画，改为直接关闭动画/过渡。
+- **yt-dlp 内置版本升级到 2026.08.19**：修复 YouTube 新版页面解析/反爬兼容问题，提升 `--extract-audio --audio-format mp3` 成功率。
+
 ## [1.51.7] - 2026-08-21
 
 ### 修复
