@@ -64,14 +64,18 @@ describe('extractFieldValue', () => {
     expect(extractFieldValue('abc123', 'notion-database-id')).toBeNull()
   })
 
-  it('32 位 hex 不误吞更长串、不匹配带连字符的 UUID', () => {
-    // 33+ 位连续 hex：首尾边界不成立（前 32 位后面仍是 hex 字符）
+  it('database id：32 位 hex 与 36 位 UUID（带连字符）都识别', () => {
+    expect(
+      extractFieldValue('abcdef0123456789abcdef0123456789', 'notion-database-id'),
+    ).toBe('abcdef0123456789abcdef0123456789')
+    expect(
+      extractFieldValue('https://www.notion.com/我的工作区/248104cd-477e-80af-bc30-000bd28de8f9?v=1', 'notion-database-id'),
+    ).toBe('248104cd-477e-80af-bc30-000bd28de8f9')
+  })
+
+  it('33+ 位连续 hex 不误吞（首尾边界不成立）', () => {
     expect(
       extractFieldValue('abcdef0123456789abcdef0123456789abcd', 'notion-database-id'),
-    ).toBeNull()
-    // 带连字符的 UUID 无 32 位连续 hex 段
-    expect(
-      extractFieldValue('12345678-1234-1234-1234-123456789012', 'notion-database-id'),
     ).toBeNull()
   })
 

@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.5] - 2026-08-20
+
+### 修复
+- Notion database ID 识别支持新版 36 位 UUID（带连字符，Notion 新版页面 URL 格式）与旧版 32 位 hex 两种
+
 ## [1.51.4] - 2026-08-20
 
 ### 改进
