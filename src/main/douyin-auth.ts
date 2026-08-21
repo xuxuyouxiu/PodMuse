@@ -263,6 +263,10 @@ const PAGE_ACCOUNT_INFO_JS = `(async () => {
 
 const PAGE_FETCH_TIMEOUT_MS = 5000
 
+/** 页内昵称探测重试次数与间隔（登录跳转后信息可能稍后才就绪） */
+const PAGE_NICKNAME_RETRIES = 6
+const PAGE_NICKNAME_RETRY_GAP_MS = 1000
+
 /** 在登录页上下文内拉取账号信息并提取昵称；失败返回 null（不影响登录流程） */
 async function fetchNicknameInPage(win: BrowserWindow): Promise<string | null> {
   try {
@@ -277,6 +281,23 @@ async function fetchNicknameInPage(win: BrowserWindow): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+/**
+ * 页内昵称探测（带重试）：登录跳转后账号信息可能稍后才就绪，
+ * 每 1s 重试一次，最多 PAGE_NICKNAME_RETRIES 次；仍拿不到返回 null（不阻塞登录）。
+ */
+async function probeNicknameInPage(
+  win: BrowserWindow,
+  isSettled: () => boolean,
+): Promise<string | null> {
+  for (let i = 0; i < PAGE_NICKNAME_RETRIES; i++) {
+    const nickname = await fetchNicknameInPage(win)
+    if (nickname) return nickname
+    if (isSettled()) return null
+    await new Promise(r => setTimeout(r, PAGE_NICKNAME_RETRY_GAP_MS))
+  }
+  return null
 }
 
 /**
@@ -374,8 +395,9 @@ async function openDouyinLoginWindow(
         if (settled) return
         const cookieStr = buildCookieString(allCookies)
         if (!cookieStr) return
-        // 在页面上下文内拉取账号信息（同源请求最可靠），拿不到昵称也不阻塞登录
-        const nickname = await fetchNicknameInPage(loginWin)
+        // 在页面上下文内拉取账号信息（同源请求最可靠，带重试）；
+        // 拿不到昵称也不阻塞登录——登录标记（sessionid）本身就是真实登录的强信号
+        const nickname = await probeNicknameInPage(loginWin, () => settled)
         finish({ cookieStr, nickname: nickname || undefined })
       } catch {
         // 轮询失败（如窗口已销毁）静默忽略，等待下一次轮询或 closed 事件
@@ -408,8 +430,8 @@ async function openDouyinLoginWindow(
 
 /**
  * 连接抖音：弹登录窗 → 捕获 cookie（留在主进程）→ 保存 → 返回。
- * 昵称优先取自登录页上下文（同源请求最可靠）；拿不到时回退主进程校验，
- * 仍失败则保持 unverified（后台自动重验），绝不让用户看到「已失效」。
+ * 登录标记（sessionid 等）出现即视为真实登录成功——直接保存 connected；
+ * 昵称尽力而为：页内上下文探测优先，回退主进程校验，都拿不到也不显示「待验证」。
  */
 export async function connectDouyin(parent?: BrowserWindow | null): Promise<DouyinConnectResult> {
   let cookieStr = ''
@@ -425,49 +447,40 @@ export async function connectDouyin(parent?: BrowserWindow | null): Promise<Douy
 
   if (!cookieStr) return { success: false, cancelled: true }
 
-  // 登录标记出现即视为登录成功。
-  if (pageNickname) {
-    saveConfig({
-      ...loadConfig(),
-      douyin_cookie: cookieStr,
-      douyin_login: { status: 'connected', nickname: pageNickname, verifiedAt: Date.now() },
-    })
-    void syncDouyinDownloaderCookie(cookieStr)
-    return { success: true, nickname: pageNickname }
+  // 尽力补昵称：页内没拿到时回退主进程校验一次
+  let nickname = pageNickname
+  let unreachable = false
+  if (!nickname) {
+    const verify = await verifyDouyinCookie(cookieStr)
+    if (verify.ok) nickname = verify.nickname
+    else if (verify.reason === 'unreachable') unreachable = true
   }
 
-  // 页面拿不到昵称：先保存 unverified，再尽力即时校验升级为 connected
+  // 登录标记出现即真实登录：保存 connected（昵称可有可无），不再产生「待验证」中间态
   saveConfig({
     ...loadConfig(),
     douyin_cookie: cookieStr,
-    douyin_login: { status: 'unverified' },
+    douyin_login: {
+      status: 'connected',
+      ...(nickname ? { nickname } : {}),
+      verifiedAt: Date.now(),
+    },
   })
   void syncDouyinDownloaderCookie(cookieStr)
 
-  const verify = await verifyDouyinCookie(cookieStr)
-
-  if (verify.ok) {
-    saveConfig({
-      ...loadConfig(),
-      douyin_login: { status: 'connected', nickname: verify.nickname, verifiedAt: Date.now() },
-    })
-    return { success: true, nickname: verify.nickname }
-  }
-
-  if (verify.reason === 'unreachable') {
+  if (unreachable) {
     return { success: true, warning: '网络不可达，已保存登录状态，稍后自动重新校验' }
   }
-
-  // invalid：保持 unverified 不标 expired（避免校验误判立刻让用户看到「已失效」）
-  return { success: true }
+  return { success: true, ...(nickname ? { nickname } : {}) }
 }
 
 /** 读取当前抖音登录状态（纯配置读取，不做网络请求；绝不包含 cookie） */
 export function getDouyinStatus(): DouyinRuntimeState {
   const config = loadConfig()
   if (!config.douyin_cookie) return { status: 'disconnected' }
-  // 老用户迁移：已有 cookie 但无登录状态 → 视为待验证（启动时的 refreshDouyinStatus 会自动重验）
-  if (!config.douyin_login) return { status: 'unverified' }
+  // 老用户迁移：已有 cookie 但无登录状态 → 视为已连接（无昵称），
+  // 启动时的 refreshDouyinStatus 会尽力补昵称，绝不显示「待验证」
+  if (!config.douyin_login) return { status: 'connected' }
   return {
     status: config.douyin_login.status,
     nickname: config.douyin_login.nickname,

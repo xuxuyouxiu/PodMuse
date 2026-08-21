@@ -343,9 +343,9 @@ describe('getDouyinStatus', () => {
     expect(getDouyinStatus()).toEqual({ status: 'disconnected' })
   })
 
-  it('有 cookie 但无 douyin_login（老用户迁移）→ unverified', () => {
+  it('有 cookie 但无 douyin_login（老用户迁移）→ connected（不再显示待验证）', () => {
     mockLoadConfig.mockReturnValue(baseConfig({ douyin_cookie: 'sid_guard=old' }))
-    expect(getDouyinStatus()).toEqual({ status: 'unverified' })
+    expect(getDouyinStatus()).toEqual({ status: 'connected' })
   })
 
   it('已连接 → 透传状态与昵称，且不含 cookie', () => {
@@ -695,14 +695,14 @@ describe('connectDouyin', () => {
     )
   })
 
-  it('登录标记出现但校验未通过 → 窗口仍关闭、保存 unverified、返回成功（不误报失败）', async () => {
+  it('登录标记出现但昵称/校验都拿不到 → 仍保存 connected（无昵称），窗口关闭、返回成功', async () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async () => [
       { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
       { name: 'sessionid', value: 'ss', domain: 'sso.douyin.com' },
     ])
     mockLoadConfig.mockReturnValue(baseConfig())
-    // 页内取昵称失败（未登录形状）→ 走 unverified 兜底
+    // 页内取昵称失败（未登录形状）
     mockExecuteJS.mockResolvedValue(JSON.stringify({ status: 200, body: { data: { error_code: 1 } } }))
     vi.stubGlobal(
       'fetch',
@@ -710,9 +710,9 @@ describe('connectDouyin', () => {
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(5000)
+    // 3s 轮询 + 1.2s 落定 + 页内探测重试（6×1s）——推进足够时间
+    await vi.advanceTimersByTimeAsync(12000)
 
-    // 窗口已关闭（标记即完成），不再依赖接口校验
     expect(MockBrowserWindow.instances[0].destroyed).toBe(true)
     const result = await promise
     expect(result.success).toBe(true)
@@ -720,12 +720,12 @@ describe('connectDouyin', () => {
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
-        douyin_login: { status: 'unverified' },
+        douyin_login: expect.objectContaining({ status: 'connected' }),
       }),
     )
   })
 
-  it('登录成功但网络不可达 → 保存 cookie 标 unverified，返回 warning', async () => {
+  it('登录成功但网络不可达 → 保存 connected + warning（不再产生待验证）', async () => {
     vi.useFakeTimers()
     mockCookiesGet.mockImplementation(async () => [
       { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
@@ -741,7 +741,8 @@ describe('connectDouyin', () => {
     )
 
     const promise = connectDouyin(null)
-    await vi.advanceTimersByTimeAsync(5000)
+    // 3s 轮询 + 1.2s 落定 + 页内探测重试
+    await vi.advanceTimersByTimeAsync(12000)
     const result = await promise
 
     expect(result.success).toBe(true)
@@ -749,7 +750,7 @@ describe('connectDouyin', () => {
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
-        douyin_login: { status: 'unverified' },
+        douyin_login: expect.objectContaining({ status: 'connected' }),
       }),
     )
   })
