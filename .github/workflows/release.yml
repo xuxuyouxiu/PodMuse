@@ -30,4 +30,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: dist-exe/播客笔记助手-Setup-*.exe
+          # 产物名以 electron-builder.yml 的 artifactName 为准（PodMuse-Setup-${version}.exe）
+          # 附 latest.yml + blockmap，应用内 electron-updater 才能检测到更新
+          files: |
+            dist-exe/PodMuse-Setup-*.exe
+            dist-exe/PodMuse-Setup-*.exe.blockmap
+            dist-exe/latest.yml
