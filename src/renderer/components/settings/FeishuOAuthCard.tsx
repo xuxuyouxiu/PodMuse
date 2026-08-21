@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
+import { FEISHU_OAUTH_REDIRECT_URI } from '@shared/constants'
 
 const POLL_INTERVAL_MS = 1500
 /** renderer 侧轮询上限（主进程 callback-server 等待窗口为 5 分钟） */
@@ -255,6 +256,41 @@ export default function FeishuOAuthCard() {
             '先在下方「高级模式（自建应用）」填入 App ID 和 App Secret（Chat ID 可留空）并保存，本按钮即变为「连接飞书」；扫码授权后自动列出群聊选择，无需手动复制 Chat ID。',
           )}
         </p>
+      )}
+      {!connected && (
+        <>
+          <div
+            className="settings-hint"
+            style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}
+          >
+            <span>{t('回调地址')}:</span>
+            <code
+              style={{
+                fontSize: 12,
+                background: 'var(--bg-elevated)',
+                padding: '2px 6px',
+                borderRadius: 4,
+                border: '1px solid var(--border)',
+              }}
+            >
+              {FEISHU_OAUTH_REDIRECT_URI}
+            </code>
+            <button
+              className="settings-link-button"
+              onClick={() => {
+                navigator.clipboard.writeText(FEISHU_OAUTH_REDIRECT_URI)
+                alert(t('已复制回调地址'))
+              }}
+            >
+              {t('复制')}
+            </button>
+          </div>
+          <p className="settings-hint" style={{ marginTop: 4 }}>
+            {t(
+              '首次使用需把上方地址添加到飞书开发者后台 → 应用 → 开发配置 → 安全设置 → 重定向 URL（只需一次），否则授权页会提示 20029「重定向 URL 有误」。',
+            )}
+          </p>
+        </>
       )}
       <p className="settings-hint" style={{ marginTop: 8 }}>
         {t(

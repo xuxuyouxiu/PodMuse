@@ -325,7 +325,9 @@ declare global {
       }>
       // Notion 手动高级模式配置状态（token 不回显，只读是否已配置）
       getNotionExportStatus: () => Promise<{ configured: boolean }>
-      notionOAuthStart: () => Promise<OAuthActionResult & { port?: number }>
+      notionOAuthStart: (opts?: { useLocalCallback?: boolean }) => Promise<
+        OAuthActionResult & { port?: number }
+      >
       notionOAuthDatabases: () => Promise<OAuthActionResult & { databases?: NotionDatabaseInfo[] }>
       notionOAuthSelectDb: (databaseId: string) => Promise<OAuthActionResult>
       notionOAuthDisconnect: () => Promise<NotionOAuthStatusInfo>

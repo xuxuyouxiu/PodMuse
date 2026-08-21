@@ -11,7 +11,8 @@
 import { shell } from 'electron'
 import { randomBytes } from 'crypto'
 import { loadConfig, saveConfig } from '../config'
-import { startCallbackServer, FEISHU_CALLBACK_PATH, type CallbackServer } from './callback-server'
+import { FEISHU_OAUTH_PORT, FEISHU_OAUTH_REDIRECT_URI } from '../../shared/constants'
+import { startCallbackServer, type CallbackServer } from './callback-server'
 import type {
   FeishuChatInfo,
   FeishuOAuthConfig,
@@ -19,6 +20,7 @@ import type {
   OAuthActionResult,
 } from '@shared/types'
 
+// 本地回调固定端口/地址（须在飞书后台「安全设置 → 重定向 URL」登记，否则授权页报 20029）
 export const FEISHU_AUTHORIZE_URL = 'https://open.feishu.cn/open-apis/authen/v1/authorize'
 export const FEISHU_OAUTH_TOKEN_URL = 'https://open.feishu.cn/open-apis/authen/v2/oauth/token'
 export const FEISHU_APP_TOKEN_URL =
@@ -141,13 +143,18 @@ export async function startFeishuAuth(onStatusChange?: () => void): Promise<OAut
   const state = genState()
   let server: CallbackServer
   try {
-    server = await startCallbackServer({ expectedState: state })
+    server = await startCallbackServer({ expectedState: state, port: FEISHU_OAUTH_PORT })
   } catch {
-    return { success: false, code: 'network_error', error: '本地回调服务启动失败' }
+    return {
+      success: false,
+      code: 'network_error',
+      error: `本地回调服务启动失败（端口 ${FEISHU_OAUTH_PORT} 被占用？请关闭占用该端口的程序后重试）`,
+    }
   }
   activeServer = server
 
-  const redirectUri = `http://127.0.0.1:${server.port}${FEISHU_CALLBACK_PATH}`
+  // 固定端口回调：须在飞书后台「安全设置 → 重定向 URL」登记该地址（设置页可复制）
+  const redirectUri = FEISHU_OAUTH_REDIRECT_URI
   try {
     await shell.openExternal(buildFeishuAuthorizeUrl(cred.appId, redirectUri, state))
   } catch {

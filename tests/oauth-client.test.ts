@@ -85,6 +85,11 @@ import {
   FEISHU_CALLBACK_PATH,
   NOTION_CALLBACK_PATH,
 } from '../src/main/oauth/callback-server'
+import {
+  FEISHU_OAUTH_REDIRECT_URI,
+  NOTION_OAUTH_PORT,
+  NOTION_OAUTH_REDIRECT_URI,
+} from '../src/shared/constants'
 import * as notion from '../src/main/oauth/notion-oauth'
 import * as feishu from '../src/main/oauth/feishu-oauth'
 
@@ -204,6 +209,13 @@ describe('callback-server', () => {
     await expect(wait).resolves.toBe('code-notion')
   })
 
+  it('指定固定端口：监听该端口（供平台后台预登记 redirect_uri）', async () => {
+    const server = await startCallbackServer({ port: 47999 })
+    expect(server.port).toBe(47999)
+    server.close()
+    await expect(server.waitForCode(100)).resolves.toBeNull()
+  })
+
   it('expectedState 不匹配 → 400 并继续等待，匹配后才关闭', async () => {
     const server = await startCallbackServer({ expectedState: 'expected-s' })
     const wait = server.waitForCode(5000)
@@ -315,12 +327,10 @@ describe('notion-oauth', () => {
 
     const result = await notion.startNotionAuth({ useLocalCallback: true })
     expect(result.success).toBe(true)
-    expect(result.port).toBeGreaterThan(0)
+    expect(result.port).toBe(NOTION_OAUTH_PORT)
 
     const opened = new URL(mockOpenExternal.mock.calls[0][0] as string)
-    expect(opened.searchParams.get('redirect_uri')).toBe(
-      `http://127.0.0.1:${result.port}${NOTION_CALLBACK_PATH}`,
-    )
+    expect(opened.searchParams.get('redirect_uri')).toBe(NOTION_OAUTH_REDIRECT_URI)
     const state = opened.searchParams.get('state') || ''
 
     const resp = await httpGet(
@@ -638,9 +648,7 @@ describe('feishu-oauth', () => {
       'https://open.feishu.cn/open-apis/authen/v1/authorize',
     )
     expect(opened.searchParams.get('app_id')).toBe('cli-1')
-    expect(opened.searchParams.get('redirect_uri')).toMatch(
-      /^http:\/\/127\.0\.0\.1:\d+\/feishu\/callback$/,
-    )
+    expect(opened.searchParams.get('redirect_uri')).toBe(FEISHU_OAUTH_REDIRECT_URI)
     expect(opened.searchParams.get('state')).toBeTruthy()
   })
 

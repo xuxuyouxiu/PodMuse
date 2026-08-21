@@ -43,6 +43,8 @@ export interface CallbackServer {
 export interface CallbackServerOptions {
   /** 校验回调携带的 state；不匹配时返回 400 并继续等待（防 CSRF/误发） */
   expectedState?: string
+  /** 指定监听端口（缺省随机）；固定端口用于平台后台预登记 redirect_uri */
+  port?: number
 }
 
 export function startCallbackServer(options: CallbackServerOptions = {}): Promise<CallbackServer> {
@@ -100,7 +102,7 @@ export function startCallbackServer(options: CallbackServerOptions = {}): Promis
       reject(err)
     })
 
-    server.listen(0, '127.0.0.1', () => {
+    server.listen(options.port ?? 0, '127.0.0.1', () => {
       const port = (server.address() as AddressInfo).port
       resolve({
         port,

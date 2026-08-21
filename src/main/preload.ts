@@ -25,7 +25,8 @@ try {
     notionListManualDatabases: () => ipcRenderer.invoke('notion:listManualDatabases'),
     // Notion 手动高级模式配置状态（token 不回显，只读是否已配置）
     getNotionExportStatus: () => ipcRenderer.invoke('notion:exportStatus'),
-    notionOAuthStart: () => ipcRenderer.invoke('notion:oauthStart'),
+    notionOAuthStart: (opts?: { useLocalCallback?: boolean }) =>
+      ipcRenderer.invoke('notion:oauthStart', opts),
     notionOAuthDatabases: () => ipcRenderer.invoke('notion:oauthDatabases'),
     notionOAuthSelectDb: (databaseId: string) =>
       ipcRenderer.invoke('notion:oauthSelectDb', databaseId),

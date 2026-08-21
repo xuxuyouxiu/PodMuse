@@ -855,6 +855,12 @@ const enDict: Record<string, string> = {
     '; Chat ID is optional — using "Connect Feishu" above loads the chat list automatically after authorization, no manual copying needed.',
   '先在下方「高级模式」粘贴 Notion Token 并保存，或在「OAuth 连接服务配置」填写 Public integration 的 Client ID/Secret 后保存，本按钮即变为「连接 Notion」。':
     'First paste a Notion Token in the "Advanced Mode" below and save, or fill in the Public integration Client ID/Secret under "OAuth Connection Setup" and save; this button then becomes "Connect Notion".',
+  '回调地址': 'Callback URL',
+  '已复制回调地址': 'Callback URL copied',
+  '首次使用需把上方地址添加到飞书开发者后台 → 应用 → 开发配置 → 安全设置 → 重定向 URL（只需一次），否则授权页会提示 20029「重定向 URL 有误」。':
+    'Before first use, add the URL above to Feishu Developer Console → App → Development Config → Security Settings → Redirect URL (once only); otherwise the authorization page reports 20029 "Invalid redirect URL".',
+  '首次使用需把上方地址添加到 Notion Public integration 的 OAuth 配置 → Redirect URI（只需一次），否则授权页会提示重定向地址不合法。':
+    'Before first use, add the URL above to your Notion Public integration OAuth settings → Redirect URI (once only); otherwise the authorization page reports an invalid redirect URI.',
   'OAuth 连接服务配置（可选，Public Integration）': 'OAuth Connection Setup (Optional, Public Integration)',
   '在 Notion「我的连接/连接」中创建公开集成（Public integration）并填入上方 Client ID / Client Secret，保存后「连接 Notion」即可扫码授权（免手动复制 Token）。令牌模式够用时无需配置此项。':
     'Create a Public integration under Notion "My connections/Connections", fill in the Client ID / Client Secret above and save; "Connect Notion" then enables QR-code authorization (no manual token copying). Skip this if the token mode already works for you.',

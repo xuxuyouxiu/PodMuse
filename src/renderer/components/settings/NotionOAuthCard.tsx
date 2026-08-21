@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
+import { NOTION_OAUTH_REDIRECT_URI } from '@shared/constants'
 
 const POLL_INTERVAL_MS = 1500
 /** renderer 侧轮询上限（主进程授权等待窗口为 5 分钟） */
@@ -101,7 +102,8 @@ export default function NotionOAuthCard() {
     setActionError(null)
     setDbError(null)
     try {
-      const result = await window.electronAPI.notionOAuthStart()
+      // 本地固定端口回调（localhost:47840），须在 Public integration 的 Redirect URI 登记
+      const result = await window.electronAPI.notionOAuthStart({ useLocalCallback: true })
       if (!result.success) {
         setConnecting(false)
         setActionError(result.error || t('连接失败'))
@@ -243,6 +245,41 @@ export default function NotionOAuthCard() {
             '先在下方「高级模式」粘贴 Notion Token 并保存，或在「OAuth 连接服务配置」填写 Public integration 的 Client ID/Secret 后保存，本按钮即变为「连接 Notion」。',
           )}
         </p>
+      )}
+      {!connected && (
+        <>
+          <div
+            className="settings-hint"
+            style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}
+          >
+            <span>{t('回调地址')}:</span>
+            <code
+              style={{
+                fontSize: 12,
+                background: 'var(--bg-elevated)',
+                padding: '2px 6px',
+                borderRadius: 4,
+                border: '1px solid var(--border)',
+              }}
+            >
+              {NOTION_OAUTH_REDIRECT_URI}
+            </code>
+            <button
+              className="settings-link-button"
+              onClick={() => {
+                navigator.clipboard.writeText(NOTION_OAUTH_REDIRECT_URI)
+                alert(t('已复制回调地址'))
+              }}
+            >
+              {t('复制')}
+            </button>
+          </div>
+          <p className="settings-hint" style={{ marginTop: 4 }}>
+            {t(
+              '首次使用需把上方地址添加到 Notion Public integration 的 OAuth 配置 → Redirect URI（只需一次），否则授权页会提示重定向地址不合法。',
+            )}
+          </p>
+        </>
       )}
       <p className="settings-hint" style={{ marginTop: 8 }}>
         {t(

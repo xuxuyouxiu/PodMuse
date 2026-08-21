@@ -117,7 +117,8 @@ export default function TabApi({
     detail?: string
   } | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
-  const [feishuAdvancedOpen, setFeishuAdvancedOpen] = useState(false)
+  // App ID / App Secret 为必填凭据，默认展开不隐藏（Chat ID 可留空）
+  const [feishuAdvancedOpen, setFeishuAdvancedOpen] = useState(true)
 
   // 模型加载期间的供应商切换守卫：加载完成时若已切换供应商，丢弃过期结果
   const activeProviderRef = useRef<AIProviderId>(activeProvider)

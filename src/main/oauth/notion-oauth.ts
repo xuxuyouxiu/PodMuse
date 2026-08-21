@@ -10,7 +10,8 @@
 import { shell } from 'electron'
 import { randomBytes } from 'crypto'
 import { loadConfig, saveConfig } from '../config'
-import { startCallbackServer, NOTION_CALLBACK_PATH, type CallbackServer } from './callback-server'
+import { NOTION_OAUTH_PORT, NOTION_OAUTH_REDIRECT_URI } from '../../shared/constants'
+import { startCallbackServer, type CallbackServer } from './callback-server'
 import type {
   NotionDatabaseInfo,
   NotionOAuthConfig,
@@ -112,12 +113,17 @@ export async function startNotionAuth(
   if (opts.useLocalCallback) {
     let server: CallbackServer
     try {
-      server = await startCallbackServer({ expectedState: state })
+      server = await startCallbackServer({ expectedState: state, port: NOTION_OAUTH_PORT })
     } catch {
       pendingNotionState = null
-      return { success: false, code: 'network_error', error: '本地回调服务启动失败' }
+      return {
+        success: false,
+        code: 'network_error',
+        error: `本地回调服务启动失败（端口 ${NOTION_OAUTH_PORT} 被占用？请关闭占用该端口的程序后重试）`,
+      }
     }
-    const redirectUri = `http://127.0.0.1:${server.port}${NOTION_CALLBACK_PATH}`
+    // 固定端口回调：须在 Public integration 的 Redirect URI 登记该地址（设置页可复制）
+    const redirectUri = NOTION_OAUTH_REDIRECT_URI
     try {
       await shell.openExternal(buildNotionAuthorizeUrl(cred.clientId, redirectUri, state))
     } catch {

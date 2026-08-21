@@ -386,8 +386,12 @@ function setupIPC() {
   ipcMain.handle('notion:listManualDatabases', () => {
     return listManualNotionDatabases()
   })
-  ipcMain.handle('notion:oauthStart', () => {
-    return startNotionAuth({ onStatusChange: broadcastNotionOAuthStatus })
+  // useLocalCallback=true 时走本地固定端口回调（localhost:47840，须在 Public integration 登记 Redirect URI）
+  ipcMain.handle('notion:oauthStart', (_e, opts?: { useLocalCallback?: boolean }) => {
+    return startNotionAuth({
+      ...(opts && typeof opts === 'object' ? opts : {}),
+      onStatusChange: broadcastNotionOAuthStatus,
+    })
   })
   ipcMain.handle('notion:oauthDatabases', () => {
     return listNotionDatabases()

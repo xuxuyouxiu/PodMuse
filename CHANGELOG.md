@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.14] - 2026-08-21
+
+### 修复
+- **飞书授权页 20029「重定向 URL 有误」根治**：OAuth 回调地址由随机端口改为固定地址 `http://localhost:47839/feishu/callback`，设置页直接展示并可一键复制；首次使用时把它添加到飞书开发者后台 → 应用 → 开发配置 → 安全设置 → 重定向 URL（仅需一次），授权即可通过。
+- **Notion 授权回调对称修复**：本地回调固定为 `http://localhost:47840/notion/callback` 并在设置页展示引导（Public integration → Redirect URI 登记一次）；端口被占用时给出明确提示。
+
+### 改进
+- **飞书凭据不再折叠隐藏**：App ID / App Secret 为必填，高级模式折叠区默认展开（Chat ID 可留空），打开设置即可看到，减少「找不到连接飞书入口」的困惑。
 ## [1.51.13] - 2026-08-21
 
 ### 修复
