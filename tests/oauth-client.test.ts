@@ -650,6 +650,8 @@ describe('feishu-oauth', () => {
     expect(opened.searchParams.get('app_id')).toBe('cli-1')
     expect(opened.searchParams.get('redirect_uri')).toBe(FEISHU_OAUTH_REDIRECT_URI)
     expect(opened.searchParams.get('state')).toBeTruthy()
+    // 授权 scope 必须包含 im:chat:readonly，否则 OAuth token 无群列表权限（「飞书接口返回异常」根因）
+    expect(opened.searchParams.get('scope')).toContain('im:chat:readonly')
   })
 
   it('授权回调 → 换 token → 保存（本地回调闭环，token 不出主进程）', async () => {
@@ -902,6 +904,25 @@ describe('feishu-oauth', () => {
     const o = lastSaved().feishu_oauth as Record<string, unknown>
     expect(o.userAccessToken).toBeUndefined()
     expect(o.appId).toBe('cli-1')
+  })
+
+  it('listFeishuChats：非鉴权错误 → 返回带飞书 msg 的「飞书接口返回异常」', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(200, { code: 230002, msg: 'no permission' })),
+    )
+    setUserConfig({
+      feishu_oauth: {
+        appId: 'cli-1',
+        appSecret: 'appsec-1',
+        userAccessToken: 'u-1',
+        expiresAt: Date.now() + 3600_000,
+      },
+    })
+
+    const failed = await feishu.listFeishuChats()
+    expect(failed.success).toBe(false)
+    expect(String(failed.error)).toContain('no permission')
   })
 
   it('listFeishuChats：expiresAt 前 5 分钟自动续期', async () => {

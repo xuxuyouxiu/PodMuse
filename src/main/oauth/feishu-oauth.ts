@@ -22,6 +22,9 @@ import type {
 
 // 本地回调固定端口/地址（须在飞书后台「安全设置 → 重定向 URL」登记，否则授权页报 20029）
 export const FEISHU_AUTHORIZE_URL = 'https://open.feishu.cn/open-apis/authen/v1/authorize'
+/** 授权 scope：拉取用户所在群列表（im:chat:readonly）。不带 scope 时 token 无群权限，
+ *  调 /im/v1/chats 会返回权限错误（「飞书接口返回异常」的根因）。 */
+export const FEISHU_OAUTH_SCOPE = 'im:chat:readonly'
 export const FEISHU_OAUTH_TOKEN_URL = 'https://open.feishu.cn/open-apis/authen/v2/oauth/token'
 export const FEISHU_APP_TOKEN_URL =
   'https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal'
@@ -48,6 +51,7 @@ export function buildFeishuAuthorizeUrl(appId: string, redirectUri: string, stat
   u.searchParams.set('app_id', appId)
   u.searchParams.set('redirect_uri', redirectUri)
   u.searchParams.set('state', state)
+  u.searchParams.set('scope', FEISHU_OAUTH_SCOPE)
   return u.toString()
 }
 
@@ -358,7 +362,9 @@ async function requestFeishuChats(fetcher: typeof fetch): Promise<FeishuChatsRes
     return { success: false, code: 'token_expired', error: '飞书授权已失效' }
   }
   if (status !== 200 || !root || feishuCode !== 0) {
-    return { success: false, code: 'network_error', error: '飞书接口返回异常' }
+    // 带飞书 msg 定位真实原因（如应用未开通 im:chat:readonly / 未发布 / scope 未授权）
+    const msg = typeof root?.msg === 'string' && root.msg ? root.msg : 'HTTP ' + status
+    return { success: false, code: 'network_error', error: '飞书接口返回异常（' + msg + '）' }
   }
   const items = (root.data as Record<string, unknown> | undefined)?.items
   const chats = (Array.isArray(items) ? items : [])

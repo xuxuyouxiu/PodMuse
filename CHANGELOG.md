@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.16] - 2026-08-21
+
+### 修复
+- **飞书 OAuth「飞书接口返回异常」根治**：授权 URL 此前未携带 scope，换取到的 user_access_token 没有 `im:chat:readonly` 群列表权限，连接成功但拉群失败。现在授权页会明确请求「获取群信息」权限（授权时请勾选）；失败时错误信息附带飞书返回的 msg（如 no permission），可直接定位原因。
+
+### 说明
+- 若授权页未出现群权限勾选项：请先在飞书开发者后台为该应用开通 `im:chat:readonly` 权限并创建版本发布，再重新授权。
 ## [1.51.15] - 2026-08-21
 
 ### 新增
