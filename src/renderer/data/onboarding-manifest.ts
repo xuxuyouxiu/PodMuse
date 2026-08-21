@@ -136,9 +136,9 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
       {
         image: 'public/onboarding/notion/3.png',
         caption:
-          '回到 Notion，打开目标数据库页面，右上角「… → 连接」→「连接到」选择刚创建的连接；然后从页面 URL 中复制 32 位 database id。注意：连接必须被授权到该页面，列表里才看得到你的数据库。',
+          '关键：数据库页在工作区左侧边栏（表格/看板页，如 Weekly To-do List；没有就输入 /table 新建）。打开它 →「…→连接→连接到」选刚建的连接 → 复制 URL 的 32 位 id。连接须授权到该页面，数据库才会出现。',
         captionEn:
-          'Back in Notion, open the target database page, click "… → Connections" → "Connect to" and choose the connection you just created; then copy the 32-character database id from the page URL. Note: the connection must be granted access to the page before your database appears in the list.',
+          'Key: the database page lives in your workspace sidebar (a table/board page like Weekly To-do List; to create one, type /table in any page and hit Enter, then name it e.g. "Podcast Library"), not in the developers tool. Open that database page, click "… → Connections" → "Connect to" and pick the connection you just created; then copy the 32-character database id from the page URL. The connection must be granted access to the page before your database appears in the list.',
       },
     ],
   },
