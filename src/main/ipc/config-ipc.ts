@@ -27,6 +27,8 @@ export function validateConfigInput(config: Record<string, unknown>): string | n
     'audio_dir',
     'whisper_exe_path',
     'whisper_model',
+    'notion_oauth_client_id',
+    'notion_oauth_client_secret',
   ]
   for (const field of stringFields) {
     if (field in config && typeof config[field] !== 'string') {
@@ -206,6 +208,41 @@ export function syncFeishuOAuthCredentials(
   return merged
 }
 
+/**
+ * 打通「Notion OAuth 连接服务」凭据入口（与飞书 syncFeishuOAuthCredentials 对称）：
+ * 用户在导出设置填写的 notion_oauth_client_id / notion_oauth_client_secret 同步进
+ * notion_oauth.clientId / clientSecret，否则 OAuth 卡片永远显示「连接功能准备中」
+ * （notion_oauth 是受保护字段，renderer 无法直接写入）。
+ * 非空才同步：不覆盖已有 OAuth 凭据；清空输入时保留已配置值。
+ */
+export function syncNotionOAuthCredentials(
+  merged: Record<string, unknown>,
+  currentConfig: PodcastConfig,
+): Record<string, unknown> {
+  const clientId =
+    typeof merged.notion_oauth_client_id === 'string'
+      ? (merged.notion_oauth_client_id as string).trim()
+      : ''
+  const clientSecret =
+    typeof merged.notion_oauth_client_secret === 'string'
+      ? (merged.notion_oauth_client_secret as string).trim()
+      : ''
+  if (!clientId && !clientSecret) return merged
+
+  const currentOauth = (
+    (currentConfig as unknown as Record<string, unknown>).notion_oauth as
+      | Record<string, unknown>
+      | undefined
+  ) ?? { clientId: '', clientSecret: '' }
+  merged.notion_oauth = {
+    ...currentOauth,
+    clientId: clientId || (typeof currentOauth.clientId === 'string' ? currentOauth.clientId : ''),
+    clientSecret:
+      clientSecret || (typeof currentOauth.clientSecret === 'string' ? currentOauth.clientSecret : ''),
+  }
+  return merged
+}
+
 export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('app:getVersion', () => {
     return app.getVersion()
@@ -259,6 +296,8 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       }
       // 打通高级模式 → OAuth：顶层 App ID/Secret 同步进 feishu_oauth（见 syncFeishuOAuthCredentials）
       syncFeishuOAuthCredentials(merged, currentConfig)
+      // 打通 Notion OAuth 凭据入口：顶层 Client ID/Secret 同步进 notion_oauth
+      syncNotionOAuthCredentials(merged, currentConfig)
       // schema 验证
       const validationError = validateConfigInput(merged as Record<string, unknown>)
       if (validationError) {

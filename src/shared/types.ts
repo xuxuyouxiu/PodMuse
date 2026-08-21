@@ -169,6 +169,10 @@ export interface PodcastConfig {
   notion_oauth?: NotionOAuthConfig
   feishu_oauth?: FeishuOAuthConfig
 
+  // Notion OAuth 凭据输入（Public integration 的 Client ID/Secret；保存时同步进 notion_oauth）
+  notion_oauth_client_id?: string
+  notion_oauth_client_secret?: string
+
   // 导出配置（可选，向后兼容）
   export?: ExportConfig
 

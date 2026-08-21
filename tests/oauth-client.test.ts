@@ -75,7 +75,11 @@ vi.mock('../src/main/backlinks', () => ({
 }))
 
 import { loadConfig, loadSafeConfig, clearConfigCache } from '../src/main/config'
-import { restoreProtectedFields, syncFeishuOAuthCredentials } from '../src/main/ipc/config-ipc'
+import {
+  restoreProtectedFields,
+  syncFeishuOAuthCredentials,
+  syncNotionOAuthCredentials,
+} from '../src/main/ipc/config-ipc'
 import {
   startCallbackServer,
   FEISHU_CALLBACK_PATH,
@@ -1224,5 +1228,53 @@ describe('syncFeishuOAuthCredentials（顶层 App ID/Secret 同步进 feishu_oau
     const o = out.feishu_oauth as Record<string, unknown>
     expect(o.appId).toBe('cli_new')
     expect(o.appSecret).toBe('secret_new')
+  })
+})
+
+// ============================================================
+// syncNotionOAuthCredentials（Client ID/Secret → notion_oauth 打通）
+// ============================================================
+
+describe('syncNotionOAuthCredentials（顶层 Client ID/Secret 同步进 notion_oauth）', () => {
+  const currentWithOauth = {
+    notion_oauth_client_id: 'cid_old',
+    notion_oauth: {
+      clientId: 'cid_old',
+      clientSecret: 'secret_oauth',
+      accessToken: 'ntn-access',
+      databaseId: 'db-1',
+    },
+  } as unknown as PodcastConfig
+
+  it('填写 Client ID/Secret → 同步进 notion_oauth（保留 token/databaseId 等既有字段）', () => {
+    const merged = { notion_oauth_client_id: 'cid_new', notion_oauth_client_secret: 'secret_new' }
+    const out = syncNotionOAuthCredentials(merged, currentWithOauth)
+    const o = out.notion_oauth as Record<string, unknown>
+    expect(o.clientId).toBe('cid_new')
+    expect(o.clientSecret).toBe('secret_new')
+    expect(o.accessToken).toBe('ntn-access')
+    expect(o.databaseId).toBe('db-1')
+  })
+
+  it('只填 Client ID → 仅同步 clientId，clientSecret 沿用主进程 OAuth 值', () => {
+    const merged = { notion_oauth_client_id: 'cid_new' }
+    const out = syncNotionOAuthCredentials(merged, currentWithOauth)
+    const o = out.notion_oauth as Record<string, unknown>
+    expect(o.clientId).toBe('cid_new')
+    expect(o.clientSecret).toBe('secret_oauth')
+  })
+
+  it('两个字段都为空 → 不动 notion_oauth', () => {
+    const merged = { notion_oauth_client_id: '', notion_oauth_client_secret: '  ' }
+    const out = syncNotionOAuthCredentials(merged, currentWithOauth)
+    expect('notion_oauth' in out).toBe(false)
+  })
+
+  it('主进程无 notion_oauth → 用顶层字段新建', () => {
+    const merged = { notion_oauth_client_id: 'cid_new', notion_oauth_client_secret: 'secret_new' }
+    const out = syncNotionOAuthCredentials(merged, {} as PodcastConfig)
+    const o = out.notion_oauth as Record<string, unknown>
+    expect(o.clientId).toBe('cid_new')
+    expect(o.clientSecret).toBe('secret_new')
   })
 })

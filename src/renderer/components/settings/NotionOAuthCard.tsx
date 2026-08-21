@@ -177,7 +177,7 @@ export default function NotionOAuthCard() {
             onClick={handleConnect}
           >
             {!configured
-              ? t('连接功能准备中（可先用下方高级模式）')
+              ? t('连接 Notion（未配置）')
               : connecting
                 ? t('等待授权…')
                 : connected
@@ -236,6 +236,13 @@ export default function NotionOAuthCard() {
         <span className="settings-test-result--error" style={{ display: 'block', marginTop: 8 }}>
           ✗ {actionError}
         </span>
+      )}
+      {!configured && (
+        <p className="settings-hint" style={{ marginTop: 8 }}>
+          {t(
+            '先在下方「高级模式」粘贴 Notion Token 并保存，或在「OAuth 连接服务配置」填写 Public integration 的 Client ID/Secret 后保存，本按钮即变为「连接 Notion」。',
+          )}
+        </p>
       )}
       <p className="settings-hint" style={{ marginTop: 8 }}>
         {t(

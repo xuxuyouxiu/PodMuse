@@ -847,6 +847,17 @@ const enDict: Record<string, string> = {
   '选择数据库失败': 'Failed to select a database',
   '已连接 Notion': 'Connected to Notion',
   '连接功能准备中（可先用下方高级模式）': 'Connection feature coming soon — advanced mode available below',
+  '连接飞书（未配置）': 'Connect Feishu (Not Configured)',
+  '连接 Notion（未配置）': 'Connect Notion (Not Configured)',
+  '先在下方「高级模式（自建应用）」填入 App ID 和 App Secret（Chat ID 可留空）并保存，本按钮即变为「连接飞书」；扫码授权后自动列出群聊选择，无需手动复制 Chat ID。':
+    'First fill in App ID and App Secret (Chat ID optional) in the "Advanced Mode (Custom App)" section below and save; this button then becomes "Connect Feishu" — after QR authorization the chat list is loaded automatically, no manual Chat ID needed.',
+  '；Chat ID 可留空——用上方「连接飞书」扫码授权后会自动列出群聊选择，无需手动复制':
+    '; Chat ID is optional — using "Connect Feishu" above loads the chat list automatically after authorization, no manual copying needed.',
+  '先在下方「高级模式」粘贴 Notion Token 并保存，或在「OAuth 连接服务配置」填写 Public integration 的 Client ID/Secret 后保存，本按钮即变为「连接 Notion」。':
+    'First paste a Notion Token in the "Advanced Mode" below and save, or fill in the Public integration Client ID/Secret under "OAuth Connection Setup" and save; this button then becomes "Connect Notion".',
+  'OAuth 连接服务配置（可选，Public Integration）': 'OAuth Connection Setup (Optional, Public Integration)',
+  '在 Notion「我的连接/连接」中创建公开集成（Public integration）并填入上方 Client ID / Client Secret，保存后「连接 Notion」即可扫码授权（免手动复制 Token）。令牌模式够用时无需配置此项。':
+    'Create a Public integration under Notion "My connections/Connections", fill in the Client ID / Client Secret above and save; "Connect Notion" then enables QR-code authorization (no manual token copying). Skip this if the token mode already works for you.',
   '连接 Notion': 'Connect Notion',
   '目标数据库': 'Target Database',
   '加载数据库…': 'Loading databases…',

@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.13] - 2026-08-21
+
+### 修复
+- **Notion「连接功能准备中」不再卡死**（与飞书对称）：导出设置新增「OAuth 连接服务配置（可选，Public Integration）」折叠区，填写 Notion Public integration 的 Client ID / Client Secret 并保存后，自动同步进 OAuth 凭据（notion_oauth），「连接 Notion」按钮立即可用，可走浏览器授权流程（免手动复制 Token）；已有 OAuth 连接不受影响。
+
+### 改进
+- **连接入口更清晰**：飞书/Notion 连接按钮未配置时直接显示「连接飞书（未配置）」/「连接 Notion（未配置）」，并附引导文案（飞书：填 App ID/App Secret 保存即可启用，Chat ID 可留空；Notion：粘贴 Token 或填 OAuth Client ID/Secret 保存即可启用），避免用户找不到入口、误以为必须填三个字段。
 ## [1.51.12] - 2026-08-21
 
 ### 修复

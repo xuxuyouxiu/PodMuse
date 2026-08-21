@@ -32,6 +32,7 @@ export default function TabExport({ form, update }: Props) {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
   const [notionAdvancedOpen, setNotionAdvancedOpen] = useState(false)
+  const [notionOAuthInputOpen, setNotionOAuthInputOpen] = useState(false)
   // Token 明文不回显（主进程加密存储），配置状态经 notion:exportStatus IPC 读取
   const [notionTokenConfigured, setNotionTokenConfigured] = useState(false)
   // 手动模式：列出当前 Token 可访问的数据库（下拉选择，免手动找 id）
@@ -124,7 +125,9 @@ export default function TabExport({ form, update }: Props) {
   })
 
   // 「粘贴」兜底：读剪贴板填入指定字段（可识别值优先提取，否则原样填入）
-  async function pasteNotionField(field: 'token' | 'database_id') {
+  async function pasteNotionField(
+    field: 'token' | 'database_id' | 'oauthClientId' | 'oauthClientSecret',
+  ) {
     try {
       const text = await window.electronAPI.readClipboardText()
       const trimmed = text.trim()
@@ -133,6 +136,14 @@ export default function TabExport({ form, update }: Props) {
       if (field === 'token') value = extractFieldValue(trimmed, 'notion-token') ?? trimmed
       if (field === 'database_id')
         value = extractFieldValue(trimmed, 'notion-database-id') ?? trimmed
+      if (field === 'oauthClientId') {
+        update('notion_oauth_client_id', value)
+        return
+      }
+      if (field === 'oauthClientSecret') {
+        update('notion_oauth_client_secret', value)
+        return
+      }
       updateNotionField(field, value)
     } catch (e) {
       console.warn('[clipfill] paste failed:', (e as Error)?.message) // 绝不记录剪贴板内容
@@ -172,6 +183,42 @@ export default function TabExport({ form, update }: Props) {
           </button>
         </div>
         <NotionOAuthCard />
+
+        {/* OAuth 连接服务凭据（Public Integration）：保存后「连接 Notion」按钮可用 */}
+        <details
+          style={{ marginTop: 8 }}
+          open={notionOAuthInputOpen}
+          onToggle={e => setNotionOAuthInputOpen(e.currentTarget.open)}
+        >
+          <summary
+            className="settings-link-button"
+            style={{ display: 'inline-block', cursor: 'pointer' }}
+          >
+            {t('OAuth 连接服务配置（可选，Public Integration）')}
+          </summary>
+          <div className="settings-grid" style={{ marginTop: 10 }}>
+            <Field
+              label="Notion OAuth Client ID"
+              value={form.notion_oauth_client_id || ''}
+              onChange={v => update('notion_oauth_client_id', v)}
+              placeholder="在 Public Integration 的 OAuth 配置中复制"
+              onPaste={() => void pasteNotionField('oauthClientId')}
+              pasteTitle="在 Notion 复制对应值后点粘贴"
+            />
+            <Field
+              label="Notion OAuth Client Secret"
+              value={form.notion_oauth_client_secret || ''}
+              onChange={v => update('notion_oauth_client_secret', v)}
+              secret
+              placeholder="在 Public Integration 的 OAuth 配置中复制"
+              onPaste={() => void pasteNotionField('oauthClientSecret')}
+              pasteTitle="在 Notion 复制对应值后点粘贴"
+            />
+          </div>
+          <div className="settings-hint" style={{ marginTop: 8 }}>
+            {t('在 Notion「我的连接/连接」中创建公开集成（Public integration）并填入上方 Client ID / Client Secret，保存后「连接 Notion」即可扫码授权（免手动复制 Token）。令牌模式够用时无需配置此项。')}
+          </div>
+        </details>
 
         <details
           open={notionAdvancedOpen}

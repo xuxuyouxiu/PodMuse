@@ -534,6 +534,7 @@ export default function TabApi({
           <div className="settings-hint" style={{ marginTop: 8 }}>
             {t('在飞书复制对应值后点粘贴')}；
             {t('复制 App ID（cli_）或 Chat ID（oc_）后会自动识别填入')}
+            {t('；Chat ID 可留空——用上方「连接飞书」扫码授权后会自动列出群聊选择，无需手动复制')}
           </div>
           <div className="settings-test-row">
             <button

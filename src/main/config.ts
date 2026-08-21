@@ -97,6 +97,8 @@ const DEFAULTS: PodcastConfig = {
   // OAuth 连接服务默认空壳（平台注册就绪前为「未配置」，入口优雅降级为 oauth_not_configured）
   notion_oauth: { clientId: '', clientSecret: '' },
   feishu_oauth: { appId: '', appSecret: '' },
+  notion_oauth_client_id: '',
+  notion_oauth_client_secret: '',
 
   // 导出配置默认值
   export: {

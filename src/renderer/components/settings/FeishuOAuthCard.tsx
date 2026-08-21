@@ -181,7 +181,7 @@ export default function FeishuOAuthCard() {
             onClick={handleConnect}
           >
             {!configured
-              ? t('连接服务准备中（可先用下方高级模式）')
+              ? t('连接飞书（未配置）')
               : connecting
                 ? t('等待授权…')
                 : connected && !expired
@@ -248,6 +248,13 @@ export default function FeishuOAuthCard() {
         <span className="settings-test-result--error" style={{ display: 'block', marginTop: 8 }}>
           ✗ {actionError}
         </span>
+      )}
+      {!configured && (
+        <p className="settings-hint" style={{ marginTop: 8 }}>
+          {t(
+            '先在下方「高级模式（自建应用）」填入 App ID 和 App Secret（Chat ID 可留空）并保存，本按钮即变为「连接飞书」；扫码授权后自动列出群聊选择，无需手动复制 Chat ID。',
+          )}
+        </p>
       )}
       <p className="settings-hint" style={{ marginTop: 8 }}>
         {t(
