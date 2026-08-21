@@ -5,6 +5,10 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.17] - 2026-08-21
+
+### 改进
+- **飞书凭据区重新布局**：彻底移除「高级模式」折叠，App ID / App Secret 必填字段改为卡片平铺展示（含说明、自动获取群列表、测试连接），打开设置即可看到；剪贴板复制 App ID（cli_）或 Chat ID（oc_）自动识别填入。
 ## [1.51.16] - 2026-08-21
 
 ### 修复

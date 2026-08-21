@@ -853,6 +853,9 @@ const enDict: Record<string, string> = {
     'First fill in App ID and App Secret (Chat ID optional) in the "Advanced Mode (Custom App)" section below and save; this button then becomes "Connect Feishu" — after QR authorization the chat list is loaded automatically, no manual Chat ID needed.',
   '；Chat ID 可留空——用上方「连接飞书」扫码授权后会自动列出群聊选择，无需手动复制':
     '; Chat ID is optional — using "Connect Feishu" above loads the chat list automatically after authorization, no manual copying needed.',
+  '应用凭据（必填）': 'App Credentials (Required)',
+  '在飞书开放平台创建自建应用后复制（App ID / App Secret 需各复制一次，飞书不允许 API 读取密钥）':
+    'Copy these from the Feishu Developer Console after creating a custom app (App ID / App Secret are each copied once; the Feishu API cannot read the secret).',
   '自动获取群列表': 'Fetch Group List',
   '获取群列表失败': 'Failed to load group list',
   '；Chat ID 可留空——点「自动获取群列表」直接下拉选择，或走上方「连接飞书」扫码授权':

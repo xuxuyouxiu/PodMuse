@@ -121,8 +121,6 @@ export default function TabApi({
   const [feishuChatsLoading, setFeishuChatsLoading] = useState(false)
   const [feishuChatsError, setFeishuChatsError] = useState<string | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
-  // App ID / App Secret 为必填凭据，默认展开不隐藏（Chat ID 可留空）
-  const [feishuAdvancedOpen, setFeishuAdvancedOpen] = useState(true)
 
   // 模型加载期间的供应商切换守卫：加载完成时若已切换供应商，丢弃过期结果
   const activeProviderRef = useRef<AIProviderId>(activeProvider)
@@ -242,14 +240,15 @@ export default function TabApi({
 
   // 飞书高级模式：剪贴板无感填充（cli_ → App ID，oc_ → Chat ID；Secret 无特征化，走「粘贴」按钮）。
   // 只填仍为空的字段，已填内容不覆盖（替换请用「粘贴」按钮）；未展开高级模式不轮询。
+  // 凭据字段常显：复制 App ID（cli_）或 Chat ID（oc_）即自动识别填入
   useClipboardFill({
-    active: feishuAdvancedOpen && !form.feishu_app_id.trim(),
+    active: !form.feishu_app_id.trim(),
     patterns: [FEISHU_APP_ID_PATTERN],
     onFill: value => update('feishu_app_id', value),
   })
 
   useClipboardFill({
-    active: feishuAdvancedOpen && !form.feishu_chat_id.trim(),
+    active: !form.feishu_chat_id.trim(),
     patterns: [FEISHU_CHAT_ID_PATTERN],
     onFill: value => update('feishu_chat_id', value),
   })
@@ -521,18 +520,15 @@ export default function TabApi({
 
         <FeishuOAuthCard />
 
-        <details
-          open={feishuAdvancedOpen}
-          onToggle={e => setFeishuAdvancedOpen(e.currentTarget.open)}
-          style={{ marginTop: 8 }}
-        >
-          <summary
-            className="settings-link-button"
-            style={{ display: 'inline-block', cursor: 'pointer' }}
-          >
-            {t('高级模式（自建应用）')}
-          </summary>
-          <div className="settings-grid" style={{ marginTop: 10 }}>
+        {/* 应用凭据（必填）——平铺展示，不再折叠隐藏 */}
+        <div className="settings-section" style={{ marginTop: 12 }}>
+          <div className="settings-section-header">
+            <div className="settings-section-title">{t('应用凭据（必填）')}</div>
+            <div className="settings-section-copy">
+              {t('在飞书开放平台创建自建应用后复制（App ID / App Secret 需各复制一次，飞书不允许 API 读取密钥）')}
+            </div>
+          </div>
+          <div className="settings-grid" style={{ marginTop: 4 }}>
             <Field
               label={t('飞书 App ID')}
               value={form.feishu_app_id}
@@ -658,7 +654,7 @@ export default function TabApi({
             </span>
             {t('创建自建应用，获取 App ID 和 App Secret，将应用添加到目标群聊并获取 Chat ID。')}
           </div>
-        </details>
+        </div>
       </div>
 
       {/* 通知设置 */}
