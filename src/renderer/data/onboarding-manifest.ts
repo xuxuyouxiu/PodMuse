@@ -148,11 +148,11 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
     titleEn: 'Install Speech Recognition Engine',
     steps: [
       {
-        image: 'public/onboarding/whisper/1.png',
+        // 本步骤无需截图：入口就在应用内「语音模型」设置页，按文字说明操作即可
         caption:
-          '点击「自动检测引擎」定位已安装的引擎；若未安装，点「一键安装 Faster-Whisper-XXL」（约 1.4 GB）或「GitHub 下载」手动安装。默认模型 large-v3-turbo（约 6GB）首次使用自动下载。',
+          '在「语音模型」设置页：点「自动检测引擎」定位已装引擎；未装则点「一键安装 Faster-Whisper-XXL」（约 1.4GB），默认模型 large-v3-turbo（约 6GB）首次使用自动下载。',
         captionEn:
-          'Click "Auto-detect Engine" to locate an installed engine; if none is installed, click "Install Faster-Whisper-XXL" (~1.4 GB) or download it manually from GitHub. The default large-v3-turbo model (~6 GB) downloads automatically on first use.',
+          'In the "Speech Model" settings tab: click "Auto-detect Engine" to locate an installed engine; if none, click "Install Faster-Whisper-XXL" (~1.4 GB). The default large-v3-turbo model (~6 GB) downloads automatically on first use.',
       },
     ],
   },
@@ -162,11 +162,11 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
     titleEn: 'Choose Notes Folder',
     steps: [
       {
-        image: 'public/onboarding/dirs/1.png',
+        // 本步骤无需截图：入口就在应用内「转写偏好」设置页，按文字说明操作即可
         caption:
-          '不选择任何目录时，PodMuse 会在系统文档目录自动创建「PodMuse笔记」文件夹；也可以点「浏览」选择已有文件夹，若其中存在 .obsidian 文件夹会自动识别为 Obsidian Vault 并复用。',
+          '在「转写偏好」设置页：不选目录时自动在系统文档目录创建「PodMuse笔记」文件夹；也可点「浏览」选已有文件夹，含 .obsidian 的自动识别为 Obsidian Vault 并复用。',
         captionEn:
-          'If no folder is chosen, PodMuse automatically creates a "PodMuse笔记" folder in your system Documents directory. You can also click "Browse" to choose an existing folder; a .obsidian folder inside it will be detected and reused as an Obsidian vault.',
+          'In the "Transcription" settings tab: if you choose no folder, PodMuse auto-creates a "PodMuse笔记" folder in Documents. Or click "Browse" to pick an existing folder; one containing .obsidian is auto-detected and reused as an Obsidian vault.',
       },
     ],
   },

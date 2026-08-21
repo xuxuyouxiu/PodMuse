@@ -1148,4 +1148,32 @@ describe('restoreProtectedFields（export.notion.token 防护）', () => {
     expect(out.api_key).toBe('sk-1')
     expect('export' in out).toBe(false)
   })
+
+  it('renderer 未携带 notion 子对象（异常 payload）→ 整体还原主进程值（token + database_id）', () => {
+    const out = restoreProtectedFields(
+      { export: { logseq_dir: 'D:/notes' } },
+      withToken,
+    )
+    expect(exportNotionToken(out)).toBe('manual-real')
+    const notion = (out.export as { notion: { database_id: string } }).notion
+    expect(notion.database_id).toBe('db-1')
+    // logseq_dir 等其他字段原样保留
+    expect((out.export as { logseq_dir: string }).logseq_dir).toBe('D:/notes')
+  })
+
+  it('renderer 未携带 export 字段 → 由 config:save 合并主进程值，不丢令牌', () => {
+    const out = restoreProtectedFields({ api_key: 'sk-1' }, withToken)
+    expect('export' in out).toBe(false)
+    // config:save 的合并语义：{...currentConfig, ...incoming} 后 export 来自主进程
+    const merged = { ...withToken, ...out } as unknown as { export: { notion: { token: string } } }
+    expect(merged.export.notion.token).toBe('manual-real')
+  })
+
+  it('incoming export.notion 为 null（异常形态）→ 还原主进程值', () => {
+    const out = restoreProtectedFields(
+      { export: { logseq_dir: '', notion: null } },
+      withToken,
+    )
+    expect(exportNotionToken(out)).toBe('manual-real')
+  })
 })

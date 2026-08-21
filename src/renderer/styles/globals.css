@@ -8746,6 +8746,21 @@ a:focus-visible {
   overflow: hidden;
 }
 
+/* 大窗口（全屏/最大化）：设置弹窗随可用空间放大，内容区更宽松 */
+@media (min-width: 1180px) and (min-height: 760px) {
+  .settings-dialog {
+    width: 940px;
+    height: 660px;
+  }
+}
+
+@media (min-width: 1500px) and (min-height: 900px) {
+  .settings-dialog {
+    width: 1080px;
+    height: 720px;
+  }
+}
+
 .settings-dialog__sidebar {
   width: 180px;
   min-width: 140px;
@@ -8860,6 +8875,27 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* 工具维护：纵向卡片布局（全屏/窄窗口均整洁） */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-checkbox-hint {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 2px 0 6px 24px;
 }
 
 .settings-link-button:hover {
@@ -9157,12 +9193,5 @@ a:focus-visible {
   cursor: default;
 }
 
-/* 无障碍：偏好减少动效时关闭旋转/过渡动画 */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
+/* 动效：保持各动画自然速度运行（v1.51.8 曾在此处按系统「减少动效」关闭全部动画，
+   导致流程面板进度流光/加载图标等不再显示；用户明确要求动画必须运行，故移除该覆盖） */

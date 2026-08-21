@@ -160,16 +160,18 @@ export function restoreProtectedFields(
   const currentExportNotion = (
     currentAny.export as { notion?: Record<string, unknown> } | undefined
   )?.notion
+  const currentToken = typeof currentExportNotion?.token === 'string' ? currentExportNotion.token : ''
   const incomingExport = out.export as Record<string, unknown> | undefined
   if (incomingExport && typeof incomingExport === 'object') {
     const notionIn = incomingExport.notion as Record<string, unknown> | undefined
     if (notionIn && typeof notionIn === 'object') {
       const incomingToken = typeof notionIn.token === 'string' ? notionIn.token : ''
-      const currentToken =
-        typeof currentExportNotion?.token === 'string' ? currentExportNotion.token : ''
       if (!incomingToken && currentToken) {
         out.export = { ...incomingExport, notion: { ...notionIn, token: currentToken } }
       }
+    } else if (currentExportNotion) {
+      // renderer 未携带 notion 子对象（异常/旧形态 payload）：整体还原主进程值，防误清空
+      out.export = { ...incomingExport, notion: { ...currentExportNotion } }
     }
   }
 
@@ -208,14 +210,32 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       // 还原受保护字段：脱敏值（**** 开头）与抖音凭据一律以主进程现有值为准
       const incoming = restoreProtectedFields(config as Record<string, unknown>, currentConfig)
 
-      const merged = { ...currentConfig, ...incoming }
+      const merged = { ...currentConfig, ...incoming } as Record<string, unknown>
+      // 兜底保护：无论 incoming 形态如何，export.notion.token 为空时一律还原主进程现有值
+      // （覆盖「更新/保存后已保存令牌丢失」：任何保存路径都不得误清空手动 Token）
+      const curNotion = (
+        currentConfig.export as { notion?: Record<string, unknown> } | undefined
+      )?.notion
+      const curToken = typeof curNotion?.token === 'string' ? curNotion.token : ''
+      if (curToken) {
+        const mergedExport = merged.export as
+          | { notion?: Record<string, unknown> }
+          | undefined
+        const mergedToken = typeof mergedExport?.notion?.token === 'string' ? mergedExport.notion.token : ''
+        if (!mergedToken) {
+          merged.export = {
+            ...(mergedExport ?? {}),
+            notion: { ...(mergedExport?.notion ?? {}), token: curToken },
+          }
+        }
+      }
       // schema 验证
       const validationError = validateConfigInput(merged as Record<string, unknown>)
       if (validationError) {
         console.warn('Config save rejected:', validationError)
         return false
       }
-      saveConfig(merged as PodcastConfig)
+      saveConfig(merged as unknown as PodcastConfig)
       return true
     } catch {
       return false

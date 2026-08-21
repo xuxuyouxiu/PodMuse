@@ -19,10 +19,17 @@ export default function TabTools({
   return (
     <div>
       <TabHeader title={t('工具与维护')} subtitle={t('清理临时文件释放磁盘空间')} />
-      <div className="settings-grid">
-        <div className="settings-field">
-          <div className="settings-field-label">{t('清理临时文件')}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+      <div className="settings-stack">
+        {/* 清理临时文件 */}
+        <div className="settings-section">
+          <div className="settings-section-header">
+            <div className="settings-section-title">{t('清理临时文件')}</div>
+            <div className="settings-section-copy">
+              {t('清理下载的音频缓存和临时文件，释放磁盘空间')}
+            </div>
+          </div>
+          <div className="settings-section-actions">
             <button
               onClick={onCleanTemp}
               disabled={cleaningTemp}
@@ -42,13 +49,13 @@ export default function TabTools({
               </span>
             )}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            {t('清理下载的音频缓存和临时文件，释放磁盘空间')}
-          </div>
         </div>
 
-        <div className="settings-field">
-          <div className="settings-field-label">{t('软件更新')}</div>
+        {/* 软件更新 */}
+        <div className="settings-section">
+          <div className="settings-section-header">
+            <div className="settings-section-title">{t('软件更新')}</div>
+          </div>
           <label className="settings-checkbox">
             <input
               type="checkbox"
@@ -57,7 +64,7 @@ export default function TabTools({
             />
             {t('自动检查更新')}
           </label>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px 24px' }}>
+          <div className="settings-checkbox-hint">
             {t('有更新时左下角版本号会高亮显示，点击版本号查看')}
           </div>
           <label className="settings-checkbox">
@@ -68,13 +75,16 @@ export default function TabTools({
             />
             {t('发现更新后自动下载')}
           </label>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 24px' }}>
+          <div className="settings-checkbox-hint">
             {t('开启后在后台自动下载，下载完成后提示重启')}
           </div>
         </div>
 
-        <div className="settings-field">
-          <div className="settings-field-label">{t('浏览器剪藏')}</div>
+        {/* 浏览器剪藏 */}
+        <div className="settings-section">
+          <div className="settings-section-header">
+            <div className="settings-section-title">{t('浏览器剪藏')}</div>
+          </div>
           <label className="settings-checkbox">
             <input
               type="checkbox"
@@ -83,10 +93,10 @@ export default function TabTools({
             />
             {t('剪贴板链接检测')}
           </label>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px 24px' }}>
+          <div className="settings-checkbox-hint">
             {t('复制播客/视频/RSS 链接时自动弹出快捷入队浮窗，内容仅在本机判断')}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="settings-section-actions">
             <button
               className="settings-browse-button"
               onClick={() => {
@@ -99,7 +109,7 @@ export default function TabTools({
               {t('复制书签小工具')}
             </button>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 24px' }}>
+          <div className="settings-checkbox-hint">
             {t('Chrome/Edge 安装：先按 Ctrl+D 收藏任意网页，在弹出的书签编辑框里把「网址」整段替换为复制的代码，保存后点击书签即可发送当前页面')}
           </div>
         </div>
