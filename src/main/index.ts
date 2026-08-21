@@ -86,6 +86,18 @@ if (!gotTheLock) {
   app.exit(0)
 }
 
+// 全局导航防护：任何 webContents（主窗口/登录窗/子弹窗/iframe）尝试打开
+// 非 http(s) 协议（bytedance:// 等）一律拦截，避免 Windows 反复弹
+// 「需要使用新应用以打开此链接」系统框（根因见 v1.50.3~1.50.5 修复记录）。
+app.on('web-contents-created', (_e, contents) => {
+  contents.on('will-navigate', (e, url) => {
+    if (!/^https?:\/\//i.test(url)) e.preventDefault()
+  })
+  contents.on('will-frame-navigate', (e) => {
+    if (!/^https?:\/\//i.test(e.url)) e.preventDefault()
+  })
+})
+
 app.on('second-instance', (_e, argv) => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore()

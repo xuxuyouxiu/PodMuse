@@ -3,7 +3,7 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { refreshDouyinStatus } from '../douyin-auth'
+import { getFreshDouyinCookie, markDouyinExpired, syncDouyinDownloaderCookie } from '../douyin-auth'
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
 /** douyin-downloader 路径 */
@@ -47,9 +47,14 @@ export class DouyinAdapter implements PlatformAdapter {
   }
 
   async extractAudio(url: string, signal?: AbortSignal): Promise<AudioExtractResult> {
-    // 处理抖音链接前自动刷新登录状态卡（有 cookie 时重验，失效标 expired）。
-    // cookie 不进下载链路（douyin-downloader 使用自身 config.yml），此处不阻塞、不改下载行为。
-    void refreshDouyinStatus().catch(() => {})
+    // 用时取鲜：会话 cookie 优先，回退配置冻结串；两者都不可用才判「已失效」提示重登。
+    // 拿到有效 cookie 后同步进 douyin-downloader 的 config.yml（下载器读它）。
+    const cookie = await getFreshDouyinCookie()
+    if (!cookie) {
+      markDouyinExpired()
+      throw new Error('抖音登录已失效，请重新登录')
+    }
+    syncDouyinDownloaderCookie(cookie)
 
     const downloaderPath = getDownloaderPath()
     const scriptPath = path.join(downloaderPath, 'douyin-cli.py')

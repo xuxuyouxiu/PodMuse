@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.1] - 2026-08-20
+
+### 修复
+- **抖音「每次打开都要重新登录」**：启动/例行校验不再判死登录态——校验失效只保留既有 connected 状态，不再标「已失效」；只有真实下载/使用失败时才标过期（新增 `markDouyinExpired`，由下载链路调用）
+- **登录后显示「已连接 · 昵称」**：登录成功后在登录页上下文内拉取账号信息（同源请求带全量 cookie/反爬头，最可靠），拿不到昵称才回退主进程校验——修复此前一直停留在「待验证，将自动重试」、拿不到昵称的问题
+- **下载 cookie 自愈**：下载抖音视频时优先取内嵌会话的新鲜 cookie（会话优先，回退配置冻结串），并自动写回配置与 douyin-downloader 的 config.yml（下载器实际读取的配置）
+- **bytedance:// 协议弹窗彻底根治**：新增全局 `web-contents-created` 导航防护（will-navigate + will-frame-navigate），主窗口/登录窗/子弹窗/iframe 的**所有**非 http(s) 协议导航一律拦截（此前只覆盖 window.open 与主框架导航）
+
+### 测试
+- douyin-auth 新增/更新 8 例：页内昵称、非破坏性刷新、markExpired、会话取鲜、config.yml cookies 块同步（保留其它配置）
+- 全量 466 测试通过
+
 ## [1.51.0] - 2026-08-20
 
 ### 改进

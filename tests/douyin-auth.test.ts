@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import type { PodcastConfig } from '@shared/types'
 
 /**
@@ -11,7 +14,7 @@ import type { PodcastConfig } from '@shared/types'
 // Mock setup — hoisted so factories can reference these
 // ============================================================
 
-const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockCookiesRemove, mockOpenExternal, MockBrowserWindow } = vi.hoisted(() => {
+const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockCookiesRemove, mockOpenExternal, mockExecuteJS, MockBrowserWindow } = vi.hoisted(() => {
   /** 极简 BrowserWindow 假件：记录实例、支持 on('closed') 与 close() 联动 */
   class MockBrowserWindow {
     static instances: MockBrowserWindow[] = []
@@ -24,6 +27,7 @@ const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockCookiesRemove, mockO
       setWindowOpenHandler: (fn: (details: { url: string }) => { action: string }) => {
         this.openHandler = fn
       },
+      executeJavaScript: mockExecuteJS,
     }
     destroyed = false
     constructor() {
@@ -49,6 +53,7 @@ const { mockLoadConfig, mockSaveConfig, mockCookiesGet, mockCookiesRemove, mockO
     mockCookiesGet: vi.fn(),
     mockCookiesRemove: vi.fn(),
     mockOpenExternal: vi.fn(),
+    mockExecuteJS: vi.fn(),
     MockBrowserWindow,
   }
 })
@@ -96,6 +101,10 @@ import {
   isDouyinCookieDomain,
   isBlockedExternalHost,
   buildCookieString,
+  getSessionDouyinCookie,
+  getFreshDouyinCookie,
+  markDouyinExpired,
+  syncDouyinDownloaderCookie,
 } from '../src/main/douyin-auth'
 import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
 
@@ -138,6 +147,7 @@ beforeEach(() => {
   mockCookiesGet.mockReset()
   mockCookiesRemove.mockReset()
   mockOpenExternal.mockReset()
+  mockExecuteJS.mockReset()
 })
 
 afterEach(() => {
@@ -381,7 +391,7 @@ describe('refreshDouyinStatus', () => {
     )
   })
 
-  it('校验失效 → 标 expired（cookie 内容保留）', async () => {
+  it('校验失效 → 保留既有 connected 状态，不标 expired（启动不再判死）', async () => {
     mockLoadConfig.mockReturnValue(
       baseConfig({
         douyin_cookie: 'sid_guard=dead',
@@ -395,10 +405,25 @@ describe('refreshDouyinStatus', () => {
 
     const result = await refreshDouyinStatus()
 
+    expect(result.status).toBe('connected')
+    expect(result.nickname).toBe('旧昵称')
+    expect(mockSaveConfig).not.toHaveBeenCalled()
+  })
+
+  it('markDouyinExpired：真实使用失败时才标 expired', () => {
+    mockLoadConfig.mockReturnValue(
+      baseConfig({
+        douyin_cookie: 'sid_guard=x',
+        douyin_login: { status: 'connected', nickname: '旧昵称' },
+      }),
+    )
+    const result = markDouyinExpired()
     expect(result.status).toBe('expired')
-    const saved = mockSaveConfig.mock.calls[0][0] as PodcastConfig
-    expect(saved.douyin_cookie).toBe('sid_guard=dead')
-    expect(saved.douyin_login?.status).toBe('expired')
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        douyin_login: expect.objectContaining({ status: 'expired', nickname: '旧昵称' }),
+      }),
+    )
   })
 
   it('网络不可达且原状态 connected → 不降级、不重写', async () => {
@@ -460,6 +485,75 @@ describe('disconnectDouyin', () => {
 // ============================================================
 // connectDouyin（登录窗迁移后的行为）
 // ============================================================
+
+describe('会话取鲜 / 下载器 cookie 同步', () => {
+  it('getSessionDouyinCookie：会话含登录标记时返回新鲜 cookie 串，否则 null', async () => {
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+      { name: 'sessionid', value: 'ss', domain: 'sso.douyin.com' },
+      { name: 'other', value: 'x', domain: 'example.com' },
+    ])
+    expect(await getSessionDouyinCookie()).toBe('sid_guard=sg; sessionid=ss')
+
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+    ])
+    expect(await getSessionDouyinCookie()).toBeNull()
+  })
+
+  it('getFreshDouyinCookie：会话优先；无会话时回退配置冻结串（校验通过才用）', async () => {
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sessionid', value: 'fresh', domain: 'www.douyin.com' },
+    ])
+    mockLoadConfig.mockReturnValue(baseConfig({ douyin_cookie: 'old=1' }))
+    expect(await getFreshDouyinCookie()).toBe('sessionid=fresh')
+    expect(mockSaveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ douyin_cookie: 'sessionid=fresh' }),
+    )
+
+    // 无会话：回退配置串，校验 ok 才返回
+    mockCookiesGet.mockImplementation(async () => [])
+    mockLoadConfig.mockReturnValue(baseConfig({ douyin_cookie: 'sessionid=cfg' }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(200, PASSPORT_OK_BODY)),
+    )
+    expect(await getFreshDouyinCookie()).toBe('sessionid=cfg')
+
+    // 校验失败 → null
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(200, PASSPORT_LOGGED_OUT_BODY)),
+    )
+    expect(await getFreshDouyinCookie()).toBeNull()
+  })
+
+  it('syncDouyinDownloaderCookie：只替换 config.yml 的 cookies 块，其余配置保留', async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pdm-dy-cfg-'))
+    const cfgPath = path.join(tmp, 'config.yml')
+    fs.writeFileSync(
+      cfgPath,
+      'path: ./Downloaded/\nthread: 5\ncookies:\n  __ac_nonce: old1\n  __ac_signature: old2\nproxy: \'\'\n',
+      'utf-8',
+    )
+    const prev = process.env.DOUYIN_DOWNLOADER_PATH
+    process.env.DOUYIN_DOWNLOADER_PATH = tmp
+    try {
+      syncDouyinDownloaderCookie('sid_guard=sg; sessionid=ss')
+      const out = fs.readFileSync(cfgPath, 'utf-8')
+      expect(out).toContain('cookies:')
+      expect(out).toContain('  sid_guard: sg')
+      expect(out).toContain('  sessionid: ss')
+      expect(out).not.toContain('__ac_nonce: old1')
+      expect(out).toContain('thread: 5')
+      expect(out).toContain('path: ./Downloaded/')
+    } finally {
+      if (prev === undefined) delete process.env.DOUYIN_DOWNLOADER_PATH
+      else process.env.DOUYIN_DOWNLOADER_PATH = prev
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
+  })
+})
 
 describe('isLoginSessionCookie / isIgnorableLoadError / buildCookieString / 域名工具', () => {
   it('仅真实登录会话 cookie 算登录标记，sid_guard 匿名 cookie 不算', () => {
@@ -532,6 +626,9 @@ describe('connectDouyin', () => {
       return [{ name: 'sid_guard', value: 'sg', domain: '.douyin.com' }]
     })
     mockLoadConfig.mockReturnValue(baseConfig())
+    mockExecuteJS.mockResolvedValue(
+      JSON.stringify({ status: 200, body: { data: { user_info: { nickname: '播客爱好者' } } } }),
+    )
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse(200, PASSPORT_OK_BODY)),
@@ -556,53 +653,43 @@ describe('connectDouyin', () => {
     await vi.advanceTimersByTimeAsync(5000)
     const result = await promise
     expect(result).toEqual({ success: true, nickname: '播客爱好者' })
-    // 两段式保存：先 unverified（含 cookie），再校验升级 connected
+    // 页内昵称：只保存一次 connected（匿名阶段不保存）
+    expect(mockSaveConfig).toHaveBeenCalledTimes(1)
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
-        douyin_login: { status: 'unverified' },
-      }),
-    )
-    expect(mockSaveConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
         douyin_login: expect.objectContaining({ status: 'connected', nickname: '播客爱好者' }),
       }),
     )
   })
 
-  it('登录成功 + 校验 ok → 保存 connected，返回不含 cookie', async () => {
+  it('登录成功：页内取到昵称 → 一次性保存 connected + 昵称，返回不含 cookie', async () => {
     vi.useFakeTimers()
-    mockCookiesGet.mockImplementation(async (filter: unknown) => {
-      const f = filter as { domain?: string } | undefined
-      if (f?.domain === '.douyin.com')
-        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
-      return [
-        { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
-        { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
-      ]
-    })
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+      { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
+    ])
     mockLoadConfig.mockReturnValue(baseConfig())
+    mockExecuteJS.mockResolvedValue(
+      JSON.stringify({ status: 200, body: { data: { user_info: { nickname: '播客爱好者' } } } }),
+    )
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse(200, PASSPORT_OK_BODY)),
     )
 
     const promise = connectDouyin(null)
-    // 3s 轮询 + 1.2s cookie 落定等待 + 校验
+    // 3s 轮询 + 1.2s cookie 落定等待 + 页内取昵称
     await vi.advanceTimersByTimeAsync(5000)
     const result = await promise
 
     expect(result).toEqual({ success: true, nickname: '播客爱好者' })
     expect(result).not.toHaveProperty('cookie')
-    // 两段式保存：先 unverified（含 cookie），再校验通过升级 connected
+    // 页内昵称优先：只保存一次 connected（不再走 unverified 两段式）
+    expect(mockSaveConfig).toHaveBeenCalledTimes(1)
     expect(mockSaveConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         douyin_cookie: 'sid_guard=sg; sessionid=ss',
-        douyin_login: { status: 'unverified' },
-      }),
-    )
-    expect(mockSaveConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
         douyin_login: expect.objectContaining({ status: 'connected', nickname: '播客爱好者' }),
       }),
     )
@@ -615,6 +702,8 @@ describe('connectDouyin', () => {
       { name: 'sessionid', value: 'ss', domain: 'sso.douyin.com' },
     ])
     mockLoadConfig.mockReturnValue(baseConfig())
+    // 页内取昵称失败（未登录形状）→ 走 unverified 兜底
+    mockExecuteJS.mockResolvedValue(JSON.stringify({ status: 200, body: { data: { error_code: 1 } } }))
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse(200, PASSPORT_LOGGED_OUT_BODY)),
@@ -638,16 +727,12 @@ describe('connectDouyin', () => {
 
   it('登录成功但网络不可达 → 保存 cookie 标 unverified，返回 warning', async () => {
     vi.useFakeTimers()
-    mockCookiesGet.mockImplementation(async (filter: unknown) => {
-      const f = filter as { domain?: string } | undefined
-      if (f?.domain === '.douyin.com')
-        return [{ name: 'sid_guard', value: 'sg' }, { name: 'sessionid', value: 'ss' }]
-      return [
-        { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
-        { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
-      ]
-    })
+    mockCookiesGet.mockImplementation(async () => [
+      { name: 'sid_guard', value: 'sg', domain: '.douyin.com' },
+      { name: 'sessionid', value: 'ss', domain: '.douyin.com' },
+    ])
     mockLoadConfig.mockReturnValue(baseConfig())
+    mockExecuteJS.mockResolvedValue(JSON.stringify({ status: 0 }))
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {

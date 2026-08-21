@@ -247,15 +247,50 @@ async function clearDouyinSessionCookies(): Promise<void> {
   } catch {}
 }
 
+// 在页内取账号信息（比主进程裸 fetch 可靠：同源请求带全量 cookie/反爬头，识别真实登录态）
+const PAGE_ACCOUNT_INFO_JS = `(async () => {
+  try {
+    const r = await fetch('/passport/web/account/info/', {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    const j = await r.json();
+    return JSON.stringify({ status: r.status, body: j });
+  } catch (e) {
+    return JSON.stringify({ status: 0, error: String(e) });
+  }
+})()`
+
+const PAGE_FETCH_TIMEOUT_MS = 5000
+
+/** 在登录页上下文内拉取账号信息并提取昵称；失败返回 null（不影响登录流程） */
+async function fetchNicknameInPage(win: BrowserWindow): Promise<string | null> {
+  try {
+    const raw = (await Promise.race([
+      win.webContents.executeJavaScript(PAGE_ACCOUNT_INFO_JS, true),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), PAGE_FETCH_TIMEOUT_MS)),
+    ])) as string | null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { status?: number; body?: unknown }
+    if (parsed.status === 200) return extractNickname(parsed.body) ?? null
+    return null
+  } catch {
+    return null
+  }
+}
+
 /**
  * 弹登录窗并轮询捕获 cookie（迁移自 index.ts 原 douyin:login）。
  * cookie 串只在本函数内拼接，绝不离开主进程。
- * 返回空串表示用户关闭窗口（cancelled）；抛错表示页面加载失败或登录超时。
+ * 返回 { cookieStr, nickname? }：cookieStr 为空串表示用户关闭窗口（cancelled）；
+ * 抛错表示页面加载失败或登录超时。nickname 在登录后从页面上下文拉取（最可靠），可能为 null。
  */
-async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<string> {
+async function openDouyinLoginWindow(
+  parent?: BrowserWindow | null,
+): Promise<{ cookieStr: string; nickname?: string }> {
   // 先清旧会话 cookie，再开窗（保证扫码页是全新的）
   await clearDouyinSessionCookies()
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<{ cookieStr: string; nickname?: string }>((resolve, reject) => {
     let settled = false
 
     const loginWin = new BrowserWindow({
@@ -271,7 +306,7 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
       },
     })
 
-    const finish = (value: string) => {
+    const finish = (value: { cookieStr: string; nickname?: string }) => {
       if (settled) return
       settled = true
       clearInterval(checkInterval)
@@ -338,7 +373,10 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
         await new Promise(r => setTimeout(r, LOGIN_SETTLE_MS))
         if (settled) return
         const cookieStr = buildCookieString(allCookies)
-        if (cookieStr) finish(cookieStr)
+        if (!cookieStr) return
+        // 在页面上下文内拉取账号信息（同源请求最可靠），拿不到昵称也不阻塞登录
+        const nickname = await fetchNicknameInPage(loginWin)
+        finish({ cookieStr, nickname: nickname || undefined })
       } catch {
         // 轮询失败（如窗口已销毁）静默忽略，等待下一次轮询或 closed 事件
       }
@@ -355,7 +393,7 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
         settled = true
         clearInterval(checkInterval)
         clearTimeout(timeoutTimer)
-        resolve('')
+        resolve({ cookieStr: '' })
       }
     })
 
@@ -369,13 +407,17 @@ async function openDouyinLoginWindow(parent?: BrowserWindow | null): Promise<str
 }
 
 /**
- * 连接抖音：弹登录窗 → 捕获 cookie（留在主进程）→ 校验 → 保存。
- * 校验失败不保存；网络不可达仍保存 cookie 但状态标 unverified（下次使用前再验）。
+ * 连接抖音：弹登录窗 → 捕获 cookie（留在主进程）→ 保存 → 返回。
+ * 昵称优先取自登录页上下文（同源请求最可靠）；拿不到时回退主进程校验，
+ * 仍失败则保持 unverified（后台自动重验），绝不让用户看到「已失效」。
  */
 export async function connectDouyin(parent?: BrowserWindow | null): Promise<DouyinConnectResult> {
   let cookieStr = ''
+  let pageNickname: string | undefined
   try {
-    cookieStr = await openDouyinLoginWindow(parent)
+    const res = await openDouyinLoginWindow(parent)
+    cookieStr = res.cookieStr
+    pageNickname = res.nickname
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return { success: false, error: msg }
@@ -383,14 +425,24 @@ export async function connectDouyin(parent?: BrowserWindow | null): Promise<Douy
 
   if (!cookieStr) return { success: false, cancelled: true }
 
-  // 登录标记出现即视为登录成功：先保存（unverified），再尽力即时校验升级为 connected。
-  // 校验失败（含接口形状变化等）绝不再阻塞/报错——由后台 refreshDouyinStatus 自动重验自愈。
-  const current = loadConfig()
+  // 登录标记出现即视为登录成功。
+  if (pageNickname) {
+    saveConfig({
+      ...loadConfig(),
+      douyin_cookie: cookieStr,
+      douyin_login: { status: 'connected', nickname: pageNickname, verifiedAt: Date.now() },
+    })
+    void syncDouyinDownloaderCookie(cookieStr)
+    return { success: true, nickname: pageNickname }
+  }
+
+  // 页面拿不到昵称：先保存 unverified，再尽力即时校验升级为 connected
   saveConfig({
-    ...current,
+    ...loadConfig(),
     douyin_cookie: cookieStr,
     douyin_login: { status: 'unverified' },
   })
+  void syncDouyinDownloaderCookie(cookieStr)
 
   const verify = await verifyDouyinCookie(cookieStr)
 
@@ -424,8 +476,10 @@ export function getDouyinStatus(): DouyinRuntimeState {
 }
 
 /**
- * 刷新抖音登录状态：已存 cookie 时重验，失效标 expired；网络不可达不降级既有状态。
- * 在启动时与处理抖音链接前自动调用。
+ * 刷新抖音登录状态：已存 cookie 时重验。
+ * 设计（v1.51.1）：启动/例行刷新**永不判死**——校验失效只保留既有状态，
+ * 绝不让用户「每次打开都要重新登录」；只有真实下载/使用失败时经 markDouyinExpired 标过期。
+ * 校验通过时顺带把配置串写进下载器 config.yml（自愈）。
  */
 export async function refreshDouyinStatus(): Promise<DouyinRuntimeState> {
   const config = loadConfig()
@@ -445,26 +499,127 @@ export async function refreshDouyinStatus(): Promise<DouyinRuntimeState> {
       verifiedAt: Date.now(),
     }
     saveConfig({ ...loadConfig(), douyin_login: state })
+    void syncDouyinDownloaderCookie(config.douyin_cookie)
     return state
   }
 
-  if (verify.reason === 'unreachable') {
-    // 网络不可达：保留既有状态，避免离线时误标失效
-    const prev = config.douyin_login
-    if (prev && (prev.status === 'connected' || prev.status === 'unverified')) {
-      return { status: prev.status, nickname: prev.nickname, verifiedAt: prev.verifiedAt }
-    }
-    saveConfig({ ...loadConfig(), douyin_login: { status: 'unverified' } })
-    return { status: 'unverified' }
+  // 网络不可达或校验失效：保留既有状态，不降级、不标 expired
+  const prev = config.douyin_login
+  if (prev && (prev.status === 'connected' || prev.status === 'unverified')) {
+    return { status: prev.status, nickname: prev.nickname, verifiedAt: prev.verifiedAt }
   }
+  saveConfig({ ...loadConfig(), douyin_login: { status: 'unverified' } })
+  return { status: 'unverified' }
+}
 
-  // 校验失效：标 expired，引导重新登录（cookie 内容保留，等待重连覆盖）
+/**
+ * 真实使用失败时标记登录过期（仅由抖音下载/校验链路在确认失败后调用），
+ * 引导用户重新登录；cookie 内容保留，等待重连覆盖。
+ */
+export function markDouyinExpired(): DouyinRuntimeState {
+  const config = loadConfig()
   const state: DouyinLoginState = {
     status: 'expired',
     nickname: config.douyin_login?.nickname,
   }
   saveConfig({ ...loadConfig(), douyin_login: state })
   return state
+}
+
+/**
+ * 从内嵌会话读取最新抖音 cookie（仅当含真实登录标记时返回）。
+ * 会话里的 cookie 比配置里的冻结串新鲜（msToken/ttwid 等随上下文轮换）。
+ */
+export async function getSessionDouyinCookie(): Promise<string | null> {
+  try {
+    const all = await session.defaultSession.cookies.get({})
+    const douyinCookies = all.filter(c => isDouyinCookieDomain(c.domain))
+    if (!douyinCookies.some(c => isLoginSessionCookie(c.name))) return null
+    return buildCookieString(all)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 获取「当下可用」的抖音 cookie：会话优先（新鲜），回退配置冻结串（需校验通过）。
+ * 供下载/校验链路使用；拿到会话串时顺带自愈写回配置与下载器 config.yml。
+ */
+export async function getFreshDouyinCookie(): Promise<string | null> {
+  const sessionCookie = await getSessionDouyinCookie()
+  if (sessionCookie) {
+    const current = loadConfig()
+    if (current.douyin_cookie !== sessionCookie) {
+      saveConfig({ ...current, douyin_cookie: sessionCookie })
+    }
+    void syncDouyinDownloaderCookie(sessionCookie)
+    return sessionCookie
+  }
+  const configCookie = loadConfig().douyin_cookie
+  if (!configCookie) return null
+  const verify = await verifyDouyinCookie(configCookie)
+  return verify.ok ? configCookie : null
+}
+
+/** douyin-downloader 的 config.yml 路径（与本机安装一致） */
+export function getDouyinDownloaderConfigPath(): string {
+  return require('path').join(
+    process.env.DOUYIN_DOWNLOADER_PATH || 'G:\\douyin-downloader-main',
+    'config.yml',
+  )
+}
+
+/**
+ * 把抖音 cookie 串同步进 douyin-downloader 的 config.yml（cookies: 键值块）。
+ * 最小化改写：只替换 cookies: 下的缩进行，其余配置原样保留；失败静默（不阻塞主流程）。
+ */
+export function syncDouyinDownloaderCookie(cookieStr: string): void {
+  try {
+    if (!cookieStr) return
+    const fs = require('fs') as typeof import('fs')
+    const filePath = getDouyinDownloaderConfigPath()
+    if (!fs.existsSync(filePath)) return
+    const entries = cookieStr
+      .split(';')
+      .map(p => p.trim())
+      .filter(Boolean)
+      .map(p => {
+        const eq = p.indexOf('=')
+        if (eq <= 0) return null
+        const k = p.slice(0, eq).trim()
+        const v = p.slice(eq + 1).trim()
+        return k && v ? `  ${k}: ${v}` : null
+      })
+      .filter((x): x is string => x !== null)
+    if (entries.length === 0) return
+    const lines = fs.readFileSync(filePath, 'utf-8').split(/\r?\n/)
+    const out: string[] = []
+    let inCookies = false
+    let cookiesWritten = false
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (/^cookies\s*:/.test(trimmed)) {
+        inCookies = true
+        cookiesWritten = true
+        out.push('cookies:', ...entries)
+        continue
+      }
+      if (inCookies) {
+        // 遇到下一个顶层键（无缩进）即结束 cookies 块
+        if (/^\S/.test(line) && line.length > 0) {
+          inCookies = false
+          out.push(line)
+        }
+        // 其它缩进行（cookies 块内部）跳过，由新块替换
+        continue
+      }
+      out.push(line)
+    }
+    if (!cookiesWritten) out.push('cookies:', ...entries)
+    fs.writeFileSync(filePath, out.join('\n') + '\n', 'utf-8')
+  } catch {
+    // 同步失败不影响登录/下载主流程（下载器自身也可能不用 config.yml）
+  }
 }
 
 /** 断开抖音：清空 cookie 与登录状态后保存 */
