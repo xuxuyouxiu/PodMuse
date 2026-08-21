@@ -195,6 +195,7 @@ export function extractAudioWithYtDlp(
 
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let outputPath = ''
+    let stderrTail = ''
 
     proc.stdout?.on('data', (data: Buffer) => {
       const line = data.toString().trim()
@@ -206,7 +207,9 @@ export function extractAudioWithYtDlp(
     })
 
     proc.stderr?.on('data', (data: Buffer) => {
-      onLog?.(data.toString().trim())
+      const text = data.toString()
+      onLog?.(text.trim())
+      stderrTail = (stderrTail + text).slice(-1500)
     })
 
     if (signal) {
@@ -218,7 +221,12 @@ export function extractAudioWithYtDlp(
 
     proc.on('close', code => {
       if (code !== 0) {
-        reject(new Error(`yt-dlp 退出码 ${code}`))
+        const lines = stderrTail
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .filter(Boolean)
+        const reason = lines.slice(-4).join('；')
+        reject(new Error(reason ? `yt-dlp 退出码 ${code}：${reason}` : `yt-dlp 退出码 ${code}`))
         return
       }
       // 如果未从日志捕获路径，查找 .mp3 文件
@@ -249,13 +257,22 @@ export function getYtDlpMetadata(
     const args = ['--dump-json', '--no-download', '--no-playlist', videoUrl]
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
+    let stderrTail = ''
 
     proc.stdout?.on('data', (data: Buffer) => {
       stdout += data.toString()
     })
+    proc.stderr?.on('data', (data: Buffer) => {
+      stderrTail = (stderrTail + data.toString()).slice(-1500)
+    })
     proc.on('close', code => {
       if (code !== 0) {
-        reject(new Error(`yt-dlp metadata 退出码 ${code}`))
+        const lines = stderrTail
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .filter(Boolean)
+        const reason = lines.slice(-4).join('；')
+        reject(new Error(reason ? `yt-dlp metadata 退出码 ${code}：${reason}` : `yt-dlp metadata 退出码 ${code}`))
         return
       }
       try {

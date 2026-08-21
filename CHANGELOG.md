@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.9] - 2026-08-21
+
+### 修复
+- **yt-dlp 失败提示不再只报「退出码 1」**：提取音频/获取元数据失败时，错误信息附带 yt-dlp 最后输出的原因（如 ffmpeg 未安装、YouTube 反爬提示等），遇到问题可直接定位，不用再猜。
+
 ## [1.51.8] - 2026-08-21
 
 ### 修复
