@@ -18,3 +18,4 @@ export {
   parseSubtitleToText,
 } from './yt-dlp'
 export type { YtDlpStatus } from './yt-dlp'
+export { findFfmpegDir, autoDownloadFfmpeg, ensureFfmpeg } from './ffmpeg'

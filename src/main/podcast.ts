@@ -25,6 +25,7 @@ import {
   parseSubtitleToText,
   detectYtDlp,
   autoDownloadYtDlp,
+  ensureFfmpeg,
 } from './platforms'
 
 function errMsg(e: unknown): string {
@@ -352,6 +353,16 @@ export async function processPodcast(
             detail: `使用 yt-dlp 提取 ${platformInfo.name} 音频...`,
           })
           try {
+            const ffmpegDir = await ensureFfmpeg(msg => {
+              step({
+                step: 1,
+                title: '解析页面',
+                subtitle: '准备 ffmpeg',
+                status: 'running',
+                detail: msg,
+              })
+              log(`  [ffmpeg] ${msg}`)
+            }, signal)
             const extracted = await extractAudioWithYtDlp(
               ytDlp.path!,
               result.audioUrl!,
@@ -359,6 +370,8 @@ export async function processPodcast(
               audioName,
               msg => log(`  [yt-dlp] ${msg}`),
               signal,
+              undefined,
+              ffmpegDir,
             )
             // yt-dlp 输出可能不是 .mp3 命名，需重命名
             if (extracted !== outputPath && fs.existsSync(extracted)) {

@@ -173,6 +173,7 @@ export function extractAudioWithYtDlp(
   onLog?: (msg: string) => void,
   signal?: AbortSignal,
   cookieFile?: string,
+  ffmpegLocation?: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const outputTemplate = outputDir && outputName
@@ -188,6 +189,7 @@ export function extractAudioWithYtDlp(
       outputTemplate,
       '--no-playlist',
       ...(cookieFile ? ['--cookies', cookieFile] : []),
+      ...(ffmpegLocation ? ['--ffmpeg-location', ffmpegLocation] : []),
       videoUrl,
     ]
 

@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.7] - 2026-08-21
+
+### 修复
+- **yt-dlp 转 MP3 失败（退出码 1）根治**：PodMuse 调用 `--extract-audio --audio-format mp3` 时依赖命令行 ffmpeg/ffprobe，但此前只打包了 Electron 运行库 `ffmpeg.dll`，并非 yt-dlp 所需的 CLI 工具。新增 `src/main/platforms/ffmpeg.ts`：自动检测已安装/已打包的 ffmpeg+ffprobe，缺失时自动下载到用户数据目录并在 yt-dlp 调用中传入 `--ffmpeg-location`，全程无需用户手动安装。
+
 ## [1.51.6] - 2026-08-20
 
 ### 新增
