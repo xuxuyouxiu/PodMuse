@@ -116,6 +116,10 @@ export default function TabApi({
     chatName?: string
     detail?: string
   } | null>(null)
+  // 自动拉取机器人所在群列表（Chat ID 免复制，下拉即选）
+  const [feishuChats, setFeishuChats] = useState<{ chatId: string; name: string }[]>([])
+  const [feishuChatsLoading, setFeishuChatsLoading] = useState(false)
+  const [feishuChatsError, setFeishuChatsError] = useState<string | null>(null)
   const [guideKey, setGuideKey] = useState<string | null>(null)
   // App ID / App Secret 为必填凭据，默认展开不隐藏（Chat ID 可留空）
   const [feishuAdvancedOpen, setFeishuAdvancedOpen] = useState(true)
@@ -249,6 +253,29 @@ export default function TabApi({
     patterns: [FEISHU_CHAT_ID_PATTERN],
     onFill: value => update('feishu_chat_id', value),
   })
+
+  // 自动拉取机器人所在群列表（用已填的 App ID/Secret；Chat ID 免复制，下拉即选）
+  async function handleLoadFeishuChats() {
+    if (!form.feishu_app_id.trim() || !form.feishu_app_secret.trim()) return
+    setFeishuChatsLoading(true)
+    setFeishuChatsError(null)
+    try {
+      const res = await window.electronAPI.feishuListChats(
+        form.feishu_app_id.trim(),
+        form.feishu_app_secret.trim(),
+      )
+      if (res.success) {
+        setFeishuChats(res.chats || [])
+        if (res.warning) setFeishuChatsError(res.warning)
+      } else {
+        setFeishuChatsError(res.error || t('获取群列表失败'))
+      }
+    } catch {
+      setFeishuChatsError(t('获取群列表失败'))
+    } finally {
+      setFeishuChatsLoading(false)
+    }
+  }
 
   // 「粘贴」兜底：读剪贴板填入指定字段（可识别值优先提取，否则原样填入）
   async function pasteFeishuField(field: 'appId' | 'appSecret' | 'chatId') {
@@ -531,11 +558,47 @@ export default function TabApi({
               onPaste={() => void pasteFeishuField('chatId')}
               pasteTitle="在飞书复制对应值后点粘贴"
             />
+            <div className="settings-dir-row" style={{ gap: 8, marginTop: 6 }}>
+              <button
+                className="settings-browse-button"
+                onClick={handleLoadFeishuChats}
+                disabled={feishuChatsLoading || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()}
+                style={{
+                  whiteSpace: 'nowrap',
+                  opacity:
+                    feishuChatsLoading || !form.feishu_app_id.trim() || !form.feishu_app_secret.trim()
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {feishuChatsLoading ? t('加载群聊中…') : t('自动获取群列表')}
+              </button>
+              {feishuChats.length > 0 && (
+                <select
+                  className="settings-select"
+                  value={form.feishu_chat_id}
+                  onChange={e => update('feishu_chat_id', e.target.value)}
+                  style={{ maxWidth: 320 }}
+                >
+                  <option value="">{t('选择群聊…')}</option>
+                  {feishuChats.map(c => (
+                    <option key={c.chatId} value={c.chatId}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {feishuChatsError && (
+              <div className="settings-test-result--error" style={{ marginTop: 6, fontSize: 12 }}>
+                {feishuChatsError}
+              </div>
+            )}
           </div>
           <div className="settings-hint" style={{ marginTop: 8 }}>
             {t('在飞书复制对应值后点粘贴')}；
             {t('复制 App ID（cli_）或 Chat ID（oc_）后会自动识别填入')}
-            {t('；Chat ID 可留空——用上方「连接飞书」扫码授权后会自动列出群聊选择，无需手动复制')}
+            {t('；Chat ID 可留空——点「自动获取群列表」直接下拉选择，或走上方「连接飞书」扫码授权')}
           </div>
           <div className="settings-test-row">
             <button

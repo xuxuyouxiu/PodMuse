@@ -107,6 +107,20 @@ export class FeishuClient {
     return true
   }
 
+  /** 列出机器人所在群（im/v1/chats，需 im:chat:readonly 权限；机器人须已加入目标群） */
+  async listChats(): Promise<{ chatId: string; name: string }[]> {
+    const url = 'https://open.feishu.cn/open-apis/im/v1/chats?page_size=100&sort_type=ByCreateTimeDesc'
+    const result = await feishuApi('GET', url, this.token)
+    if (result.code !== 0) {
+      this.logFunc(`listChats 失败: code=${result.code} msg=${result.msg || '无'}（请确认应用已开通 im:chat:readonly 权限且机器人已发布）`)
+      return []
+    }
+    const items = (result.data?.items || []) as unknown as Record<string, unknown>[]
+    return items
+      .filter(c => typeof c.chat_id === 'string' && c.chat_id)
+      .map(c => ({ chatId: c.chat_id as string, name: (c.name as string) || '(未命名群)' }))
+  }
+
   /** 验证 Chat ID 是否有效，返回群名称或 null */
   async getChatInfo(chatId: string): Promise<string | null> {
     const url = `https://open.feishu.cn/open-apis/im/v1/chats/${chatId}`

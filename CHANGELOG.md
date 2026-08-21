@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.15] - 2026-08-21
+
+### 新增
+- **飞书「自动获取群列表」：Chat ID 免复制**：三字段直连模式填好 App ID / App Secret 后，点「自动获取群列表」即可列出机器人所在群聊（im/v1/chats），下拉直接选择；换群随时下拉切换，无需再进群设置复制 oc_ 开头的 Chat ID。
+
+### 说明
+- 使用前提（一次性，飞书平台约束）：应用已开通 `im:chat:readonly` 权限并发布，机器人被拉进目标群；App ID / App Secret 仍需在开发者后台创建并复制（飞书不允许 API 读取密钥）。
 ## [1.51.14] - 2026-08-21
 
 ### 修复

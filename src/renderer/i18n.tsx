@@ -853,6 +853,10 @@ const enDict: Record<string, string> = {
     'First fill in App ID and App Secret (Chat ID optional) in the "Advanced Mode (Custom App)" section below and save; this button then becomes "Connect Feishu" — after QR authorization the chat list is loaded automatically, no manual Chat ID needed.',
   '；Chat ID 可留空——用上方「连接飞书」扫码授权后会自动列出群聊选择，无需手动复制':
     '; Chat ID is optional — using "Connect Feishu" above loads the chat list automatically after authorization, no manual copying needed.',
+  '自动获取群列表': 'Fetch Group List',
+  '获取群列表失败': 'Failed to load group list',
+  '；Chat ID 可留空——点「自动获取群列表」直接下拉选择，或走上方「连接飞书」扫码授权':
+    '; Chat ID is optional — click "Fetch Group List" to pick from a dropdown, or use "Connect Feishu" above for QR-code authorization.',
   '先在下方「高级模式」粘贴 Notion Token 并保存，或在「OAuth 连接服务配置」填写 Public integration 的 Client ID/Secret 后保存，本按钮即变为「连接 Notion」。':
     'First paste a Notion Token in the "Advanced Mode" below and save, or fill in the Public integration Client ID/Secret under "OAuth Connection Setup" and save; this button then becomes "Connect Notion".',
   '回调地址': 'Callback URL',

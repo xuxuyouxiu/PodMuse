@@ -335,6 +335,10 @@ declare global {
       feishuOAuthStatus: () => Promise<FeishuOAuthStatusInfo>
       feishuOAuthStart: () => Promise<OAuthActionResult>
       feishuOAuthChats: () => Promise<OAuthActionResult & { chats?: FeishuChatInfo[] }>
+      feishuListChats: (
+        appId: string,
+        appSecret: string,
+      ) => Promise<{ success: boolean; chats?: { chatId: string; name: string }[]; warning?: string; error?: string }>
       feishuOAuthSelectChat: (chatId: string, chatName?: string) => Promise<OAuthActionResult>
       feishuOAuthDisconnect: () => Promise<FeishuOAuthStatusInfo>
       onFeishuOAuthStatus: (callback: (status: FeishuOAuthStatusInfo) => void) => () => void

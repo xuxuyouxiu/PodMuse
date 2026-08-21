@@ -492,6 +492,30 @@ function setupIPC() {
     return monitor?.getStatus() ?? { connected: false, monitoring: false, chatId: '' }
   })
 
+  // 自动拉取机器人所在群列表（三字段直连模式：Chat ID 无需手动复制，下拉即选）
+  ipcMain.handle(
+    'feishu:listChats',
+    async (_e, params: { appId: string; appSecret: string }) => {
+      try {
+        const { FeishuClient } = await import('./feishu-client')
+        const client = new FeishuClient(params.appId, params.appSecret, () => {})
+        const ok = await client.ensureToken()
+        if (!ok) return { success: false, error: '飞书鉴权失败，请检查 App ID 和 App Secret' }
+        const chats = await client.listChats()
+        if (chats.length === 0) {
+          return {
+            success: true,
+            chats: [],
+            warning: '未找到群聊：请确认机器人已发布、已开通 im:chat:readonly 权限，并把机器人拉进目标群后重试',
+          }
+        }
+        return { success: true, chats }
+      } catch (e) {
+        return { success: false, error: (e as Error).message }
+      }
+    },
+  )
+
   ipcMain.handle(
     'feishu:testConnection',
     async (_e, params: { appId: string; appSecret: string; chatId: string }) => {

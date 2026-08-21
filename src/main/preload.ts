@@ -38,6 +38,8 @@ try {
         ipcRenderer.removeListener('notion:oauthStatus', handler)
       }
     },
+    feishuListChats: (appId: string, appSecret: string) =>
+      ipcRenderer.invoke('feishu:listChats', { appId, appSecret }),
     feishuOAuthStatus: () => ipcRenderer.invoke('feishu:oauthStatus'),
     feishuOAuthStart: () => ipcRenderer.invoke('feishu:oauthStart'),
     feishuOAuthChats: () => ipcRenderer.invoke('feishu:oauthChats'),
