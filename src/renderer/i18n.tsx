@@ -670,7 +670,7 @@ const enDict: Record<string, string> = {
   '在飞书复制对应值后点粘贴': 'Copy the value in Feishu, then click Paste',
   '在 Notion 复制对应值后点粘贴': 'Copy the value in Notion, then click Paste',
   '复制 App ID（cli_）或 Chat ID（oc_）后会自动识别填入': 'Copied App ID (cli_) or Chat ID (oc_) values are auto-filled',
-  '复制 token（secret_）或 database ID 后会自动识别填入': 'Copied token (secret_) or database ID values are auto-filled',
+  '复制 token（secret_/ntn_ 开头）或 database ID 后会自动识别填入': 'Copied token (secret_/ntn_ prefixed) or database ID values are auto-filled',
   '通知设置': 'Notification Settings',
   '启用系统通知（任务完成、错误等）': 'Enable system notifications (task completed, errors, etc.)',
   '抖音配置': 'Douyin Configuration',

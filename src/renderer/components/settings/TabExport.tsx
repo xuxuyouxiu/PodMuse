@@ -168,7 +168,7 @@ export default function TabExport({ form, update }: Props) {
               value={notion.token}
               onChange={v => updateNotionField('token', v)}
               secret
-              placeholder="secret_xxxxxxxxxxxxxxxxxxx"
+              placeholder="secret_xxx 或 ntn_xxx（新版连接令牌）"
               onPaste={() => void pasteNotionField('token')}
               pasteTitle="在 Notion 复制对应值后点粘贴"
             />

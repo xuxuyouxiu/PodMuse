@@ -16,9 +16,15 @@ describe('extractFieldValue', () => {
     )
   })
 
-  it('Notion token：secret_ 前缀', () => {
+  it('Notion token：旧版 secret_ 与新版 ntn_ 前缀都识别', () => {
     expect(extractFieldValue('secret_AbCdEfGh1234567890abcdefgh', 'notion-token')).toBe(
       'secret_AbCdEfGh1234567890abcdefgh',
+    )
+    expect(extractFieldValue('ntn_I4208413973bbAQSFxTqxP15Ct8xsp2KAB0SBzkzZucdf2', 'notion-token')).toBe(
+      'ntn_I4208413973bbAQSFxTqxP15Ct8xsp2KAB0SBzkzZucdf2',
+    )
+    expect(extractFieldValue('连接令牌: ntn_AbCdEfGh1234567890', 'notion-token')).toBe(
+      'ntn_AbCdEfGh1234567890',
     )
   })
 
@@ -48,6 +54,7 @@ describe('extractFieldValue', () => {
     expect(extractFieldValue('xcli_abcdefgh1234', 'feishu-app-id')).toBeNull()
     expect(extractFieldValue('myoc_abcdefgh1234', 'feishu-chat-id')).toBeNull()
     expect(extractFieldValue('nosecret_abcdefgh1234', 'notion-token')).toBeNull()
+    expect(extractFieldValue('xntn_abcdefgh12345678', 'notion-token')).toBeNull()
   })
 
   it('长度不足不命中', () => {

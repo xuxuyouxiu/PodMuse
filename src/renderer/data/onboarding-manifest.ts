@@ -115,28 +115,30 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
   },
   {
     key: 'notion',
-    title: '连接 Notion（Integration Token）',
-    titleEn: 'Connect Notion (Integration Token)',
+    title: '连接 Notion（Connection 令牌）',
+    titleEn: 'Connect Notion (Connection Token)',
     actionUrl: 'https://www.notion.so/my-integrations',
     steps: [
       {
         image: 'public/onboarding/notion/1.png',
-        caption: '打开 Notion「我的集成」页面并登录，点击「新建集成」，填写名称并选择所属工作区。',
+        caption:
+          '打开 Notion 并进入「设置 → 连接」（Connections，原「我的集成/我的连接」），点击「新建连接」；若已是新版界面，请直接点「连接」入口创建。',
         captionEn:
-          'Open the Notion "My integrations" page and sign in. Click "New integration", give it a name, and choose a workspace.',
+          'Open Notion and go to "Settings → Connections" (formerly "My integrations"), then click "New connection"; on the new UI just click the "Connections" entry to create one.',
       },
       {
         image: 'public/onboarding/notion/2.png',
-        caption: '创建完成后，在「内部集成密钥」一栏点击「显示」并复制以 secret_ 开头的 token。',
+        caption:
+          '创建完成后复制连接令牌：新版以 ntn_ 开头（旧版为 secret_）。令牌只显示一次，请立即复制并粘贴到 PodMuse 的「Notion Token」。',
         captionEn:
-          'After creation, click "Show" next to the internal integration secret and copy the token starting with secret_.',
+          'After creation, copy the connection token: it starts with ntn_ on the new UI (secret_ on the legacy one). The token is shown only once — copy it right away and paste it into the Notion Token field in PodMuse.',
       },
       {
         image: 'public/onboarding/notion/3.png',
         caption:
-          '回到 Notion，打开目标数据库页面，右上角「… → 连接」选择刚才创建的集成；复制页面 URL 中的 32 位 database id。',
+          '回到 Notion，打开目标数据库页面，右上角「… → 连接」→「连接到」选择刚创建的连接；然后从页面 URL 中复制 32 位 database id。注意：连接必须被授权到该页面，列表里才看得到你的数据库。',
         captionEn:
-          'Back in Notion, open the target database page, click "… → Connections" in the top-right corner and select the integration you just created; copy the 32-character database id from the page URL.',
+          'Back in Notion, open the target database page, click "… → Connections" → "Connect to" and choose the connection you just created; then copy the 32-character database id from the page URL. Note: the connection must be granted access to the page before your database appears in the list.',
       },
     ],
   },

@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.3] - 2026-08-20
+
+### 修复
+- **Notion 平台改版适配**：Notion 已用「连接（Connections）」取代旧「我的集成」，新令牌以 `ntn_` 开头（旧版 `secret_`）——图文指南（manifest 中英文）、设置页 Token 输入框提示、剪贴板自动识别全部支持新格式（`ntn_` / `secret_` 双前缀），截图素材清单同步更新
+- 指南第 3 步明确：必须把连接授权到目标数据库页面（… → 连接 → 连接到），数据库才会出现在列表
+
 ## [1.51.2] - 2026-08-20
 
 ### 修复

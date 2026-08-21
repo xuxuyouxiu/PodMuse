@@ -5,7 +5,7 @@
  * 特征化规则：
  * - 飞书 App ID：cli_ 前缀
  * - 飞书群聊 Chat ID：oc_ 前缀
- * - Notion token：secret_ 前缀
+ * - Notion token：旧版 secret_ 前缀 + 新版连接令牌 ntn_ 前缀（Notion 已用 Connections 取代 Integration）
  * - Notion database ID：32 位 hex（可混在 database URL 中，如 notion.so/ws/<id>?...）
  * - 飞书 App Secret：无特征化 → 只能走字段旁「粘贴」按钮兜底
  * 边界：值前后必须是非字母数字（允许空白/换行/标签文字），防止从更长字符串截取片段。
@@ -16,7 +16,8 @@ export type FieldKind = 'feishu-app-id' | 'feishu-chat-id' | 'notion-token' | 'n
 
 const RE_APP_ID = /(?:^|[^a-z0-9])(cli_[a-z0-9]{8,})(?=$|[^a-z0-9])/i
 const RE_CHAT_ID = /(?:^|[^a-z0-9])(oc_[a-z0-9]{8,})(?=$|[^a-z0-9])/i
-const RE_NOTION_TOKEN = /(?:^|[^a-z0-9])(secret_[a-z0-9]{8,})(?=$|[^a-z0-9])/i
+// 旧版 Integration Secret（secret_ 开头）与新版 Connection 令牌（ntn_ 开头）都识别
+const RE_NOTION_TOKEN = /(?:^|[^a-z0-9])((?:secret_|ntn_)[a-z0-9]{8,})(?=$|[^a-z0-9])/i
 const RE_NOTION_DB_ID = /(?:^|[^a-f0-9])([a-f0-9]{32})(?=$|[^a-f0-9])/i
 
 /** 提取第一个捕获组；无命中返回 null（显式重置 lastIndex 防 /g 状态残留） */
