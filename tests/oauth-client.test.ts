@@ -75,7 +75,7 @@ vi.mock('../src/main/backlinks', () => ({
 }))
 
 import { loadConfig, loadSafeConfig, clearConfigCache } from '../src/main/config'
-import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
+import { restoreProtectedFields, syncFeishuOAuthCredentials } from '../src/main/ipc/config-ipc'
 import {
   startCallbackServer,
   FEISHU_CALLBACK_PATH,
@@ -1175,5 +1175,54 @@ describe('restoreProtectedFields（export.notion.token 防护）', () => {
       withToken,
     )
     expect(exportNotionToken(out)).toBe('manual-real')
+  })
+})
+
+// ============================================================
+// syncFeishuOAuthCredentials（高级模式凭据 → OAuth 连接服务打通）
+// ============================================================
+
+describe('syncFeishuOAuthCredentials（顶层 App ID/Secret 同步进 feishu_oauth）', () => {
+  const currentWithOauth = {
+    feishu_app_id: 'cli_old',
+    feishu_app_secret: '',
+    feishu_oauth: {
+      appId: 'cli_old',
+      appSecret: 'secret_oauth',
+      userAccessToken: 'u-token',
+      chatId: 'oc_chat',
+    },
+  } as unknown as PodcastConfig
+
+  it('填写 App ID/App Secret → 同步进 feishu_oauth（保留 token/chatId 等既有字段）', () => {
+    const merged = { feishu_app_id: 'cli_new', feishu_app_secret: 'secret_new' }
+    const out = syncFeishuOAuthCredentials(merged, currentWithOauth)
+    const o = out.feishu_oauth as Record<string, unknown>
+    expect(o.appId).toBe('cli_new')
+    expect(o.appSecret).toBe('secret_new')
+    expect(o.userAccessToken).toBe('u-token')
+    expect(o.chatId).toBe('oc_chat')
+  })
+
+  it('只填 App ID → 仅同步 appId，appSecret 沿用主进程 OAuth 值', () => {
+    const merged = { feishu_app_id: 'cli_new' }
+    const out = syncFeishuOAuthCredentials(merged, currentWithOauth)
+    const o = out.feishu_oauth as Record<string, unknown>
+    expect(o.appId).toBe('cli_new')
+    expect(o.appSecret).toBe('secret_oauth')
+  })
+
+  it('两个字段都为空 → 不动 feishu_oauth', () => {
+    const merged = { feishu_app_id: '', feishu_app_secret: '   ' }
+    const out = syncFeishuOAuthCredentials(merged, currentWithOauth)
+    expect('feishu_oauth' in out).toBe(false)
+  })
+
+  it('主进程无 feishu_oauth → 用顶层字段新建', () => {
+    const merged = { feishu_app_id: 'cli_new', feishu_app_secret: 'secret_new' }
+    const out = syncFeishuOAuthCredentials(merged, {} as PodcastConfig)
+    const o = out.feishu_oauth as Record<string, unknown>
+    expect(o.appId).toBe('cli_new')
+    expect(o.appSecret).toBe('secret_new')
   })
 })

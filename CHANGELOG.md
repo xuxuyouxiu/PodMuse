@@ -5,6 +5,10 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.12] - 2026-08-21
+
+### 修复
+- **飞书「连接服务准备中」不再卡死**：此前 OAuth 连接服务的凭据（feishu_oauth.appId/appSecret）没有写入入口，设置页「高级模式（自建应用）」填写的 App ID / App Secret 不会同步过去，按钮永远置灰。现在保存配置时自动同步：填一次凭据保存后，按钮立即变为「连接飞书」，可走浏览器扫码授权（免手动复制 Chat ID）；已有 OAuth 连接（token/群聊）不受影响。
 ## [1.51.11] - 2026-08-21
 
 ### 新增

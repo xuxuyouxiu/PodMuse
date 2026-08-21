@@ -178,6 +178,34 @@ export function restoreProtectedFields(
   return out
 }
 
+/**
+ * 打通「高级模式（自建应用）」与 OAuth 连接服务：
+ * 用户在设置页填写的 feishu_app_id / feishu_app_secret 同步进 feishu_oauth.appId / appSecret，
+ * 否则 OAuth 卡片永远显示「连接服务准备中」（feishu_oauth 是受保护字段，renderer 无法直接写入）。
+ * 非空才同步：不覆盖已有 OAuth 凭据；清空旧字段时保留 OAuth 已配置值。
+ */
+export function syncFeishuOAuthCredentials(
+  merged: Record<string, unknown>,
+  currentConfig: PodcastConfig,
+): Record<string, unknown> {
+  const appId = typeof merged.feishu_app_id === 'string' ? (merged.feishu_app_id as string).trim() : ''
+  const appSecret =
+    typeof merged.feishu_app_secret === 'string' ? (merged.feishu_app_secret as string).trim() : ''
+  if (!appId && !appSecret) return merged
+
+  const currentOauth = (
+    (currentConfig as unknown as Record<string, unknown>).feishu_oauth as
+      | Record<string, unknown>
+      | undefined
+  ) ?? { appId: '', appSecret: '' }
+  merged.feishu_oauth = {
+    ...currentOauth,
+    appId: appId || (typeof currentOauth.appId === 'string' ? currentOauth.appId : ''),
+    appSecret: appSecret || (typeof currentOauth.appSecret === 'string' ? currentOauth.appSecret : ''),
+  }
+  return merged
+}
+
 export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
   ipcMain.handle('app:getVersion', () => {
     return app.getVersion()
@@ -229,6 +257,8 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
           }
         }
       }
+      // 打通高级模式 → OAuth：顶层 App ID/Secret 同步进 feishu_oauth（见 syncFeishuOAuthCredentials）
+      syncFeishuOAuthCredentials(merged, currentConfig)
       // schema 验证
       const validationError = validateConfigInput(merged as Record<string, unknown>)
       if (validationError) {
