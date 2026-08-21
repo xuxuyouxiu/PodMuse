@@ -16,5 +16,6 @@ public/onboarding/
 - 1080 宽 PNG、红框/箭头标注、单张 < 200KB（打包体积友好）
 - 平台页面改版时只换图，代码零改动（manifest 路径见 src/renderer/data/onboarding-manifest.ts）
 
-注意：本批次尚未提供真实截图 —— GuideCarousel 在图片缺失或加载失败时
-会自动降级为占位卡（大号步骤序号 + 步骤文案），离线仍可阅读。
+现状（2026-08-21）：ai-key / feishu / douyin / notion 第 1 步已提供真实截图；
+whisper、dirs 与 notion 第 2、3 步为纯文字说明（无截图，GuideCarousel 显示占位卡）。
+敏感信息（API Key、分享链接 token 等）已打码。

@@ -127,14 +127,14 @@ export const GUIDE_MANIFESTS: readonly GuideManifest[] = [
           'Open Notion and go to "Settings → Connections" (formerly "My integrations"), then click "New connection"; on the new UI just click the "Connections" entry to create one.',
       },
       {
-        image: 'public/onboarding/notion/2.png',
+        // 本步暂无截图：令牌页按文字说明操作即可（令牌只显示一次，务必立即复制）
         caption:
           '创建完成后复制连接令牌：新版以 ntn_ 开头（旧版为 secret_）。令牌只显示一次，请立即复制并粘贴到 PodMuse 的「Notion Token」。',
         captionEn:
           'After creation, copy the connection token: it starts with ntn_ on the new UI (secret_ on the legacy one). The token is shown only once — copy it right away and paste it into the Notion Token field in PodMuse.',
       },
       {
-        image: 'public/onboarding/notion/3.png',
+        // 本步暂无截图：授权与 database id 按文字说明操作即可（不授权则数据库不会出现在列表）
         caption:
           '关键：数据库页在工作区左侧边栏（表格/看板页，如 Weekly To-do List；没有就输入 /table 新建）。打开它 →「…→连接→连接到」选刚建的连接 → 复制 URL 的 32 位 id。连接须授权到该页面，数据库才会出现。',
         captionEn:
