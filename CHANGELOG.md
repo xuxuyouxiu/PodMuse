@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.6] - 2026-08-20
+
+### 新增
+- Notion 设置页高级模式新增「**刷新数据库列表**」下拉：一键列出当前 Token 可访问的数据库并选择填入（免手动找 database id）；401/403、网络错误均有可读提示
+
 ## [1.51.5] - 2026-08-20
 
 ### 修复

@@ -21,6 +21,8 @@ try {
 
     // Notion / 飞书 OAuth 连接服务（主进程闭环：token 不出主进程，renderer 只见状态与目标名）
     notionOAuthStatus: () => ipcRenderer.invoke('notion:oauthStatus'),
+    // 手动 Token 模式：列出当前 Token 可访问的数据库（设置页下拉选择）
+    notionListManualDatabases: () => ipcRenderer.invoke('notion:listManualDatabases'),
     // Notion 手动高级模式配置状态（token 不回显，只读是否已配置）
     getNotionExportStatus: () => ipcRenderer.invoke('notion:exportStatus'),
     notionOAuthStart: () => ipcRenderer.invoke('notion:oauthStart'),

@@ -34,6 +34,10 @@ export default function TabExport({ form, update }: Props) {
   const [notionAdvancedOpen, setNotionAdvancedOpen] = useState(false)
   // Token 明文不回显（主进程加密存储），配置状态经 notion:exportStatus IPC 读取
   const [notionTokenConfigured, setNotionTokenConfigured] = useState(false)
+  // 手动模式：列出当前 Token 可访问的数据库（下拉选择，免手动找 id）
+  const [dbLoading, setDbLoading] = useState(false)
+  const [dbList, setDbList] = useState<{ id: string; title: string }[]>([])
+  const [dbError, setDbError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -64,6 +68,24 @@ export default function TabExport({ form, update }: Props) {
     if (dir) {
       updateLogseqDir(dir)
       // 重置 Notion 测试结果（不相关但保持状态一致）
+    }
+  }
+
+  async function handleListDatabases() {
+    setDbLoading(true)
+    setDbError(null)
+    try {
+      const res = await window.electronAPI.notionListManualDatabases()
+      if (res.success) {
+        setDbList(res.databases || [])
+        if ((res.databases || []).length === 0) setDbError(t('当前 Token 可访问的数据库列表为空（请先在 Notion 中创建数据库并授权连接）'))
+      } else {
+        setDbError(res.error || t('获取数据库列表失败'))
+      }
+    } catch {
+      setDbError(t('获取数据库列表失败'))
+    } finally {
+      setDbLoading(false)
     }
   }
 
@@ -187,6 +209,35 @@ export default function TabExport({ form, update }: Props) {
               onPaste={() => void pasteNotionField('database_id')}
               pasteTitle="在 Notion 复制对应值后点粘贴"
             />
+            <div className="settings-dir-row" style={{ gap: 8, marginTop: 6 }}>
+              <button
+                className="settings-browse-button"
+                onClick={handleListDatabases}
+                disabled={dbLoading || !notion.token.trim()}
+              >
+                {dbLoading ? t('加载中...') : t('刷新数据库列表')}
+              </button>
+              {dbList.length > 0 && (
+                <select
+                  className="settings-select"
+                  value={notion.database_id}
+                  onChange={e => updateNotionField('database_id', e.target.value)}
+                  style={{ maxWidth: 260 }}
+                >
+                  <option value="">{t('选择数据库…')}</option>
+                  {dbList.map(db => (
+                    <option key={db.id} value={db.id}>
+                      {db.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {dbError && (
+              <div className="settings-test-result--error" style={{ marginTop: 6, fontSize: 12 }}>
+                {dbError}
+              </div>
+            )}
           </div>
           <div className="settings-hint" style={{ marginTop: 8 }}>
             {t('在 Notion 复制对应值后点粘贴')}；

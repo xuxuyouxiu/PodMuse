@@ -59,6 +59,7 @@ import {
   setNotionDatabase,
   disconnectNotion,
 } from './oauth/notion-oauth'
+import { listNotionDatabases as listManualNotionDatabases } from './notion-databases'
 import {
   startFeishuAuth,
   getFeishuStatus,
@@ -380,6 +381,10 @@ function setupIPC() {
   // ---- Notion OAuth 连接服务（凭据未注册时优雅降级为 oauth_not_configured） ----
   ipcMain.handle('notion:oauthStatus', () => {
     return getNotionStatus()
+  })
+  // 手动 Token 模式：列出当前 Token 可访问的数据库（供设置页下拉选择）
+  ipcMain.handle('notion:listManualDatabases', () => {
+    return listManualNotionDatabases()
   })
   ipcMain.handle('notion:oauthStart', () => {
     return startNotionAuth({ onStatusChange: broadcastNotionOAuthStatus })
