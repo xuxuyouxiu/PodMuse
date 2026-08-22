@@ -35,6 +35,13 @@ const CHECK_INTERVAL_HOURS = 6
 const GITHUB_OWNER = 'xuxuyouxiu'
 const GITHUB_REPO = 'PodMuse'
 
+/**
+ * 自有阿里云 OSS 更新源（发布时由 release workflow 自动同步产物）。
+ * bucket 挂了 CDN/自定义域名则填域名形式 endpoint；未配置时该通道自动跳过。
+ * 密钥仅发布端需要；应用侧只做匿名读，无需任何凭据。
+ */
+const OSS_FEED_BASE = (process.env.PODMUSE_OSS_FEED_BASE || '').replace(/\/+$/, '')
+
 /** 国内可达的 GitHub 加速镜像（按序尝试；与 whisper-downloader 的镜像清单保持一致风格） */
 const FEED_MIRROR_PREFIXES = [
   'https://ghfast.top/',
@@ -147,43 +154,71 @@ export function setupUpdater(opts: {
   })
 
   /**
-   * 带通道选择的检查：
-   * 1. 探测 api.github.com 可达性（4s 快速失败）
-   * 2. 可达 → 默认 GitHub 通道
-   * 3. 不可达 → 依次尝试镜像前缀，选第一个能取到 latest.yml 的作为 feed
-   *    （latest.yml 位于 releases/download/v{version}/ 子目录，探测时用当前版本拼路径；
-   *     electron-updater 的 generic provider 会以 feed url 为基底解析 latest.yml 内的相对路径）
+   * 带通道选择的检查（按序）：
+   * 1. 自有 OSS 通道：PODMUSE_OSS_FEED_BASE 已配置且能取到 latest.yml → 最优先（国内全速）
+   * 2. GitHub 直连探测 api.github.com（4s 快速失败）可达 → 默认 GitHub 通道
+   * 3. 公共镜像前缀依次尝试，选第一个能取到 latest.yml 的作为 feed
    * 4. 全部不可用 → 维持 idle（后台场景静默）；错误事件照常上报
+   *
+   * generic provider 说明：feed url 指到「当前版本的 release 目录」，
+   * latest.yml 内的相对路径（安装包/blockmap）会以该目录为基底解析。
    */
   const checkWithChannel = async (): Promise<void> => {
+    const currentVersion = autoUpdater.currentVersion.version
+
+    // 通道 0：自有 OSS（匿名读，无需凭据；未配置则跳过）
+    if (OSS_FEED_BASE) {
+      try {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), 4000)
+        t.unref?.()
+        const probe = await fetch(
+          `${OSS_FEED_BASE}/download/v${currentVersion}/latest.yml`,
+          { signal: ctrl.signal },
+        )
+        clearTimeout(t)
+        if (probe.ok) {
+          autoUpdater.setFeedURL({
+            provider: 'generic',
+            url: `${OSS_FEED_BASE}/download/v${currentVersion}`,
+          })
+          await autoUpdater.checkForUpdates()
+          return
+        }
+      } catch {}
+    }
+
+    // 通道 1：GitHub 直连
     const direct = await isGithubReachable()
-    if (!direct) {
-      const currentVersion = autoUpdater.currentVersion.version
-      let mirrorReady = false
-      for (const prefix of FEED_MIRROR_PREFIXES) {
-        try {
-          const ctrl = new AbortController()
-          const t = setTimeout(() => ctrl.abort(), 4000)
-          t.unref?.()
-          const probe = await fetch(
-            `${prefix}https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v${currentVersion}/latest.yml`,
-            { signal: ctrl.signal },
-          )
-          clearTimeout(t)
-          if (probe.ok) {
-            applyMirrorFeed(prefix)
-            mirrorReady = true
-            break
-          }
-        } catch {}
-      }
-      if (!mirrorReady) {
-        console.warn('[updater] GitHub 直连与镜像均不可达，跳过本次检查')
-        setState({ phase: 'idle' })
-        return
-      }
-    } else {
+    if (direct) {
       applyDefaultFeed()
+      await autoUpdater.checkForUpdates()
+      return
+    }
+
+    // 通道 2：公共镜像
+    let mirrorReady = false
+    for (const prefix of FEED_MIRROR_PREFIXES) {
+      try {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), 4000)
+        t.unref?.()
+        const probe = await fetch(
+          `${prefix}https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v${currentVersion}/latest.yml`,
+          { signal: ctrl.signal },
+        )
+        clearTimeout(t)
+        if (probe.ok) {
+          applyMirrorFeed(prefix)
+          mirrorReady = true
+          break
+        }
+      } catch {}
+    }
+    if (!mirrorReady) {
+      console.warn('[updater] GitHub 直连、自有 OSS 与镜像均不可达，跳过本次检查')
+      setState({ phase: 'idle' })
+      return
     }
     await autoUpdater.checkForUpdates()
   }

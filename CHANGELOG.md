@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.52.5] - 2026-08-22
+
+### 新增
+- **自有阿里云 OSS 更新通道（三通道之首）**：发布时 release workflow 自动把安装包/latest.yml 同步到 OSS bucket `podmuse`（武汉本地地域），应用检查更新优先走 OSS——国内全速、不依赖 VPN 与第三方镜像；OSS 未配置或不可达时依次回落 GitHub 直连 → 公共镜像。
+- 发布流程新增 `scripts/sync-release-oss.py`：上传产物到 `download/v{version}/`，安装包长缓存、latest.yml 禁缓存，并校验版本号防传错。
+
+### 说明
+- 需在仓库 Secrets 配置 `OSS_AK_ID` / `OSS_AK_SECRET` / `OSS_ENDPOINT` 后，OSS 通道才生效；未配置时行为与 v1.52.4 一致（双通道），不会失败。
+
 ## [1.52.4] - 2026-08-22
 
 ### 修复

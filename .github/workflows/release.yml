@@ -36,3 +36,13 @@ jobs:
             dist-exe/PodMuse-Setup-*.exe
             dist-exe/PodMuse-Setup-*.exe.blockmap
             dist-exe/latest.yml
+
+      - name: Sync to Aliyun OSS（国内更新通道）
+        if: ${{ secrets.OSS_AK_ID != '' }}
+        env:
+          OSS_AK_ID: ${{ secrets.OSS_AK_ID }}
+          OSS_AK_SECRET: ${{ secrets.OSS_AK_SECRET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+        run: |
+          pip install oss2 --quiet
+          python scripts/sync-release-oss.py
