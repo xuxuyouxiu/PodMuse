@@ -1,6 +1,12 @@
 /**
  * 自动更新 — electron-updater + GitHub Releases（增量：blockmap 差分）
  * 交互基调（用户确认）：版本号高亮提示，用户点击后才下载；设置可开自动下载
+ *
+ * 双通道检测（国内无 VPN 也可用）：
+ * electron-updater 默认请求 api.github.com（国内直连常被重置/超时，且失败静默降级
+ * 表现为「检查不到更新」）。这里先直连探测 GitHub API 可达性：
+ * - 可达 → 走默认 GitHub 通道（增量更新体验不变）
+ * - 不可达 → setFeedURL 切到镜像源（读同一份 latest.yml），检查与下载安装包都走镜像
  */
 
 import fs from 'node:fs'
@@ -24,6 +30,49 @@ export interface UpdaterState {
 }
 
 const CHECK_INTERVAL_HOURS = 6
+
+/** 仓库坐标（与 package.json repository 一致；electron-builder 默认 publish 源） */
+const GITHUB_OWNER = 'xuxuyouxiu'
+const GITHUB_REPO = 'PodMuse'
+
+/** 国内可达的 GitHub 加速镜像（按序尝试；与 whisper-downloader 的镜像清单保持一致风格） */
+const FEED_MIRROR_PREFIXES = [
+  'https://ghfast.top/',
+  'https://gh-proxy.com/',
+  'https://mirror.ghproxy.com/',
+]
+
+/** 直连 GitHub API 探测：快速失败（4s），2xx 即认为可达 */
+async function isGithubReachable(timeoutMs = 4000): Promise<boolean> {
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), timeoutMs)
+    t.unref?.()
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`, {
+      method: 'HEAD',
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'PodMuse-Updater' },
+    })
+    clearTimeout(t)
+    return res.status > 0 && res.status < 500
+  } catch {
+    return false
+  }
+}
+
+function applyMirrorFeed(mirror: string): void {
+  autoUpdater.setFeedURL({
+    provider: 'generic',
+    url: `${mirror}https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download`,
+  })
+}
+
+function applyDefaultFeed(): void {
+  // 恢复 electron-builder 默认（GitHub provider）：不传 options 即按 app-update.yml 配置
+  try {
+    autoUpdater.setFeedURL({ provider: 'github', owner: GITHUB_OWNER, repo: GITHUB_REPO })
+  } catch {}
+}
 
 function isDev(): boolean {
   return !!process.env.VITE_DEV_SERVER_URL
@@ -97,9 +146,51 @@ export function setupUpdater(opts: {
     }
   })
 
+  /**
+   * 带通道选择的检查：
+   * 1. 探测 api.github.com 可达性（4s 快速失败）
+   * 2. 可达 → 默认 GitHub 通道
+   * 3. 不可达 → 依次尝试镜像前缀，选第一个能取到 latest.yml 的作为 feed
+   *    （latest.yml 位于 releases/download/v{version}/ 子目录，探测时用当前版本拼路径；
+   *     electron-updater 的 generic provider 会以 feed url 为基底解析 latest.yml 内的相对路径）
+   * 4. 全部不可用 → 维持 idle（后台场景静默）；错误事件照常上报
+   */
+  const checkWithChannel = async (): Promise<void> => {
+    const direct = await isGithubReachable()
+    if (!direct) {
+      const currentVersion = autoUpdater.currentVersion.version
+      let mirrorReady = false
+      for (const prefix of FEED_MIRROR_PREFIXES) {
+        try {
+          const ctrl = new AbortController()
+          const t = setTimeout(() => ctrl.abort(), 4000)
+          t.unref?.()
+          const probe = await fetch(
+            `${prefix}https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v${currentVersion}/latest.yml`,
+            { signal: ctrl.signal },
+          )
+          clearTimeout(t)
+          if (probe.ok) {
+            applyMirrorFeed(prefix)
+            mirrorReady = true
+            break
+          }
+        } catch {}
+      }
+      if (!mirrorReady) {
+        console.warn('[updater] GitHub 直连与镜像均不可达，跳过本次检查')
+        setState({ phase: 'idle' })
+        return
+      }
+    } else {
+      applyDefaultFeed()
+    }
+    await autoUpdater.checkForUpdates()
+  }
+
   const check = () => {
     if (!loadConfig().auto_update_check) return
-    autoUpdater.checkForUpdates().catch(() => {})
+    checkWithChannel().catch(() => {})
   }
 
   // 启动 10s 后首次检查；此后每 6 小时
@@ -110,7 +201,7 @@ export function setupUpdater(opts: {
 
   return {
     manualCheck: () => {
-      autoUpdater.checkForUpdates().catch(() => {})
+      void checkWithChannel().catch(() => {})
     },
     download: () => {
       autoUpdater.downloadUpdate().catch(() => {})

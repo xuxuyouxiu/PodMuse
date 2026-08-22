@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.52.4] - 2026-08-22
+
+### 修复
+- **无 VPN 时应用内「检查更新」查不到更新**：更新源为 GitHub Releases（api.github.com / github.com），国内直连常被重置，且检查失败静默降级表现为「没有更新」。现在检查前先探测 GitHub 可达性（4s 快速失败）：可达走原 GitHub 通道；不可达自动切换国内镜像源（ghfast.top → gh-proxy.com → mirror.ghproxy.com）读取版本信息与下载安装包，全部不可用才放弃。实测镜像可正常取到 latest.yml 与安装包。
+
+### 改进
+- 手动点「检查更新」同样享受双通道，无 VPN 环境也能检测并下载新版本。
+
 ## [1.52.3] - 2026-08-22
 
 ### 修复
