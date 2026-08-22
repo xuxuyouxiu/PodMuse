@@ -36,13 +36,11 @@ const GITHUB_OWNER = 'xuxuyouxiu'
 const GITHUB_REPO = 'PodMuse'
 
 /**
- * 自有阿里云 OSS 更新源（发布时由 release workflow 自动同步产物）。
- * 默认指向 bucket podmuse（武汉本地地域）的虚拟主机直连地址；挂 CDN 后可换自定义域名。
- * 密钥仅发布端需要；应用侧只做匿名读，无需任何凭据。
+ * 自有阿里云 OSS/CDN 更新源（发布时由 release workflow 自动同步产物到 bucket podmuse）。
+ * 域名公开无敏感性，直接固化 CDN 域名 dl.xuxuya66.top（源站 OSS 武汉）；
+ * 通道不可达时自动回落 GitHub 直连 → 公共镜像。应用侧只做匿名读，无需任何凭据。
  */
-const OSS_FEED_BASE = (
-  process.env.PODMUSE_OSS_FEED_BASE || 'https://podmuse.oss-cn-wuhan-lr.aliyuncs.com'
-).replace(/\/+$/, '')
+const OSS_FEED_BASE = 'https://dl.xuxuya66.top'
 
 /** 国内可达的 GitHub 加速镜像（按序尝试；与 whisper-downloader 的镜像清单保持一致风格） */
 const FEED_MIRROR_PREFIXES = [
