@@ -38,7 +38,7 @@ jobs:
             dist-exe/latest.yml
 
       - name: Sync to Aliyun OSS（国内更新通道）
-        if: ${{ secrets.OSS_AK_ID != '' }}
+        # secrets 上下文不能用于 step if，改由脚本读空值自行跳过
         env:
           OSS_AK_ID: ${{ secrets.OSS_AK_ID }}
           OSS_AK_SECRET: ${{ secrets.OSS_AK_SECRET }}
