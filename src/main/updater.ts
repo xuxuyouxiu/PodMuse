@@ -37,10 +37,12 @@ const GITHUB_REPO = 'PodMuse'
 
 /**
  * 自有阿里云 OSS 更新源（发布时由 release workflow 自动同步产物）。
- * bucket 挂了 CDN/自定义域名则填域名形式 endpoint；未配置时该通道自动跳过。
+ * 默认指向 bucket podmuse（武汉本地地域）的虚拟主机直连地址；挂 CDN 后可换自定义域名。
  * 密钥仅发布端需要；应用侧只做匿名读，无需任何凭据。
  */
-const OSS_FEED_BASE = (process.env.PODMUSE_OSS_FEED_BASE || '').replace(/\/+$/, '')
+const OSS_FEED_BASE = (
+  process.env.PODMUSE_OSS_FEED_BASE || 'https://podmuse.oss-cn-wuhan-lr.aliyuncs.com'
+).replace(/\/+$/, '')
 
 /** 国内可达的 GitHub 加速镜像（按序尝试；与 whisper-downloader 的镜像清单保持一致风格） */
 const FEED_MIRROR_PREFIXES = [

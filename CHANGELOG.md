@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.52.6] - 2026-08-22
+
+### 修复
+- **OSS 更新通道默认激活**：v1.52.5 的 OSS 地址误做成读运行时环境变量，打包应用无人设置导致通道永不生效。现默认硬编码 bucket 直连地址（podmuse.oss-cn-wuhan-lr.aliyuncs.com，允许环境变量覆盖）。用户 Secrets 已配置，本版发布起安装包将自动同步 OSS 并作为首选更新通道。
+
 ## [1.52.5] - 2026-08-22
 
 ### 新增
