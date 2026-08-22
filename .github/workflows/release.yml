@@ -38,8 +38,10 @@ jobs:
             dist-exe/latest.yml
 
       - name: Sync to Aliyun OSS（国内更新通道）
-        # secrets 上下文不能用于 step if，改由脚本读空值自行跳过
+        # secrets 上下文不能用于 step if，改由脚本读空值自行跳过；
+        # Windows runner 默认 cp1252，必须强制 UTF-8 否则中文输出会 UnicodeEncodeError
         env:
+          PYTHONIOENCODING: utf-8
           OSS_AK_ID: ${{ secrets.OSS_AK_ID }}
           OSS_AK_SECRET: ${{ secrets.OSS_AK_SECRET }}
           OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
