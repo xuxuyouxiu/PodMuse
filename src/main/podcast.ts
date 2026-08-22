@@ -3,7 +3,8 @@ import * as fs from 'fs'
 import { createHash } from 'node:crypto'
 import { StepInfo, AIProviderId } from '@shared/types'
 import { cleanTitleForFilename } from '@shared/utils'
-import { runWhisper } from './whisper'
+import { transcribeAudio } from './transcriber/registry'
+import { loadConfig } from './config'
 import { correctTranscript, generateNotes, evaluateQuality } from './ai-client'
 import {
   parseEntityBlocks,
@@ -533,68 +534,68 @@ export async function processPodcast(
             })
           } else {
             try {
-            const fetchHeaders: Record<string, string> = {
-              'User-Agent': HEADERS_UA,
-              ...result.headers,
-            }
-            const audioResp = await fetch(audioUrl, { headers: fetchHeaders, signal })
-            if (!audioResp.ok || !audioResp.body) {
-              step({
-                step: 2,
-                title: '下载音频',
-                subtitle: `HTTP ${audioResp.status}`,
-                status: 'error',
-              })
-              log(`  ❌ 下载失败 HTTP ${audioResp.status}`)
-              return null
-            }
-            const reader = audioResp.body.getReader()
-            const { createWriteStream } = await import('fs')
-            const ws = createWriteStream(audioPath)
-            let received = 0
-            const total = parseInt(audioResp.headers.get('content-length') || '0')
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              ws.write(value)
-              received += value.length
-              if (total > 0) {
+              const fetchHeaders: Record<string, string> = {
+                'User-Agent': HEADERS_UA,
+                ...result.headers,
+              }
+              const audioResp = await fetch(audioUrl, { headers: fetchHeaders, signal })
+              if (!audioResp.ok || !audioResp.body) {
                 step({
                   step: 2,
                   title: '下载音频',
-                  subtitle: '下载中...',
-                  status: 'running',
-                  detail: `${(received / 1048576).toFixed(1)} MB`,
-                  progress: Math.round((received / total) * 100),
+                  subtitle: `HTTP ${audioResp.status}`,
+                  status: 'error',
                 })
+                log(`  ❌ 下载失败 HTTP ${audioResp.status}`)
+                return null
               }
-            }
-            ws.end()
-            if (received === 0) {
-              step({ step: 2, title: '下载音频', subtitle: '空文件', status: 'error' })
-              log('  ❌ 下载内容为空')
+              const reader = audioResp.body.getReader()
+              const { createWriteStream } = await import('fs')
+              const ws = createWriteStream(audioPath)
+              let received = 0
+              const total = parseInt(audioResp.headers.get('content-length') || '0')
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                ws.write(value)
+                received += value.length
+                if (total > 0) {
+                  step({
+                    step: 2,
+                    title: '下载音频',
+                    subtitle: '下载中...',
+                    status: 'running',
+                    detail: `${(received / 1048576).toFixed(1)} MB`,
+                    progress: Math.round((received / total) * 100),
+                  })
+                }
+              }
+              ws.end()
+              if (received === 0) {
+                step({ step: 2, title: '下载音频', subtitle: '空文件', status: 'error' })
+                log('  ❌ 下载内容为空')
+                return null
+              }
+              step({
+                step: 2,
+                title: '下载音频',
+                subtitle: `${(received / 1048576).toFixed(1)} MB`,
+                status: 'done',
+                progress: 100,
+              })
+              log('  ✓ 下载完成')
+            } catch (e: unknown) {
+              if (signal?.aborted) throw e
+              step({
+                step: 2,
+                title: '下载音频',
+                subtitle: '下载失败',
+                status: 'error',
+                detail: errMsg(e),
+              })
+              log(`  ❌ 下载失败: ${errMsg(e)}`)
               return null
             }
-            step({
-              step: 2,
-              title: '下载音频',
-              subtitle: `${(received / 1048576).toFixed(1)} MB`,
-              status: 'done',
-              progress: 100,
-            })
-            log('  ✓ 下载完成')
-          } catch (e: unknown) {
-            if (signal?.aborted) throw e
-            step({
-              step: 2,
-              title: '下载音频',
-              subtitle: '下载失败',
-              status: 'error',
-              detail: errMsg(e),
-            })
-            log(`  ❌ 下载失败: ${errMsg(e)}`)
-            return null
-          }
           }
         }
       }
@@ -617,7 +618,7 @@ export async function processPodcast(
   // 如果已从平台获取字幕/转写文本，直接使用
   if (preTranscript) {
     transcript = preTranscript
-    
+
     step({
       step: 3,
       title: '语音转文字',
@@ -641,7 +642,7 @@ export async function processPodcast(
           log(`  🔄 历史转写文件内容过短（${cached.text.length} 字），重新转写`)
         } else {
           transcript = cached.text
-          
+
           log(
             `  ✅ 复用历史转写结果（${transcript.length} 字，文件: ${path.basename(transcriptPath)}）`,
           )
@@ -678,7 +679,7 @@ export async function processPodcast(
             log(`  🔄 Whisper .txt 内容过短（${txtContent.length} 字），重新转写`)
           } else {
             transcript = txtContent
-            
+
             log(
               `  ✅ 复用 Whisper 原始转写结果（${transcript.length} 字，文件: ${path.basename(txtPath)}）`,
             )
@@ -743,19 +744,22 @@ export async function processPodcast(
       log(`  ❌ 音频文件不存在: ${audioPath}`)
       return null
     }
-    transcript = await runWhisper(
+    transcript = await transcribeAudio(
+      loadConfig(),
       audioPath,
-      language,
-      sendLog,
-      status =>
-        step({
-          step: 3,
-          title: '语音转文字',
-          subtitle: status.subtitle,
-          status: status.phase === 'finalizing' ? 'done' : 'running',
-          detail: status.detail,
-          progress: status.progress,
-        }),
+      language as 'zh' | 'en' | 'auto',
+      {
+        log: (m: string) => log(m),
+        status: (subtitle, detail, progress) =>
+          step({
+            step: 3,
+            title: '语音转文字',
+            subtitle,
+            status: subtitle === '转写完成' ? 'done' : 'running',
+            detail,
+            progress,
+          }),
+      },
       signal,
     )
     if (!transcript) {
@@ -1009,10 +1013,17 @@ export async function processPodcast(
   }
 
   // 正文补链接兜底：卡片区有的实体，正文出现但漏链的自动补 [[链接]]
-  if (finalEntities.people.length + finalEntities.projects.length + finalEntities.concepts.length + finalEntities.terms.length > 0) {
+  if (
+    finalEntities.people.length +
+      finalEntities.projects.length +
+      finalEntities.concepts.length +
+      finalEntities.terms.length >
+    0
+  ) {
     const linked = linkifyBody(notes.content, finalEntities, new Set(nonNotablePeople))
     if (linked !== notes.content) {
-      const added = (linked.match(/\[\[/g) || []).length - (notes.content.match(/\[\[/g) || []).length
+      const added =
+        (linked.match(/\[\[/g) || []).length - (notes.content.match(/\[\[/g) || []).length
       notes.content = linked
       log(`  🔗 正文补链接：自动补齐 ${added} 个实体链接`)
     }

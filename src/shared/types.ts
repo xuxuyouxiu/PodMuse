@@ -161,6 +161,16 @@ export interface PodcastConfig {
   audio_dir: string
   whisper_exe_path: string
   whisper_model: string
+
+  // 语音转写引擎（local=本地 Whisper；aliyun=阿里云百炼 Paraformer；xfyun=讯飞语音转写）
+  transcribe_engine?: 'local' | 'aliyun' | 'xfyun'
+  /** 阿里云百炼 API Key（敏感，safeStorage 加密落盘） */
+  aliyun_api_key?: string
+  /** 讯飞开放平台 AppID（非敏感） */
+  xfyun_app_id?: string
+  /** 讯飞开放平台 API Key（敏感，safeStorage 加密落盘） */
+  xfyun_api_key?: string
+
   notification_enabled: boolean
   douyin_cookie: string
   douyin_login?: DouyinLoginState

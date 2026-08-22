@@ -81,6 +81,13 @@ const DEFAULTS: PodcastConfig = {
   audio_dir: '',
   whisper_exe_path: '',
   whisper_model: 'large-v3-turbo',
+
+  // 语音转写引擎（local=本地 Whisper，默认不变；aliyun/xfyun 为云端可选）
+  transcribe_engine: 'local',
+  aliyun_api_key: '',
+  xfyun_app_id: '',
+  xfyun_api_key: '',
+
   notification_enabled: true,
   douyin_cookie: '',
   subscriptions: [],
@@ -225,6 +232,9 @@ const SECRET_FIELD_SPECS: SecretFieldSpec[] = [
   { obj: 'export', nested: 'notion', fields: ['token'] },
 ]
 
+/** 一级散字段的敏感凭据（云端转写 API Key），同样走 enc:v1 加密 */
+const SECRET_TOPLEVEL_FIELDS = ['aliyun_api_key', 'xfyun_api_key'] as const
+
 function tryEncryptSecret(value: string): string {
   if (!value || value.startsWith(ENC_SECRET_PREFIX)) return value
   if (!safeStorage.isEncryptionAvailable()) return value // 不可用时回退明文
@@ -245,14 +255,16 @@ function tryDecryptSecret(value: string): string {
   }
 }
 
-function mapSecretFields<T extends PodcastConfig>(
-  config: T,
-  fn: (value: string) => string,
-): T {
+function mapSecretFields<T extends PodcastConfig>(config: T, fn: (value: string) => string): T {
   const result = { ...config, douyin_cookie: fn(config.douyin_cookie || '') } as unknown as Record<
     string,
     unknown
   >
+  // 一级散字段敏感凭据（云端转写 API Key）
+  for (const field of SECRET_TOPLEVEL_FIELDS) {
+    const v = result[field]
+    if (typeof v === 'string') result[field] = fn(v)
+  }
   for (const spec of SECRET_FIELD_SPECS) {
     const source = (config as unknown as Record<string, unknown>)[spec.obj]
     // export/notion 等旧配置可能整体缺失（undefined），防御性跳过
@@ -311,7 +323,9 @@ export function stripPlaceholderValues(config: PodcastConfig): PodcastConfig {
 }
 
 let configCache: PodcastConfig | null = null
-export function clearConfigCache(): void { configCache = null }
+export function clearConfigCache(): void {
+  configCache = null
+}
 
 export function loadConfig(): PodcastConfig {
   if (configCache) return configCache

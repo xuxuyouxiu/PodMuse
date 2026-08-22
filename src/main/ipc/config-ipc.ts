@@ -2,7 +2,13 @@ import { app, dialog, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 import { loadConfig, loadSafeConfig, saveConfig } from '../config'
-import { isSafeUrl, isSafeFilePath, isSafeExecutablePath, isSafeDirectoryPath, isPathWithinBase } from '../security'
+import {
+  isSafeUrl,
+  isSafeFilePath,
+  isSafeExecutablePath,
+  isSafeDirectoryPath,
+  isPathWithinBase,
+} from '../security'
 import { detectYtDlp } from '../platforms/yt-dlp'
 import { createDefaultDirs } from '../default-dirs'
 import { buildBacklinkIndex, buildTagIndex } from '../backlinks'
@@ -29,6 +35,9 @@ export function validateConfigInput(config: Record<string, unknown>): string | n
     'whisper_model',
     'notion_oauth_client_id',
     'notion_oauth_client_secret',
+    'aliyun_api_key',
+    'xfyun_app_id',
+    'xfyun_api_key',
   ]
   for (const field of stringFields) {
     if (field in config && typeof config[field] !== 'string') {
@@ -49,6 +58,14 @@ export function validateConfigInput(config: Record<string, unknown>): string | n
   ]
   if (typeof config.ai_provider === 'string' && !validProviders.includes(config.ai_provider)) {
     return `无效的 AI 供应商: ${config.ai_provider}`
+  }
+
+  // 验证转写引擎枚举值
+  if (
+    config.transcribe_engine !== undefined &&
+    !['local', 'aliyun', 'xfyun'].includes(config.transcribe_engine as string)
+  ) {
+    return `无效的转写引擎: ${config.transcribe_engine}`
   }
 
   // 验证路径字段不指向系统敏感目录
@@ -136,8 +153,7 @@ export function restoreProtectedFields(
   }
 
   // 抖音凭据：renderer 传什么都以主进程现有值为准
-  out.douyin_cookie =
-    typeof currentAny.douyin_cookie === 'string' ? currentAny.douyin_cookie : ''
+  out.douyin_cookie = typeof currentAny.douyin_cookie === 'string' ? currentAny.douyin_cookie : ''
   if (currentAny.douyin_login !== undefined && currentAny.douyin_login !== null) {
     out.douyin_login = currentAny.douyin_login
   } else {
@@ -162,7 +178,8 @@ export function restoreProtectedFields(
   const currentExportNotion = (
     currentAny.export as { notion?: Record<string, unknown> } | undefined
   )?.notion
-  const currentToken = typeof currentExportNotion?.token === 'string' ? currentExportNotion.token : ''
+  const currentToken =
+    typeof currentExportNotion?.token === 'string' ? currentExportNotion.token : ''
   const incomingExport = out.export as Record<string, unknown> | undefined
   if (incomingExport && typeof incomingExport === 'object') {
     const notionIn = incomingExport.notion as Record<string, unknown> | undefined
@@ -190,20 +207,20 @@ export function syncFeishuOAuthCredentials(
   merged: Record<string, unknown>,
   currentConfig: PodcastConfig,
 ): Record<string, unknown> {
-  const appId = typeof merged.feishu_app_id === 'string' ? (merged.feishu_app_id as string).trim() : ''
+  const appId =
+    typeof merged.feishu_app_id === 'string' ? (merged.feishu_app_id as string).trim() : ''
   const appSecret =
     typeof merged.feishu_app_secret === 'string' ? (merged.feishu_app_secret as string).trim() : ''
   if (!appId && !appSecret) return merged
 
-  const currentOauth = (
-    (currentConfig as unknown as Record<string, unknown>).feishu_oauth as
-      | Record<string, unknown>
-      | undefined
-  ) ?? { appId: '', appSecret: '' }
+  const currentOauth = ((currentConfig as unknown as Record<string, unknown>).feishu_oauth as
+    | Record<string, unknown>
+    | undefined) ?? { appId: '', appSecret: '' }
   merged.feishu_oauth = {
     ...currentOauth,
     appId: appId || (typeof currentOauth.appId === 'string' ? currentOauth.appId : ''),
-    appSecret: appSecret || (typeof currentOauth.appSecret === 'string' ? currentOauth.appSecret : ''),
+    appSecret:
+      appSecret || (typeof currentOauth.appSecret === 'string' ? currentOauth.appSecret : ''),
   }
   return merged
 }
@@ -229,16 +246,15 @@ export function syncNotionOAuthCredentials(
       : ''
   if (!clientId && !clientSecret) return merged
 
-  const currentOauth = (
-    (currentConfig as unknown as Record<string, unknown>).notion_oauth as
-      | Record<string, unknown>
-      | undefined
-  ) ?? { clientId: '', clientSecret: '' }
+  const currentOauth = ((currentConfig as unknown as Record<string, unknown>).notion_oauth as
+    | Record<string, unknown>
+    | undefined) ?? { clientId: '', clientSecret: '' }
   merged.notion_oauth = {
     ...currentOauth,
     clientId: clientId || (typeof currentOauth.clientId === 'string' ? currentOauth.clientId : ''),
     clientSecret:
-      clientSecret || (typeof currentOauth.clientSecret === 'string' ? currentOauth.clientSecret : ''),
+      clientSecret ||
+      (typeof currentOauth.clientSecret === 'string' ? currentOauth.clientSecret : ''),
   }
   return merged
 }
@@ -278,15 +294,13 @@ export function registerConfigIPC(mainWindow?: BrowserWindow | null): void {
       const merged = { ...currentConfig, ...incoming } as Record<string, unknown>
       // 兜底保护：无论 incoming 形态如何，export.notion.token 为空时一律还原主进程现有值
       // （覆盖「更新/保存后已保存令牌丢失」：任何保存路径都不得误清空手动 Token）
-      const curNotion = (
-        currentConfig.export as { notion?: Record<string, unknown> } | undefined
-      )?.notion
+      const curNotion = (currentConfig.export as { notion?: Record<string, unknown> } | undefined)
+        ?.notion
       const curToken = typeof curNotion?.token === 'string' ? curNotion.token : ''
       if (curToken) {
-        const mergedExport = merged.export as
-          | { notion?: Record<string, unknown> }
-          | undefined
-        const mergedToken = typeof mergedExport?.notion?.token === 'string' ? mergedExport.notion.token : ''
+        const mergedExport = merged.export as { notion?: Record<string, unknown> } | undefined
+        const mergedToken =
+          typeof mergedExport?.notion?.token === 'string' ? mergedExport.notion.token : ''
         if (!mergedToken) {
           merged.export = {
             ...(mergedExport ?? {}),

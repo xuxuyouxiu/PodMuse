@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { PodcastConfig } from '@shared/types'
-import { TabHeader, DirField } from './FieldComponents'
+import { TabHeader, DirField, Field } from './FieldComponents'
 import { useI18n } from '../../i18n'
 import GuideCarousel from '../GuideCarousel'
+import { ExternalLink } from 'lucide-react'
+
+const ALIYUN_APIKEY_URL = 'https://bailian.console.aliyun.com/?apiKey=1'
+const XFYUN_CONSOLE_URL = 'https://console.xfyun.cn/app/myapp'
 
 export default function TabTranscribe({
   form,
@@ -48,6 +52,93 @@ export default function TabTranscribe({
           {t('怎么选笔记目录？看图文')}
         </button>
       </div>
+
+      {/* 转写引擎：本地 Whisper / 阿里云百炼 / 讯飞（低配电脑可选云端，失败自动降级本地） */}
+      <div className="settings-field" style={{ marginBottom: 16 }}>
+        <div className="settings-field-label">{t('转写引擎')}</div>
+        <div className="settings-radio-grid">
+          {(
+            [
+              { val: 'local', label: t('本地 Whisper（免费）') },
+              { val: 'aliyun', label: t('阿里云百炼（云端·约0.29元/小时）') },
+              { val: 'xfyun', label: t('讯飞语音转写（云端·效果优先）') },
+            ] as const
+          ).map(({ val, label }) => (
+            <label key={val} className="settings-radio">
+              <input
+                type="radio"
+                name="transcribe_engine"
+                value={val}
+                checked={(form.transcribe_engine || 'local') === val}
+                onChange={() => update('transcribe_engine', val)}
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {(form.transcribe_engine === 'aliyun' || form.transcribe_engine === 'xfyun') && (
+          <div className="settings-hint" style={{ marginTop: 6 }}>
+            {t('云端转写失败时会自动降级为本地 Whisper 重试')}
+          </div>
+        )}
+      </div>
+
+      {/* 阿里云百炼凭据 */}
+      {form.transcribe_engine === 'aliyun' && (
+        <div className="settings-field" style={{ marginBottom: 16 }}>
+          <Field
+            label="DashScope API Key"
+            value={form.aliyun_api_key || ''}
+            onChange={v => update('aliyun_api_key', v)}
+            secret
+            required
+            placeholder={t('粘贴阿里云百炼 API Key（sk-开头）')}
+          />
+          <button
+            type="button"
+            className="settings-link-button"
+            onClick={() => void window.electronAPI.openExternal(ALIYUN_APIKEY_URL)}
+            style={{ marginTop: 4 }}
+          >
+            <ExternalLink size={11} style={{ marginRight: 4, verticalAlign: '-2px' }} />
+            {t('如何获取？打开阿里云百炼控制台')}
+          </button>
+        </div>
+      )}
+
+      {/* 讯飞凭据 */}
+      {form.transcribe_engine === 'xfyun' && (
+        <div className="settings-field" style={{ marginBottom: 16 }}>
+          <div className="settings-grid">
+            <Field
+              label="AppID"
+              value={form.xfyun_app_id || ''}
+              onChange={v => update('xfyun_app_id', v)}
+              required
+              placeholder={t('讯飞开放平台应用 ID')}
+            />
+            <Field
+              label="API Key"
+              value={form.xfyun_api_key || ''}
+              onChange={v => update('xfyun_api_key', v)}
+              secret
+              required
+              placeholder={t('讯飞语音转写服务 API Key')}
+            />
+          </div>
+          <button
+            type="button"
+            className="settings-link-button"
+            onClick={() => void window.electronAPI.openExternal(XFYUN_CONSOLE_URL)}
+            style={{ marginTop: 4 }}
+          >
+            <ExternalLink size={11} style={{ marginRight: 4, verticalAlign: '-2px' }} />
+            {t('如何获取？打开讯飞开放平台控制台')}
+          </button>
+        </div>
+      )}
+
       <div className="settings-grid">
         <div className="settings-field">
           <div className="settings-field-label">{t('语音识别语言')}</div>
