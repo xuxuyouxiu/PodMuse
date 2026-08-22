@@ -313,7 +313,7 @@ const enDict: Record<string, string> = {
   '语音模型': 'Speech Models',
   '转写引擎': 'Transcription Engine',
   '本地 Whisper（免费）': 'Local Whisper (Free)',
-  '阿里云百炼（云端·约0.29元/小时）': 'Alibaba Bailian (Cloud, ~¥0.29/hr)',
+  '阿里云百炼（云端·按量计费）': 'Alibaba Bailian (Cloud, Pay-as-you-go)',
   '讯飞语音转写（云端·效果优先）': 'iFlytek ASR (Cloud, Best Quality)',
   '云端转写失败时会自动降级为本地 Whisper 重试': 'If cloud transcription fails, it falls back to local Whisper automatically',
   '粘贴阿里云百炼 API Key（sk-开头）': 'Paste Alibaba Bailian API Key (starts with sk-)',

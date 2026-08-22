@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.52.1] - 2026-08-22
+
+### 修复
+- **阿里云百炼适配器按真实联调重写**（用用户真实 API Key 端到端验证）：上传凭证接口实为 `GET /api/v1/uploads?action=getPolicy&model=...`；文件经 OSS PostObject 表单上传后，提交任务须用 `oss://{objectKey}` 引用格式且**必须携带 `X-DashScope-OssResourceResolve: enable` 头**，否则服务端读不到文件（此前实现按公开文档的 file_urls/https 公网 URL 写法会以 FILE_DOWNLOAD_FAILED / SERVER_ERROR 失败）。
+- **转写模型升级**：`paraformer-v2` → `qwen-audio-3.0-asr-flash-filetrans`（官方当前非实时首推：热词、Prompt 上下文、说话人分离、多语种自动识别，单文件 ≤12 小时）。同日实测对比：新模型转写全对，旧 paraformer 漏字。该模型多语种自动识别，「语音识别语言」设置对其不生效（讯飞/本地仍生效）。
+- 设置页阿里引擎文案改为「按量计费」（原标注价格为旧 Paraformer 价格，与新模型不符）。
+
 ## [1.52.0] - 2026-08-22
 
 ### 新增

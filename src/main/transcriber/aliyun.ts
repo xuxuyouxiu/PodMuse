@@ -9,36 +9,38 @@ import {
 } from './types'
 
 /**
- * 阿里云百炼 录音文件识别（Paraformer-v2）适配器
+ * 阿里云百炼 录音文件识别适配器
  *
- * 协议（REST，X-DashScope-Async 异步任务）：
- * 1. POST /api/v1/services/audio/asr/transcription 提交任务（file_urls）
- * 2. POST /api/v1/tasks/{task_id} 轮询至 SUCCEEDED / FAILED
- * 3. 取 results[0].transcription_url → GET 拉转写 JSON → 拼接 sentences 为纯文本
+ * 协议（2026-08 用真实 key 端到端验证通过）：
+ * 1. GET  /api/v1/uploads?action=getPolicy&model={model}        → OSS PostObject 上传凭证
+ * 2. POST {upload_host}（OSS 表单上传，Signature 大写，file 字段最后）
+ * 3. POST /api/v1/services/audio/asr/transcription 提交任务：
+ *      input.file_urls = ["oss://{objectKey}"]（上传凭证文件的引用格式，不带 bucket 名）
+ *      Header 必须带 X-DashScope-OssResourceResolve: enable（服务端据此解析 oss:// 临时 URL，
+ *      缺失时任务以 FILE_403_FORBIDDEN / SERVER_ERROR 失败）
+ * 4. POST /api/v1/tasks/{task_id} 轮询至 SUCCEEDED / FAILED
+ * 5. 取 results[0].transcription_url → GET 拉转写 JSON → 拼接文本
  *
- * 本地文件上传：提交接口仅接受公网 URL，走百炼文件上传通道：
- * - POST https://dashscope.aliyuncs.com/api/v1/uploads 获取 sts 上传凭证
- * - PUT {policy.data.form_action}（OSS 预签名地址，带 form_data 字段）上传二进制
- * - 凭证数据里的 add_headers 必须原样作为请求头回传
+ * 模型选型（同日实测对比）：
+ * - qwen-audio-3.0-asr-flash-filetrans（默认）：官方非实时首推，热词/Prompt上下文/说话人分离，
+ *   多语种自动识别（不支持 language_hints 参数）；单文件 ≤12 小时 / ≤2GB
+ * - paraformer-v2 为上一代（官方建议迁移），fun-asr 为备选
  */
 const SUBMIT_URL = 'https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription'
-const UPLOAD_INIT_URL = 'https://dashscope.aliyuncs.com/api/v1/uploads'
-const MODEL = 'paraformer-v2'
+const UPLOAD_POLICY_URL = 'https://dashscope.aliyuncs.com/api/v1/uploads'
+const MODEL = 'qwen-audio-3.0-asr-flash-filetrans'
 /** 轮询间隔与总超时：超时判失败（上层自动降级本地），避免无限排队卡死任务 */
 const POLL_INTERVAL_MS = 3_000
 const POLL_TIMEOUT_MS = 30 * 60 * 1_000
 
-interface UploadPolicy {
-  policy: {
-    data: {
-      policy: string
-      signature?: string
-      upload_dir?: string
-      form_action: string
-      form_data: Record<string, string>
-      add_headers?: Record<string, string>
-    }
-  }
+interface UploadPolicyData {
+  policy: string
+  signature?: string
+  upload_dir?: string
+  upload_host?: string
+  oss_access_key_id?: string
+  x_oss_object_acl?: string
+  x_oss_forbid_overwrite?: string
 }
 
 export class AliyunTranscriber implements TranscribeEngine {
@@ -51,7 +53,7 @@ export class AliyunTranscriber implements TranscribeEngine {
   async transcribe(
     cfg: PodcastConfig,
     audioPath: string,
-    language: TranscribeLanguage,
+    _language: TranscribeLanguage,
     hooks: TranscribeHooks,
     signal: AbortSignal,
   ): Promise<string> {
@@ -59,12 +61,14 @@ export class AliyunTranscriber implements TranscribeEngine {
     if (!apiKey) throw new Error('阿里云百炼 API Key 未配置')
 
     if (signal.aborted) throw abortError()
-    const fileUrl = await this.uploadFile(audioPath, apiKey, hooks, signal)
+    // 语言说明：该模型多语种自动识别，不接收 language_hints（仅旧 paraformer 支持），
+    // 设置页的「语音识别语言」对阿里引擎不生效（对讯飞/本地仍生效）
+    const ossUrl = await this.uploadFile(audioPath, apiKey, hooks, signal)
 
     if (signal.aborted) throw abortError()
     hooks.status('云端转写中', '已提交阿里百炼任务，等待结果…')
-    hooks.log(`  ☁ 已上传音频，提交 Paraformer 转写任务 (${MODEL})`)
-    const taskId = await this.submitTask(fileUrl, language, apiKey)
+    hooks.log(`  ☁ 已上传音频，提交转写任务 (${MODEL})`)
+    const taskId = await this.submitTask(ossUrl, apiKey, signal)
 
     hooks.status('云端转写中', '排队/识别中，每 3 秒查询一次进度…')
     const resultUrl = await this.pollTask(taskId, apiKey, hooks, signal)
@@ -73,7 +77,7 @@ export class AliyunTranscriber implements TranscribeEngine {
     return text
   }
 
-  /** 上传本地音频到百炼 OSS 通道，返回可公网访问的 URL */
+  /** 上传本地音频到百炼 OSS 通道，返回 oss:// 引用 URL */
   private async uploadFile(
     audioPath: string,
     apiKey: string,
@@ -81,72 +85,61 @@ export class AliyunTranscriber implements TranscribeEngine {
     signal: AbortSignal,
   ): Promise<string> {
     hooks.status('准备上传', '正在向阿里百炼申请上传凭证…')
-    const fileSize = fs.statSync(audioPath).size
-
-    const initRes = await this.fetchJson<UploadPolicy>(
-      UPLOAD_INIT_URL,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal,
-      },
+    const policyRes = await this.fetchJson<{ data?: UploadPolicyData }>(
+      `${UPLOAD_POLICY_URL}?action=getPolicy&model=${MODEL}`,
+      { method: 'GET', headers: { Authorization: `Bearer ${apiKey}` }, signal },
       '申请上传凭证',
     )
-    const action = initRes.policy?.data?.form_action
-    if (!action) throw new Error('阿里百炼上传凭证格式异常')
+    const p = policyRes.data
+    if (!p?.policy || !p.signature || !p.upload_host || !p.upload_dir || !p.oss_access_key_id) {
+      throw new Error('阿里百炼上传凭证格式异常')
+    }
+    const fileSize = fs.statSync(audioPath).size
 
-    const fd = new FormData()
-    const formData = initRes.policy.data.form_data || {}
-    for (const [k, v] of Object.entries(formData)) fd.append(k, v)
-    // OSS 表单要求 file 字段放最后
-    fd.append(
-      'file',
-      new Blob([fs.readFileSync(audioPath)]),
-      `${initRes.policy.data.upload_dir || 'podmuse'}/${this.fileName(audioPath)}`,
-    )
+    // OSS PostObject 表单：签名字段名大写 Signature；file 字段必须放最后
+    const norm = audioPath.replace(/\\/g, '/')
+    const fileName = norm.slice(norm.lastIndexOf('/') + 1)
+    const objectKey = `${p.upload_dir}/${fileName}`
+    const fields: Array<[string, string]> = [
+      ['OSSAccessKeyId', p.oss_access_key_id],
+      ['Signature', p.signature],
+      ['policy', p.policy],
+      ['key', objectKey],
+      ['x-oss-object-acl', p.x_oss_object_acl || 'private'],
+      ['x-oss-forbid-overwrite', p.x_oss_forbid_overwrite || 'true'],
+      ['success_action_status', '200'],
+      ['x-oss-content-type', contentTypeFor(fileName)],
+    ]
+    const body = buildMultipart(fields, {
+      filename: fileName,
+      contentType: contentTypeFor(fileName),
+      data: fs.readFileSync(audioPath),
+    })
 
     hooks.status('上传音频', `正在上传到阿里百炼（${(fileSize / 1024 / 1024).toFixed(1)} MB）…`, 5)
-    const headers: Record<string, string> = {}
-    const addHeaders = initRes.policy.data.add_headers || {}
-    for (const [k, v] of Object.entries(addHeaders)) headers[k.toLowerCase()] = v
-    const putRes = await fetch(action, { method: 'PUT', body: fd, headers, signal })
-    if (!putRes.ok) {
-      throw new Error(`音频上传失败（HTTP ${putRes.status}），请检查网络后重试`)
-    }
-
-    const ossKey = formData['key'] as string | undefined
-    if (formData['x-oss-object-acl'] === 'default' && ossKey) {
-      return `https://dashscope-file.oss-cn-beijing.aliyuncs.com/${ossKey}`
-    }
-    // 兜底：从 form_action 拆 bucket 域名 + key
+    let res: Response
     try {
-      const u = new URL(action)
-      return `https://${u.host}${u.pathname}${ossKey ? '' : ''}`
-    } catch {
-      throw new Error('阿里百炼上传地址解析失败')
+      res = await fetch(p.upload_host, {
+        method: 'POST',
+        body: new Uint8Array(body),
+        headers: { 'Content-Type': `multipart/form-data; boundary=${BOUNDARY}` },
+        signal,
+      })
+    } catch (e) {
+      if (isAbortError(e)) throw e
+      throw new Error(`音频上传网络请求失败：${e instanceof Error ? e.message : String(e)}`)
     }
+    if (!res.ok) {
+      throw new Error(`音频上传失败（HTTP ${res.status}），请检查网络后重试`)
+    }
+    return `oss://${objectKey}`
   }
 
-  private fileName(p: string): string {
-    const norm = p.replace(/\\/g, '/')
-    return norm.slice(norm.lastIndexOf('/') + 1)
-  }
-
-  /** 提交异步转写任务，返回 task_id */
-  private async submitTask(
-    fileUrl: string,
-    language: TranscribeLanguage,
-    apiKey: string,
-  ): Promise<string> {
-    const parameters: Record<string, unknown> = {}
-    if (language === 'zh') parameters.language_hints = ['zh']
-    else if (language === 'en') parameters.language_hints = ['en']
-    // auto 不传 hints，让引擎自动检测（中英混合场景官方推荐 ['zh','en']）
-
+  /** 提交异步转写任务，返回 task_id。oss:// URL 必须带资源解析头，否则服务端读不到文件 */
+  private async submitTask(ossUrl: string, apiKey: string, signal: AbortSignal): Promise<string> {
     const data = {
       model: MODEL,
-      input: { file_urls: [fileUrl] },
-      ...(Object.keys(parameters).length ? { parameters } : {}),
+      input: { file_urls: [ossUrl] },
     }
     const res = await this.fetchJson<{
       output?: { task_id?: string }
@@ -160,8 +153,10 @@ export class AliyunTranscriber implements TranscribeEngine {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'X-DashScope-Async': 'enable',
+          'X-DashScope-OssResourceResolve': 'enable',
         },
         body: JSON.stringify(data),
+        signal,
       },
       '提交转写任务',
     )
@@ -180,7 +175,7 @@ export class AliyunTranscriber implements TranscribeEngine {
     signal: AbortSignal,
   ): Promise<string> {
     const startedAt = Date.now()
-    let lastLogPct = -1
+    let lastPct = -1
     for (;;) {
       if (signal.aborted) throw abortError()
       if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
@@ -191,6 +186,7 @@ export class AliyunTranscriber implements TranscribeEngine {
           task_status?: string
           results?: Array<{ transcription_url?: string; subtask_status?: string }>
           message?: string
+          code?: string
         }
         message?: string
       }>(
@@ -206,13 +202,15 @@ export class AliyunTranscriber implements TranscribeEngine {
         return url
       }
       if (status === 'FAILED') {
-        throw new Error(`阿里百炼转写失败：${out.message || res.message || '未知原因'}`)
+        throw new Error(
+          `阿里百炼转写失败：${out.message || out.code || res.message || '未知原因'}`,
+        )
       }
-      const elapsedMin = Math.floor((Date.now() - startedAt) / 60000)
       // 进度条按时间缓慢推进（上限 90），给用户「还在动」的反馈
       const pct = Math.min(90, Math.round(((Date.now() - startedAt) / POLL_TIMEOUT_MS) * 100))
-      if (pct !== lastLogPct) {
-        lastLogPct = pct
+      if (pct !== lastPct) {
+        lastPct = pct
+        const elapsedMin = Math.floor((Date.now() - startedAt) / 60000)
         hooks.status(
           '云端转写中',
           elapsedMin > 0 ? `已等待 ${elapsedMin} 分钟…` : '排队/识别中…',
@@ -261,14 +259,58 @@ export class AliyunTranscriber implements TranscribeEngine {
   }
 }
 
+const BOUNDARY = '----PodMuseFormBoundary7d3f2a91'
+
+function contentTypeFor(fileName: string): string {
+  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase()
+  const map: Record<string, string> = {
+    wav: 'audio/wav',
+    mp3: 'audio/mpeg',
+    m4a: 'audio/mp4',
+    flac: 'audio/flac',
+    ogg: 'application/ogg',
+    opus: 'application/ogg',
+    aac: 'audio/aac',
+    mp4: 'video/mp4',
+  }
+  return map[ext] || 'application/octet-stream'
+}
+
+/** 构造 multipart/form-data 请求体（表单字段在前、file 字段最后——OSS 要求） */
+function buildMultipart(
+  fields: Array<[string, string]>,
+  file: { filename: string; contentType: string; data: Buffer },
+): Buffer {
+  const parts: Buffer[] = []
+  for (const [name, value] of fields) {
+    parts.push(
+      Buffer.from(
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+        'utf-8',
+      ),
+    )
+  }
+  parts.push(
+    Buffer.from(
+      `--${BOUNDARY}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: ${file.contentType}\r\n\r\n`,
+      'utf-8',
+    ),
+  )
+  parts.push(file.data)
+  parts.push(Buffer.from(`\r\n--${BOUNDARY}--\r\n`, 'utf-8'))
+  return Buffer.concat(parts)
+}
+
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    const t = setTimeout(resolve, ms)
+    const t = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
     const onAbort = () => {
       clearTimeout(t)
       reject(abortError())
     }
     signal.addEventListener('abort', onAbort, { once: true })
-    setTimeout(() => signal.removeEventListener('abort', onAbort), ms + 10)
   })
 }

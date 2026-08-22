@@ -60,7 +60,7 @@ export default function TabTranscribe({
           {(
             [
               { val: 'local', label: t('本地 Whisper（免费）') },
-              { val: 'aliyun', label: t('阿里云百炼（云端·约0.29元/小时）') },
+              { val: 'aliyun', label: t('阿里云百炼（云端·按量计费）') },
               { val: 'xfyun', label: t('讯飞语音转写（云端·效果优先）') },
             ] as const
           ).map(({ val, label }) => (
