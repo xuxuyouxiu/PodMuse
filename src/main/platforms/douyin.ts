@@ -6,6 +6,48 @@ import * as fs from 'fs'
 import { getFreshDouyinCookie, markDouyinExpired, syncDouyinDownloaderCookie } from '../douyin-auth'
 import type { PlatformAdapter, AudioExtractResult } from './types'
 
+/** 抖音分享短链（v.douyin.com/xxx） */
+const SHORT_URL_RE = /^https?:\/\/v\.douyin\.com\//i
+
+const DOUYIN_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
+
+export function isDouyinShortUrl(url: string): boolean {
+  return SHORT_URL_RE.test((url || '').trim())
+}
+
+/**
+ * 解析抖音分享短链：跟随 302 拿最终 www.douyin.com/video|note/{id} 链接。
+ * 带浏览器 UA + 登录 cookie（裸请求易被风控拦截）；最终 URL 不含规范路径时，
+ * 兜底从响应 HTML 里提取。全部失败返回 null（调用方给出可行动的错误提示）。
+ */
+export async function resolveDouyinShortUrl(
+  url: string,
+  cookie: string,
+  signal?: AbortSignal,
+  fetchFn: typeof fetch = fetch,
+): Promise<string | null> {
+  try {
+    const res = await fetchFn(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': DOUYIN_UA, Cookie: cookie },
+      signal,
+    })
+    const body = await res.text().catch(() => '')
+    const candidates = [res.url || '', '']
+    for (const m of body.matchAll(/https?:\/\/www\.douyin\.com\/(?:video|note)\/\d+[^\s"'<>]*/g)) {
+      candidates.push(m[0])
+    }
+    for (const c of candidates) {
+      if (c && /www\.douyin\.com\/(video|note)\/\d+/.test(c)) return c
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 /** douyin-downloader 路径 */
 function getDownloaderPath(): string {
   return process.env.DOUYIN_DOWNLOADER_PATH || 'G:\\douyin-downloader-main'
@@ -56,6 +98,19 @@ export class DouyinAdapter implements PlatformAdapter {
     }
     syncDouyinDownloaderCookie(cookie)
 
+    // 短链（v.douyin.com/xxx）先在主进程解析为完整链接：下载器的裸客户端解析
+    // 常被风控拦截，失败时只会静默跳过并报「不支持的类型: short」，用户无法理解。
+    let targetUrl = url
+    if (isDouyinShortUrl(url)) {
+      const resolved = await resolveDouyinShortUrl(url, cookie, signal)
+      if (!resolved) {
+        throw new Error(
+          '抖音短链解析失败：请打开分享链接后复制浏览器地址栏的完整链接（www.douyin.com/video/…）重试',
+        )
+      }
+      targetUrl = resolved
+    }
+
     const downloaderPath = getDownloaderPath()
     const scriptPath = path.join(downloaderPath, 'douyin-cli.py')
 
@@ -75,7 +130,7 @@ export class DouyinAdapter implements PlatformAdapter {
 
     // 调用 Python
     const result = await new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
-      const proc = spawn('python', [scriptPath, url, '--output', downloadDir], {
+      const proc = spawn('python', [scriptPath, targetUrl, '--output', downloadDir], {
         cwd: downloaderPath,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
