@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，\
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.52.2] - 2026-08-22
+
+### 修复
+- **抖音下载全部失败（报「抖音下载失败 (exit 1)」）根治**：应用同步抖音登录态到下载器 config.yml 时，cookie 值不加引号裸写，本次会话 cookie 含 `%` 开头的值（如 home_can_add_dy_2_desktop=%220%22 等 6 处），导致 YAML 解析崩溃、下载脚本启动即挂。现在写入前做 YAML 安全转义（特殊字符加引号并转义），并已修复本机损坏的 config.yml（实测下载恢复 success:true）。同场景回归测试覆盖。
+- **下载失败错误信息可定位**：脚本崩溃无 JSON 输出时，错误信息附带 stderr 最后几行摘要，不再只显示 exit 1。
+
 ## [1.52.1] - 2026-08-22
 
 ### 修复

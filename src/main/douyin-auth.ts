@@ -601,7 +601,7 @@ export function syncDouyinDownloaderCookie(cookieStr: string): void {
         if (eq <= 0) return null
         const k = p.slice(0, eq).trim()
         const v = p.slice(eq + 1).trim()
-        return k && v ? `  ${k}: ${v}` : null
+        return k && v ? `  ${k}: ${yamlSafeValue(v)}` : null
       })
       .filter((x): x is string => x !== null)
     if (entries.length === 0) return
@@ -633,6 +633,19 @@ export function syncDouyinDownloaderCookie(cookieStr: string): void {
   } catch {
     // 同步失败不影响登录/下载主流程（下载器自身也可能不用 config.yml）
   }
+}
+
+/**
+ * cookie 值转 YAML 安全标量：含特殊字符（% @ { [ , : ' " # 等 YAML 结构/指令字符、
+ * 控制字符或首尾空格）时用双引号包裹并转义反斜杠与双引号，防止写出的 config.yml
+ * 解析崩溃（曾因 % 开头值导致整个下载器配置失效）。纯字母数字/_-./ 值保持裸串。
+ */
+export function yamlSafeValue(v: string): string {
+  if (!v) return "''"
+  const safe = /^[A-Za-z0-9_][A-Za-z0-9_\-./]*$/.test(v)
+  if (safe) return v
+  const escaped = v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  return `"${escaped}"`
 }
 
 /** 断开抖音：清空 cookie 与登录状态后保存 */

@@ -96,7 +96,12 @@ export class DouyinAdapter implements PlatformAdapter {
     } catch {}
 
     if (!downloadResult.success) {
-      throw new Error(downloadResult.error || `抖音下载失败 (exit ${result.code})`)
+      // 优先取脚本 JSON 的 error；脚本崩溃（无 JSON）时带上 stderr 摘要，避免只剩 "exit 1"
+      const stderrBrief = result.stderr.trim().split('\n').slice(-3).join(' | ').slice(0, 300)
+      throw new Error(
+        downloadResult.error ||
+        `抖音下载失败 (exit ${result.code})${stderrBrief ? '：' + stderrBrief : ''}`,
+      )
     }
 
     const audioFile = findLatestAudio(downloadDir)

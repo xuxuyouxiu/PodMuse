@@ -105,7 +105,8 @@ import {
   getFreshDouyinCookie,
   markDouyinExpired,
   syncDouyinDownloaderCookie,
-} from '../src/main/douyin-auth'
+  yamlSafeValue,
+  } from '../src/main/douyin-auth'
 import { restoreProtectedFields } from '../src/main/ipc/config-ipc'
 
 // ============================================================
@@ -552,6 +553,49 @@ describe('会话取鲜 / 下载器 cookie 同步', () => {
       else process.env.DOUYIN_DOWNLOADER_PATH = prev
       fs.rmSync(tmp, { recursive: true, force: true })
     }
+  })
+
+  it('syncDouyinDownloaderCookie：% 开头等特殊值必须加引号，保证 config.yml 可被 YAML 解析', async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pdm-dy-cfg-'))
+    const cfgPath = path.join(tmp, 'config.yml')
+    fs.writeFileSync(cfgPath, 'path: ./Downloaded/\ncookies:\n  old: v1\nproxy: \'\'\n', 'utf-8')
+    const prev = process.env.DOUYIN_DOWNLOADER_PATH
+    process.env.DOUYIN_DOWNLOADER_PATH = tmp
+    try {
+      // 真实故障场景：home_can_add_dy_2_desktop 值为 %22...（URL 编码的 JSON），裸写导致 YAML ScannerError
+      syncDouyinDownloaderCookie(
+        'home_can_add_dy_2_desktop=%220%22; strategyABtestKey=%abc; sessionid=ss',
+      )
+      const out = fs.readFileSync(cfgPath, 'utf-8')
+      expect(out).toContain('  home_can_add_dy_2_desktop: "%220%22"')
+      expect(out).toContain('  strategyABtestKey: "%abc"')
+      expect(out).toContain('  sessionid: ss') // 普通值保持裸串
+    } finally {
+      if (prev === undefined) delete process.env.DOUYIN_DOWNLOADER_PATH
+      else process.env.DOUYIN_DOWNLOADER_PATH = prev
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('yamlSafeValue：cookie 值转 YAML 安全标量', () => {
+  it('普通值保持裸串', () => {
+    expect(yamlSafeValue('ss')).toBe('ss')
+    expect(yamlSafeValue('abc_123.xyz-def')).toBe('abc_123.xyz-def')
+  })
+
+  it('%/@/{/[/,/:/空格等开头或含特殊字符时加双引号并转义', () => {
+    expect(yamlSafeValue('%220%22')).toBe('"%220%22"')
+    expect(yamlSafeValue('@flag')).toBe('"@flag"')
+    expect(yamlSafeValue('{a:b}')).toBe('"{a:b}"')
+    expect(yamlSafeValue('has space')).toBe('"has space"')
+    expect(yamlSafeValue('has"quote')).toBe('"has\\"quote"')
+    expect(yamlSafeValue('back\\slash')).toBe('"back\\\\slash"')
+    expect(yamlSafeValue('#comment')).toBe('"#comment"')
+  })
+
+  it('空值返回空串标量', () => {
+    expect(yamlSafeValue('')).toBe("''")
   })
 })
 
